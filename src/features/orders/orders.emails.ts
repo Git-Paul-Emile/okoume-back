@@ -2,10 +2,11 @@ import { fcfa } from '../../core/text/fcfa.js';
 import type { EmailMessage } from '../../infrastructure/email/emailSender.js';
 import type { OrderRecord } from './orders.repository.js';
 
+/** Tous les paiements se font à la livraison, au livreur : en espèces ou par Mobile Money. */
 const PAYMENT_LABEL: Record<OrderRecord['paymentMethod'], string> = {
-  cash: 'Espèces à la livraison',
-  airtel: 'Airtel Money',
-  moov: 'Moov Money',
+  cash: 'en espèces, à la livraison',
+  airtel: 'par Airtel Money, à la livraison',
+  moov: 'par Moov Money, à la livraison',
 };
 
 export const orderConfirmationEmail = (order: OrderRecord, appUrl: string): EmailMessage => ({

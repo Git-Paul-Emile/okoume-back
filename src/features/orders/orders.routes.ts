@@ -12,9 +12,7 @@ import {
   disputeBody,
   feeChangeDecisionBody,
   listOrdersQuery,
-  paymentDeclarationBody,
   quoteBody,
-  trackedPaymentDeclarationBody,
   trackingQuery,
 } from './orders.schemas.js';
 import type { OrdersService } from './orders.service.js';
@@ -53,12 +51,6 @@ export const createOrdersRoutes = (service: OrdersService, now: () => Date) => {
     asyncHandler(c.disputeDelivery),
   );
   router.post(
-    '/:id/payment-declarations',
-    requireCustomer(now),
-    validate({ params: idParam, body: paymentDeclarationBody }),
-    asyncHandler(c.declarePayment),
-  );
-  router.post(
     '/:id/cancellation-requests',
     requireCustomer(now),
     validate({ params: idParam, body: cancellationRequestBody }),
@@ -75,13 +67,6 @@ export const createOrderTrackingRoutes = (service: OrdersService) => {
   const c = createOrdersController(service);
   const router = Router();
   router.get('/', createAuthLimiter(), validate({ query: trackingQuery }), asyncHandler(c.track));
-  // Déclaration de paiement sans compte : même limite stricte, le code de suivi sert de preuve
-  router.post(
-    '/payment-declarations',
-    createAuthLimiter(),
-    validate({ body: trackedPaymentDeclarationBody }),
-    asyncHandler(c.declarePaymentByTracking),
-  );
   return router;
 };
 

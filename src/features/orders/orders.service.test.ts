@@ -151,45 +151,6 @@ describe('commandes du compte', () => {
   });
 });
 
-describe('paiement Mobile Money déclaré par le client', () => {
-  const airtel = (setupResult: ReturnType<typeof setup>) => ({
-    ...setupResult.input([{ variantId: setupResult.small.id, quantity: 1 }]),
-    paymentMethod: 'airtel' as const,
-  });
-
-  it('passe la commande « à vérifier » avec la référence, une seule fois', async () => {
-    const shop = setup();
-    const { order } = await shop.orders.place(airtel(shop), 'client-a');
-    const declared = await shop.orders.declarePayment('client-a', order.id, 'MP241118.1234.A56789');
-    expect(declared.paymentStatus).toBe('awaiting_verification');
-    expect(declared.paymentDeclaration).toMatchObject({ reference: 'MP241118.1234.A56789' });
-    await expect(shop.orders.declarePayment('client-a', order.id, 'AUTRE-REF')).rejects.toMatchObject({ status: 409 });
-  });
-
-  it('refuse la commande d’un autre client et une commande en espèces', async () => {
-    const shop = setup();
-    const { order } = await shop.orders.place(airtel(shop), 'client-a');
-    await expect(shop.orders.declarePayment('client-b', order.id, 'MP241118.1234')).rejects.toMatchObject({
-      status: 404,
-    });
-    const cash = await shop.orders.place(shop.input([{ variantId: shop.small.id, quantity: 1 }]), 'client-a');
-    await expect(shop.orders.declarePayment('client-a', cash.order.id, 'MP241118.1234')).rejects.toMatchObject({
-      status: 409,
-    });
-  });
-
-  it('accepte une déclaration sans compte avec le bon code de suivi seulement', async () => {
-    const shop = setup();
-    const placed = await shop.orders.place(airtel(shop), null);
-    const { number, trackingCode } = placed.order;
-    await expect(shop.orders.declarePaymentByTracking(number, 'MAUVAIS', 'MP241118.1234')).rejects.toMatchObject({
-      status: 404,
-    });
-    const tracked = await shop.orders.declarePaymentByTracking(number, trackingCode, 'MP241118.1234');
-    expect(tracked.paymentStatus).toBe('awaiting_verification');
-  });
-});
-
 describe('rattachement d’une commande passée sans compte', () => {
   it('rattache la commande au compte de même adresse, avec le bon code de suivi', async () => {
     const shop = setup();

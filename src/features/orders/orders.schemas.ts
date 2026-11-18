@@ -82,22 +82,6 @@ export const disputeBody = z.strictObject({
   reason: z.string().trim().min(10, 'Décrivez ce qui s’est passé (10 caractères au moins).').max(1_000),
 });
 
-/** Référence de la transaction Mobile Money, telle qu'elle figure dans le SMS de confirmation de l'opérateur */
-const paymentReference = z
-  .string()
-  .trim()
-  .min(4, 'Indiquez la référence de la transaction (4 caractères au moins).')
-  .max(60);
-
-export const paymentDeclarationBody = z.strictObject({ reference: paymentReference });
-
-/** Déclaration sans compte : numéro et code de suivi de la commande, plus la référence */
-export const trackedPaymentDeclarationBody = z.strictObject({
-  number: z.string().trim().min(5).max(30),
-  code: z.string().trim().min(4).max(12),
-  reference: paymentReference,
-});
-
 /** Rattachement d'une commande passée sans compte : numéro et code de suivi reçus par e-mail */
 export const claimOrderBody = z.strictObject({
   number: z.string().trim().min(5).max(30),

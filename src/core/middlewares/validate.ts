@@ -1,6 +1,10 @@
 import type { RequestHandler } from 'express';
 import type { z } from 'zod';
 import { ValidationError } from '../errors/AppError.js';
+import { installFrenchMessages } from '../validation/zodMessages.js';
+
+// Messages de validation clairs, en français, renvoyés aux formulaires (jamais « Invalid input »)
+installFrenchMessages();
 
 interface Schemas {
   body?: z.ZodType;

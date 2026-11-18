@@ -31,6 +31,8 @@ import { createEmailDeliveriesRoutes } from './features/email-deliveries/email-d
 import type { EmailDeliveriesService } from './features/email-deliveries/email-deliveries.service.js';
 import { createStaffAssistantRoutes } from './features/staff-assistant/staff-assistant.routes.js';
 import type { StaffAssistantService } from './features/staff-assistant/staff-assistant.service.js';
+import { createShopAssistantRoutes } from './features/shop-assistant/shop-assistant.routes.js';
+import type { ShopAssistantService } from './features/shop-assistant/shop-assistant.service.js';
 import { createAnalyticsRoutes, createStaffAnalyticsRoutes } from './features/analytics/analytics.routes.js';
 import type { AnalyticsService } from './features/analytics/analytics.service.js';
 import type { SupportService } from './features/support/support.service.js';
@@ -142,6 +144,7 @@ export interface ApiServices {
   staffAlerts: StaffAlertsService;
   emailDeliveries: EmailDeliveriesService;
   staffAssistant: StaffAssistantService;
+  shopAssistant: ShopAssistantService;
   analytics: AnalyticsService;
   staffAuth: StaffAuthService;
   categories: CategoriesService;
@@ -190,6 +193,7 @@ export const createApiRoutes = (services: ApiServices) => {
   router.use('/me', createPrivacyRoutes(services.privacy, services.now));
   router.use('/settings', createPublicSettingsRoutes(services.settings));
   router.use('/promo-codes', createPublicPromoCodesRoutes(services.publicPromoCodes));
+  router.use('/assistant', createShopAssistantRoutes(services.shopAssistant));
   router.use('/support', createSupportRoutes(services.support, services.now));
   router.use('/staff/support/tickets', createStaffSupportRoutes(services.support, services.staffAuth, services.now));
   router.use('/reviews', createReviewsRoutes(services.reviews, services.now));

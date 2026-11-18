@@ -27,6 +27,8 @@ import { staffAssistantRepository } from './features/staff-assistant/staff-assis
 import { createStaffAssistantService } from './features/staff-assistant/staff-assistant.service.js';
 import { analyticsRepository } from './features/analytics/analytics.repository.js';
 import { createAnalyticsService } from './features/analytics/analytics.service.js';
+import { createShopAssistantService } from './features/shop-assistant/shop-assistant.service.js';
+import { selectShopAssistant } from './infrastructure/ai/selectShopAssistant.js';
 import { createAccountService } from './features/account/account.service.js';
 import { customersRepository } from './features/auth/auth.repository.js';
 import { createAuthService } from './features/auth/auth.service.js';
@@ -108,6 +110,16 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
   const sessions = createSessionsService(sessionsRepository, now);
   const verification = createVerificationService(verificationRepository, now);
   const categories = createCategoriesService(categoriesRepository);
+  const products = createProductsService(productsRepository, categories, now);
+  const deliveryZones = createDeliveryZonesService(deliveryZonesRepository);
+  const publicPromoCodes = createPublicPromoCodesService(promoCodesRepository, now);
+  const settings = createSettingsService({
+    information: informationRepository,
+    loyalty: loyaltyRepository,
+    returnWindowDays: env.RETURN_WINDOW_DAYS,
+    reopenWindowDays: env.RETURN_REOPEN_DAYS,
+  });
+  const analytics = createAnalyticsService({ analytics: analyticsRepository, information: informationRepository, now });
   return {
     now,
     health: createHealthService(healthRepository),
@@ -121,8 +133,8 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
     }),
     staffAuth: createStaffAuthService({ staff: staffRepository, sessions, verification, email, now }),
     categories,
-    products: createProductsService(productsRepository, categories, now),
-    deliveryZones: createDeliveryZonesService(deliveryZonesRepository),
+    products,
+    deliveryZones,
     account: createAccountService({ customers: customersRepository, account: accountRepository }),
     orders: createOrdersService({
       orders: ordersRepository,
@@ -165,13 +177,8 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
     }),
     staffReturns: createStaffReturnsService(returnsRepository, ordersRepository, now),
     loyalty: createLoyaltyService(loyaltyRepository),
-    publicPromoCodes: createPublicPromoCodesService(promoCodesRepository, now),
-    settings: createSettingsService({
-      information: informationRepository,
-      loyalty: loyaltyRepository,
-      returnWindowDays: env.RETURN_WINDOW_DAYS,
-      reopenWindowDays: env.RETURN_REOPEN_DAYS,
-    }),
+    publicPromoCodes,
+    settings,
     loyaltyRewards: createLoyaltyRewardsService(loyaltyRewardsRepository, loyaltyRepository, promoCodesRepository, now),
     invoices: createInvoicesService(invoicesRepository, ordersRepository, now),
     staffLoyalty: createStaffLoyaltyService(loyaltyRepository),
@@ -196,7 +203,16 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
     privacy: createPrivacyService({ privacy: privacyRepository, customers: customersRepository, now }),
     content: createContentService({ content: contentRepository, now }),
     staffActivity: createStaffActivityService({ activity: staffActivityRepository, now }),
-    analytics: createAnalyticsService({ analytics: analyticsRepository, information: informationRepository, now }),
+    analytics,
+    shopAssistant: createShopAssistantService({
+      assistant: selectShopAssistant(env),
+      products,
+      categories,
+      zones: deliveryZones,
+      settings,
+      promoCodes: publicPromoCodes,
+      analytics,
+    }),
     staffAssistant: createStaffAssistantService({ assistant: staffAssistantRepository, now }),
     emailDeliveries: createEmailDeliveriesService({ deliveries: emailDeliveriesRepository, email }),
     staffAlerts: createStaffAlertsService({

@@ -49,17 +49,6 @@ export const createOrdersController = (service: OrdersService) => ({
     return sendSuccess(res, order, 200, 'Commande ajoutée à votre compte.');
   },
 
-  async declarePayment(req: Request, res: Response) {
-    const order = await service.declarePayment(req.customer!.id, String(req.params.id), req.body.reference);
-    return sendSuccess(res, order, 201, 'Paiement déclaré : notre équipe le vérifie.');
-  },
-
-  async declarePaymentByTracking(req: Request, res: Response) {
-    const { number, code, reference } = req.body as { number: string; code: string; reference: string };
-    const order = await service.declarePaymentByTracking(number, code, reference);
-    return sendSuccess(res, order, 201, 'Paiement déclaré : notre équipe le vérifie.');
-  },
-
   /** Devis du panier, avec ou sans compte : les erreurs de code ou de points sont dans la réponse. */
   async quote(req: Request, res: Response) {
     res.setHeader('Cache-Control', 'no-store');

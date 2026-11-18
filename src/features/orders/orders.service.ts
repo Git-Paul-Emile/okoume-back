@@ -332,22 +332,6 @@ export const createOrdersService = ({
       return toOrderDto((await orders.findById(order.id)) ?? order);
     },
 
-    /** Paiement Mobile Money envoyé par le client : la commande passe « à vérifier » avec sa référence. */
-    async declarePayment(customerId: string, orderId: string, reference: string) {
-      const order = await ownOrder(customerId, orderId);
-      await declare(order, reference);
-      return toOrderDto((await orders.findById(order.id)) ?? order);
-    },
-
-    /** Même déclaration sans compte, avec le numéro et le code de suivi reçus par e-mail. */
-    async declarePaymentByTracking(number: string, code: string, reference: string) {
-      const order = await orders.findByNumber(number.trim().toUpperCase());
-      if (!order || !safeEqual(order.trackingCode, code.trim().toUpperCase()))
-        throw new NotFoundError('Aucune commande ne correspond à ce numéro et ce code.');
-      await declare(order, reference);
-      return toTrackingDto((await orders.findById(order.id)) ?? order);
-    },
-
     /**
      * Suivi sans compte : numéro et code de suivi reçus par e-mail. Une réponse unique pour « inconnu » et
      * « mauvais code » ; aucune coordonnée du client dans la réponse.
@@ -359,14 +343,6 @@ export const createOrdersService = ({
       return toTrackingDto(order);
     },
   };
-
-  async function declare(order: OrderRecord, reference: string) {
-    if (order.paymentMethod === 'cash') throw new ConflictError('Cette commande se paie en espèces à la livraison.');
-    if (order.paymentStatus === 'awaiting_verification')
-      throw new ConflictError('Votre paiement est déjà déclaré : notre équipe le vérifie.');
-    if (!(await orders.declarePayment(order.id, reference, now())))
-      throw new ConflictError('Cette commande n’attend plus de paiement.');
-  }
 
   async function ownOrder(customerId: string, orderId: string) {
     const order = await orders.findForCustomer(orderId, customerId);

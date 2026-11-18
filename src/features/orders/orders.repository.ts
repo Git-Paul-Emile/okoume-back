@@ -94,8 +94,6 @@ export interface OrderRecord {
   dispute: DisputeRecord | null;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
-  /** Paiement Mobile Money déclaré par le client (référence de la transaction), en attente de vérification */
-  paymentDeclaration: { reference: string; at: Date } | null;
   /** Vérification anti-fraude (19.3) : null si aucun signal n'a été levé à la création */
   review: OrderReviewRecord | null;
   status: OrderStatus;
@@ -124,7 +122,6 @@ export type NewOrder = Omit<
   | 'deliveryCost'
   | 'feeChange'
   | 'dispute'
-  | 'paymentDeclaration'
   | 'review'
 > & {
   /** Clé du téléphone (8 derniers chiffres), pour rapprocher les commandes d'un même numéro */
@@ -204,11 +201,6 @@ export interface OrdersRepository {
   decideFeeChange(order: OrderRecord, accept: boolean, at: Date): Promise<TransitionResult>;
   /** false : une contestation est déjà ouverte. */
   openDispute(orderId: string, reason: string): Promise<boolean>;
-  /**
-   * Paiement Mobile Money déclaré : la commande passe « à vérifier » avec la référence. false si elle n'attend
-   * plus de paiement (déjà déclaré, payé ou annulé) : la condition est vérifiée dans la même écriture.
-   */
-  declarePayment(orderId: string, reference: string, at: Date): Promise<boolean>;
   /** Historique d'un numéro de téléphone avant une nouvelle commande (signaux anti-fraude) */
   riskHistory(phoneKey: string, email: string, at: Date): Promise<RiskHistory>;
   /** Seuil de montant au-delà duquel une commande est vérifiée (paramètres de la boutique) */
@@ -292,10 +284,6 @@ const toRecord = (row: OrderRow): OrderRecord => ({
         at: row.reviewedAt,
       }
     : null,
-  paymentDeclaration:
-    row.paymentReference && row.paymentDeclaredAt
-      ? { reference: row.paymentReference, at: row.paymentDeclaredAt }
-      : null,
   status: row.status,
   items: row.items.map((i) => ({
     productId: i.productId,
@@ -592,19 +580,6 @@ export const ordersRepository: OrdersRepository = {
 
   async claim(orderId, customerId) {
     const updated = await prisma.order.updateMany({ where: { id: orderId, customerId: null }, data: { customerId } });
-    return updated.count === 1;
-  },
-
-  async declarePayment(orderId, reference, at) {
-    const updated = await prisma.order.updateMany({
-      where: {
-        id: orderId,
-        paymentStatus: 'awaiting_payment',
-        paymentMethod: { not: 'cash' },
-        status: { not: 'cancelled' },
-      },
-      data: { paymentStatus: 'awaiting_verification', paymentReference: reference, paymentDeclaredAt: at },
-    });
     return updated.count === 1;
   },
 

@@ -74,3 +74,7 @@ export const createAuthLimiter = (): RequestHandler[] => [
     (req) => ipKeyGenerator(req.ip ?? '') + ':' + targetOf(req),
   ),
 ];
+
+/** Assistant d'achat : chaque question coûte un appel au modèle d'IA ; 30 questions par 15 minutes et par adresse. */
+export const createAssistantLimiter = () =>
+  limiter(30, 'Vous avez posé beaucoup de questions : réessayez dans quelques minutes ou écrivez-nous.');

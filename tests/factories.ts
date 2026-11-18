@@ -21,6 +21,12 @@ import { createMemoryEmailDeliveries } from './memoryEmailDeliveries.js';
 import { createStaffAssistantService } from '../src/features/staff-assistant/staff-assistant.service.js';
 import { createMemoryStaffAssistant } from './memoryStaffAssistant.js';
 import { createAnalyticsService } from '../src/features/analytics/analytics.service.js';
+import { createShopAssistantService } from '../src/features/shop-assistant/shop-assistant.service.js';
+import {
+  ShopAssistantUnavailableError,
+  type ShopAssistantAnswer,
+  type ShopAssistantRequest,
+} from '../src/infrastructure/ai/shopAssistant.js';
 import { createMemoryAnalytics } from './memoryAnalytics.js';
 import { createMemorySupport } from './memorySupport.js';
 import { createPublicPromoCodesService } from '../src/features/promo-codes/promo-codes.service.js';
@@ -375,8 +381,28 @@ export const buildApp = ({ databaseUp = true }: { databaseUp?: boolean } = {}) =
     information: shop.informationStore.repository,
     now: auth.clock.now,
   });
+  // Faux fournisseur d'IA : les tests fixent sa réponse et lisent la dernière demande
+  const shopAssistantFake = {
+    requests: [] as ShopAssistantRequest[],
+    reply: { reply: 'Bonjour', productSlugs: [] as string[] } as Omit<ShopAssistantAnswer, 'model'> | 'down',
+    async answer(request: ShopAssistantRequest): Promise<ShopAssistantAnswer> {
+      this.requests.push(request);
+      if (this.reply === 'down') throw new ShopAssistantUnavailableError();
+      return { ...this.reply, model: 'faux' };
+    },
+  };
+  const shopAssistant = createShopAssistantService({
+    assistant: shopAssistantFake,
+    products: shop.products,
+    categories: shop.categories,
+    zones: shop.deliveryZones,
+    settings: shop.settings,
+    promoCodes: shop.publicPromoCodes,
+    analytics,
+  });
   const services = {
     ...auth,
+    shopAssistantFake,
     ...shop,
     accountStore,
     account,
@@ -420,6 +446,7 @@ export const buildApp = ({ databaseUp = true }: { databaseUp?: boolean } = {}) =
     staffAlerts,
     emailDeliveries,
     staffAssistant,
+    shopAssistant,
     analytics,
     staffAuth: services.staffAuth,
     categories: shop.categories,

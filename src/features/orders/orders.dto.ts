@@ -30,8 +30,6 @@ export interface OrderDto {
   pointsUsed: number;
   paymentMethod: OrderRecord['paymentMethod'];
   paymentStatus: OrderRecord['paymentStatus'];
-  /** Paiement Mobile Money déclaré par le client, en attente de vérification par l'équipe */
-  paymentDeclaration: { reference: string; at: string } | null;
   status: OrderRecord['status'];
   history: Array<{ status: OrderRecord['status']; at: string; from?: OrderRecord['status']; note?: string }>;
   cancellationRequest: {
@@ -65,9 +63,6 @@ export const toOrderDto = (o: OrderRecord): OrderDto => ({
   pointsUsed: o.pointsUsed,
   paymentMethod: o.paymentMethod,
   paymentStatus: o.paymentStatus,
-  paymentDeclaration: o.paymentDeclaration
-    ? { reference: o.paymentDeclaration.reference, at: o.paymentDeclaration.at.toISOString() }
-    : null,
   status: o.status,
   history: o.events.map((e) => ({
     status: e.status,
@@ -101,22 +96,13 @@ export const toOrderDto = (o: OrderRecord): OrderDto => ({
 /** Suivi public par numéro et code : l'avancement et le contenu, jamais les coordonnées du client. */
 export type TrackingDto = Pick<
   OrderDto,
-  | 'number'
-  | 'status'
-  | 'history'
-  | 'items'
-  | 'totals'
-  | 'paymentMethod'
-  | 'paymentStatus'
-  | 'paymentDeclaration'
-  | 'createdAt'
+  'number' | 'status' | 'history' | 'items' | 'totals' | 'paymentMethod' | 'paymentStatus' | 'createdAt'
 > & {
   zoneName: string;
 };
 
 export const toTrackingDto = (o: OrderRecord): TrackingDto => {
-  const { number, status, history, items, totals, paymentMethod, paymentStatus, paymentDeclaration, createdAt } =
-    toOrderDto(o);
+  const { number, status, history, items, totals, paymentMethod, paymentStatus, createdAt } = toOrderDto(o);
   return {
     number,
     status,
@@ -125,8 +111,6 @@ export const toTrackingDto = (o: OrderRecord): TrackingDto => {
     totals,
     paymentMethod,
     paymentStatus,
-    // Saisie du client lui-même, lisible seulement avec le code de suivi
-    paymentDeclaration,
     createdAt,
     zoneName: o.zoneName,
   };

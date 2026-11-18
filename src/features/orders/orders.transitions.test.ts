@@ -40,7 +40,6 @@ const order = (overrides: Partial<OrderRecord> = {}): OrderRecord => ({
   pointsUsed: 0,
   paymentMethod: 'cash',
   paymentStatus: 'awaiting_payment',
-  paymentDeclaration: null,
   review: null,
   status: 'confirmed',
   items: [],

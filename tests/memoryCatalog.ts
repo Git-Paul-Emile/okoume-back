@@ -305,7 +305,6 @@ export function createMemoryCatalog(now: () => Date) {
         ...order,
         id: randomUUID(),
         status: 'confirmed',
-        paymentDeclaration: null,
         review: order.reviewStatus
           ? { status: 'pending', reasons: order.reviewReasons, note: null, by: null, at: null }
           : null,
@@ -432,14 +431,6 @@ export function createMemoryCatalog(now: () => Date) {
       const stored = orders.find((o) => o.id === orderId);
       if (!stored || stored.customerId) return false;
       stored.customerId = customerId;
-      return true;
-    },
-    async declarePayment(orderId, reference, at) {
-      const stored = orders.find((o) => o.id === orderId);
-      if (!stored || stored.paymentStatus !== 'awaiting_payment' || stored.paymentMethod === 'cash') return false;
-      if (stored.status === 'cancelled') return false;
-      stored.paymentStatus = 'awaiting_verification';
-      stored.paymentDeclaration = { reference, at };
       return true;
     },
     async openDispute(orderId, reason) {

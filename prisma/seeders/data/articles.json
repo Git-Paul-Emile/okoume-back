@@ -2,30 +2,30 @@
   {
     "id": "1",
     "slug": "payer-par-mobile-money",
-    "title": "Payer votre commande par Airtel Money ou Moov Money",
+    "title": "Payer votre commande par Airtel Money ou Moov Money, à la livraison",
     "category": "Guide d’achat",
-    "excerpt": "Les étapes pour régler votre commande par Mobile Money et ce qui se passe ensuite.",
+    "excerpt": "Rien à payer avant : vous réglez le livreur depuis votre téléphone, au moment de la réception.",
     "cover": "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/1.webp",
     "content": [
       {
         "type": "p",
-        "text": "Au moment de valider votre commande, choisissez Airtel Money ou Moov Money. La page de confirmation affiche le numéro bénéficiaire, le nom du bénéficiaire et le montant exact à envoyer."
+        "text": "Au moment de valider votre commande, choisissez Airtel Money ou Moov Money. Rien n’est à payer à ce moment-là : comme pour les espèces, le paiement se fait à la livraison."
       },
       {
         "type": "h2",
-        "text": "Indiquez votre numéro de commande"
+        "text": "À la réception"
       },
       {
         "type": "p",
-        "text": "Lorsque votre service le permet, saisissez votre numéro de commande comme référence du transfert. Cela nous permet de rapprocher votre paiement plus rapidement."
+        "text": "Quand le livreur vous remet votre commande, envoyez le montant exact depuis votre téléphone au numéro de la boutique, indiqué sur la page de confirmation et dans votre suivi. Saisissez votre numéro de commande comme référence lorsque votre service le permet."
       },
       {
         "type": "h2",
-        "text": "La vérification"
+        "text": "La confirmation"
       },
       {
         "type": "p",
-        "text": "Notre équipe vérifie la réception des fonds. Votre commande passe en préparation uniquement après cette vérification. Sans paiement vérifié sous 24 heures, la commande est annulée."
+        "text": "Le livreur vérifie la réception du paiement avec vous, puis la boutique enregistre l’encaissement avec la référence de la transaction. Votre facture et vos points de fidélité suivent."
       }
     ],
     "publishedAt": "2026-10-12T08:00:00.000Z",

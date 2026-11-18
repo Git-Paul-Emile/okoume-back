@@ -523,7 +523,7 @@ model Order {
   pointsUsed        Int           @default(0) @map("points_used")
   paymentMethod     PaymentMethod @map("payment_method")
   paymentStatus     PaymentStatus @map("payment_status")
-  /// Mobile Money : référence de la transaction déclarée par le client, à comparer avant d'enregistrer le paiement
+  /// Inutilisées depuis le paiement à la livraison pour tous les moyens (ancienne déclaration par le client)
   paymentReference  String?       @map("payment_reference")
   paymentDeclaredAt DateTime?     @map("payment_declared_at")
   status            OrderStatus   @default(confirmed)
