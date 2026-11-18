@@ -1,0 +1,109 @@
+# Blueprint Render (https://render.com/docs/blueprint-spec) : l'API et le worker, à la racine du dépôt.
+# Les secrets ne sont jamais écrits ici : « sync: false » les fait saisir dans la console à la création.
+# Le plan n'est pas fixé : il se choisit à la création (un worker n'a pas d'offre gratuite).
+# Région Frankfurt : la plus proche du Gabon, à associer à une base Neon en aws-eu-central-1 (Francfort).
+
+services:
+  - type: web
+    name: okoume-api
+    runtime: node
+    region: frankfurt
+    rootDir: api
+    # --include=dev : TypeScript et Prisma sont des dépendances de développement, ignorées avec NODE_ENV=production
+    # npm run build génère lui-même le client Prisma (prisma generate), sans base de données
+    buildCommand: npm ci --include=dev && npm run build
+    # Migrations appliquées avant le basculement du trafic (rules/20-qualite/cicd.md)
+    preDeployCommand: npx prisma migrate deploy
+    startCommand: npm start
+    # /ready vérifie aussi la base : une version qui ne la joint pas ne reçoit pas le trafic
+    healthCheckPath: /ready
+    # Déploiement seulement quand la CI (.github/workflows/ci.yml) a réussi sur le commit
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: APP_URL
+        sync: false
+      - key: API_PUBLIC_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: COOKIE_DOMAIN
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+  - type: worker
+    name: okoume-worker
+    runtime: node
+    region: frankfurt
+    rootDir: api
+    # npm run build génère lui-même le client Prisma (prisma generate), sans base de données
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:worker
+    # Déploiement seulement quand la CI (.github/workflows/ci.yml) a réussi sur le commit
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      # Le worker ne signe aucun jeton, mais la configuration commune exige la variable
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: APP_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      # Vérification des annonces par IA : seul le worker appelle le fournisseur
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: LISTING_REVIEW_MODEL
+        value: claude-opus-5-5
+      - key: CHAT_MODEL
+        value: claude-opus-5-5
+      # Gemini, prioritaire quand la clé est fournie
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-flash-latest
