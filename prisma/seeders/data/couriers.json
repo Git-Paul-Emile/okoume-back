@@ -1,0 +1,46 @@
+[
+  {
+    "id": "c1",
+    "firstName": "Patrick",
+    "lastName": "Ndong",
+    "phone": "+241 07 45 12 33",
+    "email": "patrick.ndong@exemple.ga",
+    "vehicle": "Moto",
+    "zoneIds": ["1", "2", "3", "4", "5", "6"],
+    "active": true,
+    "notes": "Disponible du lundi au samedi."
+  },
+  {
+    "id": "c2",
+    "firstName": "Rodrigue",
+    "lastName": "Mba",
+    "phone": "+241 06 21 88 04",
+    "email": "rodrigue.mba@exemple.ga",
+    "vehicle": "Moto",
+    "zoneIds": ["5", "6", "7", "8", "9", "10", "11"],
+    "active": true,
+    "notes": ""
+  },
+  {
+    "id": "c3",
+    "firstName": "Sylvie",
+    "lastName": "Ella",
+    "phone": "+241 07 63 40 19",
+    "email": "sylvie.ella@exemple.ga",
+    "vehicle": "Voiture",
+    "zoneIds": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"],
+    "active": true,
+    "notes": "Colis volumineux (électroménager, meubles)."
+  },
+  {
+    "id": "c4",
+    "firstName": "Junior",
+    "lastName": "Obiang",
+    "phone": "+241 06 90 15 72",
+    "email": "junior.obiang@exemple.ga",
+    "vehicle": "Moto",
+    "zoneIds": ["9", "10", "11", "12", "13", "14", "15"],
+    "active": false,
+    "notes": "En congé jusqu’à nouvel ordre."
+  }
+]

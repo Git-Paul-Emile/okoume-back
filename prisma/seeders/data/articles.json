@@ -1,0 +1,118 @@
+[
+  {
+    "id": "1",
+    "slug": "payer-par-mobile-money",
+    "title": "Payer votre commande par Airtel Money ou Moov Money",
+    "category": "Guide d’achat",
+    "excerpt": "Les étapes pour régler votre commande par Mobile Money et ce qui se passe ensuite.",
+    "cover": "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/1.webp",
+    "content": [
+      {
+        "type": "p",
+        "text": "Au moment de valider votre commande, choisissez Airtel Money ou Moov Money. La page de confirmation affiche le numéro bénéficiaire, le nom du bénéficiaire et le montant exact à envoyer."
+      },
+      {
+        "type": "h2",
+        "text": "Indiquez votre numéro de commande"
+      },
+      {
+        "type": "p",
+        "text": "Lorsque votre service le permet, saisissez votre numéro de commande comme référence du transfert. Cela nous permet de rapprocher votre paiement plus rapidement."
+      },
+      {
+        "type": "h2",
+        "text": "La vérification"
+      },
+      {
+        "type": "p",
+        "text": "Notre équipe vérifie la réception des fonds. Votre commande passe en préparation uniquement après cette vérification. Sans paiement vérifié sous 24 heures, la commande est annulée."
+      }
+    ],
+    "publishedAt": "2026-10-12T08:00:00.000Z",
+    "readingTime": 3,
+    "status": "published"
+  },
+  {
+    "id": "2",
+    "slug": "livraison-libreville",
+    "title": "Livraison à Libreville : comment ça fonctionne",
+    "category": "Livraison",
+    "excerpt": "Zones couvertes, frais, délais indicatifs et suivi de votre colis.",
+    "cover": "https://cdn.dummyjson.com/product-images/womens-bags/white-faux-leather-backpack/1.webp",
+    "content": [
+      {
+        "type": "p",
+        "text": "Les frais de livraison sont fixes par quartier, quel que soit le nombre d’articles. Ils s’affichent dès que vous choisissez votre quartier, avant la confirmation."
+      },
+      {
+        "type": "h2",
+        "text": "Un repère précis"
+      },
+      {
+        "type": "p",
+        "text": "Indiquez un repère facile à trouver : une pharmacie, une école, un carrefour connu. Le livreur vous appelle avant de passer."
+      },
+      {
+        "type": "h2",
+        "text": "Suivi"
+      },
+      {
+        "type": "p",
+        "text": "Vous recevez un e-mail à chaque étape importante : préparation, livreur trouvé, livraison en cours. Vous pouvez aussi suivre votre commande avec votre numéro et votre code de suivi."
+      }
+    ],
+    "publishedAt": "2026-10-05T08:00:00.000Z",
+    "readingTime": 4,
+    "status": "published"
+  },
+  {
+    "id": "3",
+    "slug": "choisir-son-smartphone",
+    "title": "Bien choisir son smartphone selon son budget",
+    "category": "Conseils",
+    "excerpt": "Stockage, autonomie, photo : les critères qui comptent vraiment.",
+    "cover": "https://cdn.dummyjson.com/product-images/smartphones/samsung-galaxy-s8/1.webp",
+    "content": [
+      {
+        "type": "p",
+        "text": "Commencez par votre usage : appels et messages, réseaux sociaux, photo ou jeux. Le stockage est souvent le critère le plus sous-estimé : 128 Go suffisent pour la plupart des usages."
+      },
+      {
+        "type": "h2",
+        "text": "Autonomie"
+      },
+      {
+        "type": "p",
+        "text": "Une batterie de 4 000 mAh ou plus tient généralement une journée complète. La recharge rapide est utile en cas de coupure de courant."
+      }
+    ],
+    "publishedAt": "2026-09-28T08:00:00.000Z",
+    "readingTime": 5,
+    "status": "published"
+  },
+  {
+    "id": "4",
+    "slug": "entretenir-ses-baskets",
+    "title": "Entretenir ses baskets pendant la saison des pluies",
+    "category": "Conseils",
+    "excerpt": "Nos astuces pour garder vos chaussures propres et sèches plus longtemps.",
+    "cover": "https://cdn.dummyjson.com/product-images/mens-shoes/nike-air-jordan-1-red-and-black/1.webp",
+    "content": [
+      {
+        "type": "p",
+        "text": "Après une averse, retirez les lacets et les semelles intérieures, puis laissez sécher à l’ombre. Évitez le soleil direct et les sources de chaleur qui déforment le cuir."
+      },
+      {
+        "type": "h2",
+        "text": "Protéger le cuir"
+      },
+      {
+        "type": "p",
+        "text": "Un imperméabilisant appliqué une fois par mois limite les taches d’eau et facilite le nettoyage."
+      }
+    ],
+    "publishedAt": "2026-09-20T08:00:00.000Z",
+    "readingTime": 3,
+    "status": "published"
+  }
+]

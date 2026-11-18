@@ -1,0 +1,622 @@
+[
+  {
+    "id": "u1",
+    "firstName": "Awa",
+    "lastName": "Mba",
+    "email": "demo@boutique.ga",
+    "phone": "+241 07 12 34 56",
+    "birthday": "1994-03-14",
+    "referralCode": "AWA-7K2Q",
+    "loyaltyPoints": 340,
+    "totalSpent": 412000,
+    "tier": "argent",
+    "favorites": ["1", "14", "34"],
+    "recentlyViewed": [],
+    "addresses": [
+      {
+        "id": "a1",
+        "label": "Maison",
+        "recipient": "Awa Mba",
+        "phone": "+241 07 12 34 56",
+        "zoneId": "1",
+        "landmark": "Derrière la pharmacie d’Akanda, portail vert",
+        "instructions": "Appeler avant de passer",
+        "isDefault": true
+      }
+    ],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-06-02T10:00:00.000Z"
+  },
+  {
+    "id": "u2",
+    "firstName": "Ornella",
+    "lastName": "Bibang",
+    "email": "ornella.bibang@exemple.ga",
+    "phone": "+241 06 94 65 55",
+    "birthday": null,
+    "referralCode": "ORN-7939",
+    "loyaltyPoints": 0,
+    "totalSpent": 863300,
+    "tier": "argent",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-04-07T00:00:00.000Z"
+  },
+  {
+    "id": "u3",
+    "firstName": "Brice",
+    "lastName": "Mabika",
+    "email": "brice.mabika@exemple.ga",
+    "phone": "+241 06 96 93 92",
+    "birthday": null,
+    "referralCode": "BRI-2612",
+    "loyaltyPoints": 0,
+    "totalSpent": 4323700,
+    "tier": "or",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-01-02T00:00:00.000Z"
+  },
+  {
+    "id": "u4",
+    "firstName": "Grâce",
+    "lastName": "Obame",
+    "email": "grace.obame@exemple.ga",
+    "phone": "+241 07 23 41 34",
+    "birthday": null,
+    "referralCode": "GRÂ-4116",
+    "loyaltyPoints": 0,
+    "totalSpent": 950400,
+    "tier": "argent",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-01-18T00:00:00.000Z"
+  },
+  {
+    "id": "u5",
+    "firstName": "Yannick",
+    "lastName": "Okomo",
+    "email": "yannick.okomo@exemple.ga",
+    "phone": "+241 06 64 33 45",
+    "birthday": null,
+    "referralCode": "YAN-8579",
+    "loyaltyPoints": 0,
+    "totalSpent": 1757300,
+    "tier": "or",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-01-07T00:00:00.000Z"
+  },
+  {
+    "id": "u6",
+    "firstName": "Murielle",
+    "lastName": "Koumba",
+    "email": "murielle.koumba@exemple.ga",
+    "phone": "+241 07 80 22 16",
+    "birthday": null,
+    "referralCode": "MUR-9856",
+    "loyaltyPoints": 0,
+    "totalSpent": 1261200,
+    "tier": "argent",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-04-12T00:00:00.000Z"
+  },
+  {
+    "id": "u7",
+    "firstName": "Steeve",
+    "lastName": "Ndong",
+    "email": "steeve.ndong@exemple.ga",
+    "phone": "+241 06 31 62 72",
+    "birthday": null,
+    "referralCode": "STE-8886",
+    "loyaltyPoints": 0,
+    "totalSpent": 221100,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-04-08T00:00:00.000Z"
+  },
+  {
+    "id": "u8",
+    "firstName": "Laetitia",
+    "lastName": "Bibang",
+    "email": "laetitia.bibang@exemple.ga",
+    "phone": "+241 06 31 58 10",
+    "birthday": null,
+    "referralCode": "LAE-7396",
+    "loyaltyPoints": 0,
+    "totalSpent": 122800,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-01-19T00:00:00.000Z"
+  },
+  {
+    "id": "u9",
+    "firstName": "Cédric",
+    "lastName": "Ondo",
+    "email": "cedric.ondo@exemple.ga",
+    "phone": "+241 07 46 64 99",
+    "birthday": null,
+    "referralCode": "CÉD-8973",
+    "loyaltyPoints": 0,
+    "totalSpent": 143500,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2025-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "u10",
+    "firstName": "Prisca",
+    "lastName": "Moussavou",
+    "email": "prisca.moussavou@exemple.ga",
+    "phone": "+241 07 37 17 84",
+    "birthday": null,
+    "referralCode": "PRI-9883",
+    "loyaltyPoints": 0,
+    "totalSpent": 84000,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-03-14T00:00:00.000Z"
+  },
+  {
+    "id": "u11",
+    "firstName": "Junior",
+    "lastName": "Obame",
+    "email": "junior.obame@exemple.ga",
+    "phone": "+241 07 17 16 84",
+    "birthday": null,
+    "referralCode": "JUN-8811",
+    "loyaltyPoints": 0,
+    "totalSpent": 5000,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2025-10-22T00:00:00.000Z"
+  },
+  {
+    "id": "u12",
+    "firstName": "Nadège",
+    "lastName": "Essono",
+    "email": "nadege.essono@exemple.ga",
+    "phone": "+241 06 17 75 20",
+    "birthday": null,
+    "referralCode": "NAD-4044",
+    "loyaltyPoints": 0,
+    "totalSpent": 244700,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2025-12-17T00:00:00.000Z"
+  },
+  {
+    "id": "u13",
+    "firstName": "Hervé",
+    "lastName": "Mintsa",
+    "email": "herve.mintsa@exemple.ga",
+    "phone": "+241 06 96 40 61",
+    "birthday": null,
+    "referralCode": "HER-2964",
+    "loyaltyPoints": 0,
+    "totalSpent": 258000,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2025-11-30T00:00:00.000Z"
+  },
+  {
+    "id": "u14",
+    "firstName": "Sandrine",
+    "lastName": "Mouele",
+    "email": "sandrine.mouele@exemple.ga",
+    "phone": "+241 06 89 20 63",
+    "birthday": null,
+    "referralCode": "SAN-9565",
+    "loyaltyPoints": 0,
+    "totalSpent": 764300,
+    "tier": "argent",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-02-27T00:00:00.000Z"
+  },
+  {
+    "id": "u15",
+    "firstName": "Loïc",
+    "lastName": "Assoumou",
+    "email": "loic.assoumou@exemple.ga",
+    "phone": "+241 06 95 50 40",
+    "birthday": null,
+    "referralCode": "LOÏ-5351",
+    "loyaltyPoints": 0,
+    "totalSpent": 113100,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-02-24T00:00:00.000Z"
+  },
+  {
+    "id": "u16",
+    "firstName": "Carine",
+    "lastName": "Nguema",
+    "email": "carine.nguema@exemple.ga",
+    "phone": "+241 07 68 50 19",
+    "birthday": null,
+    "referralCode": "CAR-1152",
+    "loyaltyPoints": 0,
+    "totalSpent": 203200,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-03-29T00:00:00.000Z"
+  },
+  {
+    "id": "u17",
+    "firstName": "Fabrice",
+    "lastName": "Mavoungou",
+    "email": "fabrice.mavoungou@exemple.ga",
+    "phone": "+241 06 19 78 37",
+    "birthday": null,
+    "referralCode": "FAB-9288",
+    "loyaltyPoints": 0,
+    "totalSpent": 40500,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2025-11-23T00:00:00.000Z"
+  },
+  {
+    "id": "u18",
+    "firstName": "Merveille",
+    "lastName": "Ondo",
+    "email": "merveille.ondo@exemple.ga",
+    "phone": "+241 07 18 41 57",
+    "birthday": null,
+    "referralCode": "MER-5669",
+    "loyaltyPoints": 0,
+    "totalSpent": 150000,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-03-29T00:00:00.000Z"
+  },
+  {
+    "id": "u19",
+    "firstName": "Arnaud",
+    "lastName": "Ella",
+    "email": "arnaud.ella@exemple.ga",
+    "phone": "+241 07 88 93 77",
+    "birthday": null,
+    "referralCode": "ARN-1128",
+    "loyaltyPoints": 0,
+    "totalSpent": 327500,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-01-09T00:00:00.000Z"
+  },
+  {
+    "id": "u20",
+    "firstName": "Christelle",
+    "lastName": "Okomo",
+    "email": "christelle.okomo@exemple.ga",
+    "phone": "+241 06 27 43 24",
+    "birthday": null,
+    "referralCode": "CHR-2753",
+    "loyaltyPoints": 0,
+    "totalSpent": 245000,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-02-14T00:00:00.000Z"
+  },
+  {
+    "id": "u21",
+    "firstName": "Ulrich",
+    "lastName": "Okomo",
+    "email": "ulrich.okomo@exemple.ga",
+    "phone": "+241 07 46 87 36",
+    "birthday": null,
+    "referralCode": "ULR-6617",
+    "loyaltyPoints": 0,
+    "totalSpent": 87600,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-03-23T00:00:00.000Z"
+  },
+  {
+    "id": "u22",
+    "firstName": "Joëlle",
+    "lastName": "Bibang",
+    "email": "joelle.bibang@exemple.ga",
+    "phone": "+241 07 74 72 42",
+    "birthday": null,
+    "referralCode": "JOË-1832",
+    "loyaltyPoints": 0,
+    "totalSpent": 1198000,
+    "tier": "argent",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2025-11-07T00:00:00.000Z"
+  },
+  {
+    "id": "u23",
+    "firstName": "Davy",
+    "lastName": "Mintsa",
+    "email": "davy.mintsa@exemple.ga",
+    "phone": "+241 07 45 15 10",
+    "birthday": null,
+    "referralCode": "DAV-6464",
+    "loyaltyPoints": 0,
+    "totalSpent": 241800,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2025-11-20T00:00:00.000Z"
+  },
+  {
+    "id": "u24",
+    "firstName": "Larissa",
+    "lastName": "Moussavou",
+    "email": "larissa.moussavou@exemple.ga",
+    "phone": "+241 07 30 66 80",
+    "birthday": null,
+    "referralCode": "LAR-8007",
+    "loyaltyPoints": 0,
+    "totalSpent": 873500,
+    "tier": "argent",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2025-11-19T00:00:00.000Z"
+  },
+  {
+    "id": "u25",
+    "firstName": "Rodrigue",
+    "lastName": "Okomo",
+    "email": "rodrigue.okomo@exemple.ga",
+    "phone": "+241 06 19 98 29",
+    "birthday": null,
+    "referralCode": "ROD-9938",
+    "loyaltyPoints": 0,
+    "totalSpent": 11500,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-04-29T00:00:00.000Z"
+  },
+  {
+    "id": "u26",
+    "firstName": "Inès",
+    "lastName": "Obame",
+    "email": "ines.obame@exemple.ga",
+    "phone": "+241 06 65 26 15",
+    "birthday": null,
+    "referralCode": "INÈ-6050",
+    "loyaltyPoints": 0,
+    "totalSpent": 100000,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-01-27T00:00:00.000Z"
+  },
+  {
+    "id": "u27",
+    "firstName": "Patrick",
+    "lastName": "Engone",
+    "email": "patrick.engone@exemple.ga",
+    "phone": "+241 07 36 97 41",
+    "birthday": null,
+    "referralCode": "PAT-2684",
+    "loyaltyPoints": 0,
+    "totalSpent": 120000,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-04-21T00:00:00.000Z"
+  },
+  {
+    "id": "u28",
+    "firstName": "Flore",
+    "lastName": "Engone",
+    "email": "flore.engone@exemple.ga",
+    "phone": "+241 07 89 29 40",
+    "birthday": null,
+    "referralCode": "FLO-3662",
+    "loyaltyPoints": 0,
+    "totalSpent": 177000,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2025-10-14T00:00:00.000Z"
+  },
+  {
+    "id": "u29",
+    "firstName": "Wilfried",
+    "lastName": "Ella",
+    "email": "wilfried.ella@exemple.ga",
+    "phone": "+241 06 32 52 62",
+    "birthday": null,
+    "referralCode": "WIL-5065",
+    "loyaltyPoints": 0,
+    "totalSpent": 182100,
+    "tier": "bronze",
+    "favorites": [],
+    "recentlyViewed": [],
+    "addresses": [],
+    "notificationPrefs": {
+      "email": true,
+      "push": false
+    },
+    "hasOrdered": true,
+    "createdAt": "2026-01-16T00:00:00.000Z"
+  }
+]

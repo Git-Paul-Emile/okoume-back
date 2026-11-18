@@ -1,0 +1,7 @@
+[
+  {
+    "id": "cr1",
+    "name": "Comptable",
+    "permissions": ["pilotage:consulter", "paiements:consulter", "paiements:valider", "exports:exporter"]
+  }
+]

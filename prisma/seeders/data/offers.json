@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1",
+    "label": "Offre exclusive",
+    "title": "Montres homme, le meilleur choix",
+    "productId": "40",
+    "href": null,
+    "active": true,
+    "order": 1
+  },
+  {
+    "id": "2",
+    "label": "Offre exclusive",
+    "title": "Parfums de créateur",
+    "productId": "62",
+    "href": "/catalogue?categorie=parfums",
+    "active": true,
+    "order": 2
+  },
+  {
+    "id": "3",
+    "label": "Offre exclusive",
+    "title": "Le son sans fil",
+    "productId": "14",
+    "href": null,
+    "active": true,
+    "order": 3
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "l1",
+    "userId": "u1",
+    "points": 210,
+    "type": "earn",
+    "label": "Commande CMD-2026-00102 livrée et payée",
+    "createdAt": "2026-08-14T10:00:00.000Z"
+  },
+  {
+    "id": "l2",
+    "userId": "u1",
+    "points": 130,
+    "type": "earn",
+    "label": "Commande CMD-2026-00147 livrée et payée",
+    "createdAt": "2026-09-21T10:00:00.000Z"
+  }
+]

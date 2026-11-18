@@ -1,0 +1,47 @@
+import type { StaffProductRecord } from './staff-catalog.repository.js';
+
+/** Vue de l'équipe : tout le produit, y compris coût d'achat, stock, réservations et stock non revendable. */
+export const toStaffProductDto = (p: StaffProductRecord) => ({
+  id: p.id,
+  slug: p.slug,
+  sku: p.sku,
+  name: p.name,
+  status: p.status,
+  categoryId: p.categoryId,
+  brand: p.brand,
+  shortDescription: p.shortDescription,
+  description: p.description,
+  specs: p.specs,
+  usageTips: p.usageTips,
+  tax: { vatRate: p.vatRate, hsCode: p.hsCode },
+  images: p.images,
+  thumbnail: p.images[0] ?? null,
+  featured: p.featured,
+  isNew: p.isNew,
+  dealOfTheDay: p.dealOfTheDay,
+  tags: p.tags,
+  promotion: p.promotion && {
+    type: p.promotion.type,
+    value: p.promotion.value,
+    startsAt: p.promotion.startsAt.toISOString(),
+    endsAt: p.promotion.endsAt.toISOString(),
+  },
+  variants: p.variants.map((v) => ({
+    id: v.id,
+    sku: v.sku,
+    label: v.label,
+    attributes: v.attributes,
+    price: v.price,
+    cost: v.cost,
+    stock: v.stock,
+    reserved: v.reserved,
+    available: Math.max(0, v.stock - v.reserved),
+    unsellable: v.unsellable,
+    lowStockThreshold: v.lowStockThreshold,
+    image: v.image,
+  })),
+  createdAt: p.createdAt.toISOString(),
+  updatedAt: p.updatedAt.toISOString(),
+});
+
+export type StaffProductDto = ReturnType<typeof toStaffProductDto>;

@@ -1,0 +1,152 @@
+[
+  {
+    "id": "1",
+    "name": "Akanda",
+    "city": "Akanda",
+    "fee": 2000,
+    "eta": "24 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1400
+  },
+  {
+    "id": "2",
+    "name": "Angondjé",
+    "city": "Akanda",
+    "fee": 2500,
+    "eta": "24 à 48 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1800
+  },
+  {
+    "id": "3",
+    "name": "Batterie IV",
+    "city": "Libreville",
+    "fee": 1500,
+    "eta": "24 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1000
+  },
+  {
+    "id": "4",
+    "name": "Glass",
+    "city": "Libreville",
+    "fee": 1500,
+    "eta": "24 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1000
+  },
+  {
+    "id": "5",
+    "name": "Louis",
+    "city": "Libreville",
+    "fee": 1500,
+    "eta": "24 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1000
+  },
+  {
+    "id": "6",
+    "name": "Mont-Bouët",
+    "city": "Libreville",
+    "fee": 1500,
+    "eta": "24 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1000
+  },
+  {
+    "id": "7",
+    "name": "Nombakélé",
+    "city": "Libreville",
+    "fee": 1500,
+    "eta": "24 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1000
+  },
+  {
+    "id": "8",
+    "name": "Nzeng-Ayong",
+    "city": "Libreville",
+    "fee": 2000,
+    "eta": "24 à 48 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1400
+  },
+  {
+    "id": "9",
+    "name": "Okala",
+    "city": "Libreville",
+    "fee": 2500,
+    "eta": "24 à 48 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1800
+  },
+  {
+    "id": "10",
+    "name": "Oloumi",
+    "city": "Libreville",
+    "fee": 1500,
+    "eta": "24 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1000
+  },
+  {
+    "id": "11",
+    "name": "Owendo",
+    "city": "Owendo",
+    "fee": 3000,
+    "eta": "48 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 2100
+  },
+  {
+    "id": "12",
+    "name": "PK8",
+    "city": "Libreville",
+    "fee": 2500,
+    "eta": "24 à 48 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1800
+  },
+  {
+    "id": "13",
+    "name": "Sablière",
+    "city": "Libreville",
+    "fee": 2000,
+    "eta": "24 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1400
+  },
+  {
+    "id": "14",
+    "name": "Charbonnages",
+    "city": "Libreville",
+    "fee": 2000,
+    "eta": "24 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": true,
+    "courierCost": 1400
+  },
+  {
+    "id": "15",
+    "name": "Ntoum",
+    "city": "Ntoum",
+    "fee": 5000,
+    "eta": "48 à 72 h",
+    "days": "Du lundi au samedi, de 9 h à 18 h",
+    "available": false,
+    "courierCost": 3500
+  }
+]

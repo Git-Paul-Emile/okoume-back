@@ -1,0 +1,93 @@
+[
+  {
+    "id": "home-promo-1",
+    "placement": "home-promo",
+    "advertiser": null,
+    "startsAt": null,
+    "endsAt": null,
+    "priority": 3,
+    "image": "/ads/publicite-1-desktop.svg",
+    "imageMobile": "/ads/publicite-1-mobile.svg",
+    "alt": "Votre entreprise pourrait être ici. Cet espace publicitaire est disponible : réserver cet espace.",
+    "href": "/contact?sujet=publicite",
+    "active": true
+  },
+  {
+    "id": "home-promo-2",
+    "placement": "home-promo",
+    "advertiser": null,
+    "startsAt": null,
+    "endsAt": null,
+    "priority": 2,
+    "image": "/ads/publicite-2-desktop.svg",
+    "imageMobile": "/ads/publicite-2-mobile.svg",
+    "alt": "Faites connaître votre marque auprès des visiteurs de la boutique : devenir annonceur.",
+    "href": "/contact?sujet=publicite",
+    "active": true
+  },
+  {
+    "id": "home-promo-3",
+    "placement": "home-promo",
+    "advertiser": null,
+    "startsAt": null,
+    "endsAt": null,
+    "priority": 1,
+    "image": "/ads/publicite-3-desktop.svg",
+    "imageMobile": "/ads/publicite-3-mobile.svg",
+    "alt": "Annoncez sur la page d’accueil, à la semaine ou au mois : nous contacter.",
+    "href": "/contact?sujet=publicite",
+    "active": true
+  },
+  {
+    "id": "home-promo-side-1",
+    "placement": "home-promo-side",
+    "advertiser": null,
+    "startsAt": null,
+    "endsAt": null,
+    "priority": 3,
+    "image": "/ads/publicite-1-cote.svg",
+    "imageMobile": "/ads/publicite-1-mobile.svg",
+    "alt": "Votre entreprise pourrait être ici. Cet espace publicitaire est disponible : réserver cet espace.",
+    "href": "/contact?sujet=publicite",
+    "active": true
+  },
+  {
+    "id": "home-promo-side-2",
+    "placement": "home-promo-side",
+    "advertiser": null,
+    "startsAt": null,
+    "endsAt": null,
+    "priority": 2,
+    "image": "/ads/publicite-2-cote.svg",
+    "imageMobile": "/ads/publicite-2-mobile.svg",
+    "alt": "Faites connaître votre marque auprès des visiteurs de la boutique : devenir annonceur.",
+    "href": "/contact?sujet=publicite",
+    "active": true
+  },
+  {
+    "id": "home-promo-side-3",
+    "placement": "home-promo-side",
+    "advertiser": null,
+    "startsAt": null,
+    "endsAt": null,
+    "priority": 1,
+    "image": "/ads/publicite-3-cote.svg",
+    "imageMobile": "/ads/publicite-3-mobile.svg",
+    "alt": "Annoncez sur la page d’accueil, à la semaine ou au mois : nous contacter.",
+    "href": "/contact?sujet=publicite",
+    "active": true
+  },
+  {
+    "id": "exemple-annonceur",
+    "placement": "home-promo",
+    "advertiser": "Nom de l’annonceur",
+    "startsAt": "2026-11-01T00:00:00.000Z",
+    "endsAt": "2026-11-30T22:59:00.000Z",
+    "priority": 10,
+    "image": "/ads/annonceur-desktop.jpg",
+    "imageMobile": "/ads/annonceur-mobile.jpg",
+    "alt": "Texte affiché sur le visuel de l’annonceur",
+    "href": "https://www.site-de-l-annonceur.ga",
+    "active": false
+  }
+]

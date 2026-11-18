@@ -1,0 +1,15 @@
+[
+  {
+    "id": "ar1",
+    "version": 1,
+    "params": {
+      "slowDays": 60,
+      "slowDiscount": 10,
+      "promoDays": 30,
+      "minStock": 10
+    },
+    "note": "Paramètres d’origine",
+    "by": "Système",
+    "at": "2026-09-01T08:00:00.000Z"
+  }
+]

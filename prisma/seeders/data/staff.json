@@ -1,0 +1,31 @@
+[
+  {
+    "id": "adm1",
+    "firstName": "Nadia",
+    "lastName": "Obame",
+    "email": "admin@boutique.ga",
+    "role": "super_admin"
+  },
+  {
+    "id": "adm2",
+    "firstName": "Kevin",
+    "lastName": "Ndong",
+    "email": "stock@boutique.ga",
+    "role": "stock_manager"
+  },
+  {
+    "id": "adm3",
+    "firstName": "Grâce",
+    "lastName": "Mintsa",
+    "email": "commandes@boutique.ga",
+    "role": "orders_manager"
+  },
+  {
+    "id": "adm4",
+    "firstName": "Joël",
+    "lastName": "Mintsa",
+    "email": "joel.mintsa@boutique.ga",
+    "role": "stock_manager",
+    "status": "invited"
+  }
+]

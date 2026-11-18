@@ -1,0 +1,88 @@
+{
+  "id": 1,
+  "currency": "XAF",
+  "loyalty": {
+    "pointValue": 50,
+    "minRedeem": 100,
+    "earnPer": 1000
+  },
+  "maxDiscountRate": 0.5,
+  "tiers": [
+    {
+      "id": "bronze",
+      "name": "Bronze",
+      "threshold": 0,
+      "perks": ["1 point par tranche de 1 000 FCFA", "Points sans date d’expiration"]
+    },
+    {
+      "id": "argent",
+      "name": "Argent",
+      "threshold": 300000,
+      "perks": ["Avantages Bronze", "Codes promotionnels exclusifs"]
+    },
+    {
+      "id": "or",
+      "name": "Or",
+      "threshold": 1000000,
+      "perks": ["Avantages Argent", "Offres ponctuelles sur la livraison"]
+    }
+  ],
+  "mobileMoney": [
+    {
+      "method": "airtel",
+      "label": "Airtel Money",
+      "number": "+241 07 00 00 00",
+      "beneficiary": "NOM DU BÉNÉFICIAIRE",
+      "instructions": "Composez *150# depuis votre ligne Airtel, choisissez « Transfert d’argent », saisissez le numéro bénéficiaire et le montant exact, puis indiquez votre numéro de commande en référence."
+    },
+    {
+      "method": "moov",
+      "label": "Moov Money",
+      "number": "+241 06 00 00 00",
+      "beneficiary": "NOM DU BÉNÉFICIAIRE",
+      "instructions": "Composez *555# depuis votre ligne Moov, choisissez « Transfert », saisissez le numéro bénéficiaire et le montant exact, puis indiquez votre numéro de commande en référence."
+    }
+  ],
+  "mobileMoneyExpiryHours": 24,
+  "returnWindowDays": 7,
+  "support": {
+    "whatsapp": "24107000000",
+    "phone": "+241 07 00 00 00",
+    "email": "contact@exemple.ga",
+    "hours": "Du lundi au samedi, de 8 h 30 à 18 h",
+    "address": "Libreville, Gabon"
+  },
+  "social": {
+    "facebook": "https://facebook.com",
+    "instagram": "https://instagram.com",
+    "tiktok": "https://tiktok.com"
+  },
+  "reopenWindowDays": 15,
+  "birthdayReward": {
+    "enabled": true,
+    "points": 200,
+    "percent": 10
+  },
+  "legal": {
+    "companyName": "Okoumé SARL (à compléter)",
+    "nif": "À compléter",
+    "rccm": "À compléter",
+    "vatNote": "Mentions fiscales à valider avec un expert-comptable avant la mise en ligne."
+  },
+  "supportSla": {
+    "high": 4,
+    "normal": 24
+  },
+  "alertEscalationHours": 4,
+  "reviewAmount": 500000,
+  "referralReward": 300,
+  "welcomeCode": {
+    "enabled": true,
+    "percent": 10,
+    "validDays": 30
+  },
+  "deliveryVatRate": 18,
+  "maxAddresses": 5,
+  "assistantMonthlyBudget": 5000,
+  "cashPreparationAlertHours": 24
+}

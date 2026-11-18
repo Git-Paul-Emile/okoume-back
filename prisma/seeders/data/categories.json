@@ -1,0 +1,177 @@
+[
+  {
+    "id": "electronique",
+    "name": "Électronique",
+    "parentId": null,
+    "icon": "smartphone",
+    "image": "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/thumbnail.webp",
+    "slug": "electronique"
+  },
+  {
+    "id": "smartphones",
+    "name": "Smartphones",
+    "parentId": "electronique",
+    "image": "https://cdn.dummyjson.com/product-images/smartphones/iphone-13-pro/thumbnail.webp",
+    "slug": "smartphones"
+  },
+  {
+    "id": "ordinateurs",
+    "name": "Ordinateurs portables",
+    "parentId": "electronique",
+    "image": "https://cdn.dummyjson.com/product-images/laptops/apple-macbook-pro-14-inch-space-grey/thumbnail.webp",
+    "slug": "ordinateurs"
+  },
+  {
+    "id": "tablettes",
+    "name": "Tablettes",
+    "parentId": "electronique",
+    "image": "https://cdn.dummyjson.com/product-images/tablets/ipad-mini-2021-starlight/thumbnail.webp",
+    "slug": "tablettes"
+  },
+  {
+    "id": "audio-accessoires",
+    "name": "Audio & accessoires",
+    "parentId": "electronique",
+    "image": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-airpods/thumbnail.webp",
+    "slug": "audio-accessoires"
+  },
+  {
+    "id": "mode",
+    "name": "Mode",
+    "parentId": null,
+    "icon": "shirt",
+    "image": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-watch-series-4-gold/thumbnail.webp",
+    "slug": "mode"
+  },
+  {
+    "id": "mode-homme",
+    "name": "Homme",
+    "parentId": "mode",
+    "image": "https://cdn.dummyjson.com/product-images/mens-shirts/blue-&-black-check-shirt/thumbnail.webp",
+    "slug": "mode-homme"
+  },
+  {
+    "id": "tradi-homme",
+    "slug": "tradi-homme",
+    "name": "Tenues traditionnelles",
+    "fullName": "Tenues traditionnelles homme",
+    "parentId": "mode-homme",
+    "image": "https://images.unsplash.com/photo-1629299342269-b2e20c444c05?auto=format&fit=crop&w=800&h=800&q=80",
+    "imageFit": "cover"
+  },
+  {
+    "id": "mode-femme",
+    "name": "Femme",
+    "parentId": "mode",
+    "image": "https://cdn.dummyjson.com/product-images/womens-dresses/black-women's-gown/thumbnail.webp",
+    "slug": "mode-femme"
+  },
+  {
+    "id": "tradi-femme",
+    "slug": "tradi-femme",
+    "name": "Tenues traditionnelles",
+    "fullName": "Tenues traditionnelles femme",
+    "parentId": "mode-femme",
+    "image": "https://images.unsplash.com/photo-1758633854855-3059c5b48674?auto=format&fit=crop&w=800&h=800&q=80",
+    "imageFit": "cover"
+  },
+  {
+    "id": "traditionnel",
+    "slug": "traditionnel",
+    "name": "Traditionnel",
+    "fullName": "Tenues traditionnelles",
+    "parentId": "mode",
+    "members": ["tradi-homme", "tradi-femme"],
+    "image": "https://images.unsplash.com/photo-1768212565426-58b089b6386d?auto=format&fit=crop&w=800&h=800&q=80",
+    "imageFit": "cover"
+  },
+  {
+    "id": "montres",
+    "name": "Montres",
+    "parentId": "mode",
+    "image": "https://cdn.dummyjson.com/product-images/mobile-accessories/apple-watch-series-4-gold/thumbnail.webp",
+    "slug": "montres"
+  },
+  {
+    "id": "lunettes",
+    "name": "Lunettes de soleil",
+    "parentId": "mode",
+    "image": "https://cdn.dummyjson.com/product-images/sunglasses/black-sun-glasses/thumbnail.webp",
+    "slug": "lunettes"
+  },
+  {
+    "id": "maison",
+    "name": "Maison & déco",
+    "parentId": null,
+    "icon": "sofa",
+    "image": "https://cdn.dummyjson.com/product-images/furniture/annibale-colombo-sofa/thumbnail.webp",
+    "slug": "maison"
+  },
+  {
+    "id": "mobilier",
+    "name": "Mobilier",
+    "parentId": "maison",
+    "image": "https://cdn.dummyjson.com/product-images/furniture/annibale-colombo-sofa/thumbnail.webp",
+    "slug": "mobilier"
+  },
+  {
+    "id": "decoration",
+    "name": "Décoration",
+    "parentId": "maison",
+    "image": "https://cdn.dummyjson.com/product-images/home-decoration/table-lamp/thumbnail.webp",
+    "slug": "decoration"
+  },
+  {
+    "id": "cuisine",
+    "name": "Cuisine & électroménager",
+    "parentId": null,
+    "icon": "cooking-pot",
+    "image": "https://cdn.dummyjson.com/product-images/kitchen-accessories/boxed-blender/thumbnail.webp",
+    "slug": "cuisine"
+  },
+  {
+    "id": "beaute",
+    "name": "Beauté & soins",
+    "parentId": null,
+    "icon": "sparkles",
+    "image": "https://cdn.dummyjson.com/product-images/fragrances/calvin-klein-ck-one/thumbnail.webp",
+    "slug": "beaute"
+  },
+  {
+    "id": "parfums",
+    "name": "Parfums",
+    "parentId": "beaute",
+    "image": "https://cdn.dummyjson.com/product-images/fragrances/calvin-klein-ck-one/thumbnail.webp",
+    "slug": "parfums"
+  },
+  {
+    "id": "maquillage",
+    "name": "Maquillage",
+    "parentId": "beaute",
+    "image": "https://cdn.dummyjson.com/product-images/beauty/essence-mascara-lash-princess/thumbnail.webp",
+    "slug": "maquillage"
+  },
+  {
+    "id": "soins",
+    "name": "Soins du corps",
+    "parentId": "beaute",
+    "image": "https://cdn.dummyjson.com/product-images/skin-care/olay-ultra-moisture-shea-butter-body-wash/thumbnail.webp",
+    "slug": "soins"
+  },
+  {
+    "id": "sport",
+    "name": "Sport & loisirs",
+    "parentId": null,
+    "icon": "dumbbell",
+    "image": "https://cdn.dummyjson.com/product-images/sports-accessories/tennis-racket/thumbnail.webp",
+    "slug": "sport"
+  },
+  {
+    "id": "epicerie",
+    "name": "Épicerie",
+    "parentId": null,
+    "icon": "shopping-basket",
+    "image": "https://cdn.dummyjson.com/product-images/groceries/honey-jar/thumbnail.webp",
+    "slug": "epicerie"
+  }
+]
