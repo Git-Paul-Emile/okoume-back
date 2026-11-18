@@ -36,7 +36,10 @@ export const logger = pino({
   hooks: {
     logMethod(args, method, level) {
       const [first, second] = args as unknown[];
-      if (level >= ERROR_LEVEL && typeof first === 'object' && first !== null && 'err' in first) {
+      // pino-http journalise toute réponse 5xx avec une erreur fabriquée (« failed with status code ») : ce n'est
+      // qu'un relevé, la vraie cause est journalisée à part par le gestionnaire d'erreurs. Pas de doublon dans Sentry.
+      const synthetic = second === 'request errored';
+      if (!synthetic && level >= ERROR_LEVEL && typeof first === 'object' && first !== null && 'err' in first) {
         errorReporter().capture((first as { err: unknown }).err, {
           level: level >= FATAL_LEVEL ? 'fatal' : 'error',
           message: typeof second === 'string' ? second : undefined,

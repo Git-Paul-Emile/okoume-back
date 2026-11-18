@@ -591,16 +591,11 @@ Surveillance UptimeRobot :
 - Le worker n'a pas d'adresse : ses échecs remontent dans les logs Render (niveau `error`, file `*.dead`) et dans Sentry.
 - Un service web Render gratuit se met en veille après inactivité : réservé au staging, pas à la production.
 
-## Intégration continue et déploiement
+## Déploiement
 
-Le workflow `.github/workflows/ci.yml` (racine du dépôt) vérifie chaque push et pull request, chaque étape bloquant
-la suivante : API puis front (lint, Prettier, types, tests, build, `npm audit` sur les dépendances de production),
-puis les parcours Playwright sur le build de production du front (CSP comprise) avec un PostgreSQL de service.
-
-- Render : `autoDeployTrigger: checksPass` (`render.yaml`) ne déploie un commit que si la CI a réussi.
-- Vercel : déploie à chaque commit par défaut. Réglage à faire dans la console du projet pour attendre la CI avant la
-  production (contrôles de déploiement liés aux vérifications GitHub) ; à confirmer sur l'offre choisie.
-- La CI n'existe qu'une fois le projet versionné dans un dépôt GitHub : le dossier n'est pas encore un dépôt git.
+Render (API et worker) et Vercel (front) déploient automatiquement chaque commit poussé sur `main`. Avant de pousser,
+lancer en local : `npm run lint`, `npm test`, `npm run build` (et `npm run test:e2e` dans le front). Node.js est fixé
+à la version 24 (`engines` de `package.json`).
 
 ## Sauvegarde, restauration et retour arrière
 

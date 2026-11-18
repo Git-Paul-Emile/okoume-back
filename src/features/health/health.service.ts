@@ -2,7 +2,8 @@ import type { HealthRepository } from './health.repository.js';
 import type { ReadinessDto } from './health.dto.js';
 
 /** Délai maximal accordé à une dépendance pour répondre, au-delà elle est considérée en panne. */
-export const DEPENDENCY_TIMEOUT_MS = 2_000;
+// 4 s : une base Neon en veille (offre gratuite) met 1 à 3 s à se réveiller ; au-delà, elle est vraiment injoignable
+export const DEPENDENCY_TIMEOUT_MS = 4_000;
 
 const withTimeout = <T>(promise: Promise<T>, ms: number) => {
   let timer: NodeJS.Timeout | undefined;

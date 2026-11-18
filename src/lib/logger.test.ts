@@ -40,3 +40,13 @@ describe('logger et supervision', () => {
     expect(captured).toEqual([]);
   });
 });
+
+describe('relevé automatique des réponses en erreur', () => {
+  afterEach(() => setErrorReporter(noopErrorReporter));
+
+  it('n’envoie pas à la supervision le relevé d’une réponse 5xx fait par pino-http', () => {
+    const captured = capturing();
+    log().error({ err: new Error('failed with status code 503') }, 'request errored');
+    expect(captured).toEqual([]);
+  });
+});
