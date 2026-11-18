@@ -55,7 +55,8 @@ const schema = z
     CHAT_MODEL: z.string().min(3).default('claude-opus-5-5'),
     // Gemini (Google AI Studio > API keys) : prioritaire sur Anthropic quand la clé est fournie. Lue par le worker.
     GEMINI_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(20).optional()),
-    GEMINI_MODEL: z.string().min(3).default('gemini-3.8-flash'),
+    // Alias tenu à jour par Google (vérifié dans la liste des modèles de la clé) : pas de version figée qui disparaît
+    GEMINI_MODEL: z.string().min(3).default('gemini-flash-latest'),
     // Mot de passe commun des comptes de démonstration créés par le seed (développement et staging seulement)
     SEED_DEMO_PASSWORD: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(12).optional()),
     // Hébergement des images (Cloudinary, console > Settings > API Keys). Facultatif : sans ces trois valeurs,

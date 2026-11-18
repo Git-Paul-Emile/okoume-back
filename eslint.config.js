@@ -27,8 +27,8 @@ export default tseslint.config(
     },
   },
   {
-    // Le point d'entrée gère le cycle de vie de la connexion (fermeture à l'arrêt)
-    files: ['**/*.repository.ts', 'src/lib/prisma.ts', 'src/server.ts', 'prisma/**'],
+    // Points d'entrée (serveur, scripts en ligne de commande) : ils ferment la connexion en fin d'exécution
+    files: ['**/*.repository.ts', 'src/lib/prisma.ts', 'src/server.ts', 'src/scripts/**', 'prisma/**'],
     rules: { 'no-restricted-imports': 'off' },
   },
   {

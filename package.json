@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "dev:worker": "tsx watch src/worker.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "start:worker": "node dist/worker.js",
     "typecheck": "tsc --noEmit",
@@ -20,7 +20,9 @@
     "db:up": "docker compose up -d db",
     "media:import": "tsx src/scripts/importMedia.ts",
     "serve:dev": "tsx src/server.ts",
-    "work:dev": "tsx src/worker.ts"
+    "work:dev": "tsx src/worker.ts",
+    "staff:create-owner": "node dist/scripts/createOwner.js",
+    "staff:create-owner:dev": "tsx src/scripts/createOwner.ts"
   },
   "license": "ISC",
   "type": "module",
