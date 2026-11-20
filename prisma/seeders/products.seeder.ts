@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { categoryId } from './categories.seeder.js';
+import { shopId } from './shops.seeder.js';
 import { isoDate, legacyUuid, readData, type Seeder } from './support.js';
 
 const variantSchema = z.object({
@@ -41,8 +42,38 @@ const schema = z.array(
   }),
 );
 
+const sellerSchema = z.array(
+  z.object({
+    id: z.string(),
+    shopId: z.string(),
+    slug: z.string().min(1),
+    name: z.string().min(1),
+    sku: z.string().min(1),
+    categoryId: z.string(),
+    brand: z.string().nullable(),
+    shortDescription: z.string(),
+    description: z.array(z.string()),
+    specs: z.array(z.object({ label: z.string(), value: z.string() })),
+    usageTips: z.string().nullable(),
+    images: z.array(z.string()),
+    variants: z.array(variantSchema).min(1),
+    condition: z.enum(['new', 'like_new', 'good', 'used']),
+    moderation: z.enum(['in_review', 'changes_requested', 'pending_moderation', 'approved', 'rejected']),
+    moderationIssues: z.array(z.string()).default([]),
+    moderationNote: z.string().optional(),
+    moderationVersion: z.number().int().min(0).default(0),
+    status: z.enum(['draft', 'published', 'archived']),
+    featured: z.boolean(),
+    dealOfTheDay: z.boolean(),
+    isNew: z.boolean(),
+    tags: z.array(z.string()),
+    createdAt: isoDate,
+  }),
+);
+
 /** Contenu validé de data/products.json */
 export const loadProducts = () => readData('products.json', schema);
+export const loadSellerProducts = () => readData('seller-products.json', sellerSchema);
 
 export const productId = (legacyId: string) => legacyUuid('product', legacyId);
 export const variantId = (legacyId: string) => legacyUuid('variant', legacyId);
@@ -109,6 +140,66 @@ export const productsSeeder: Seeder = {
       ),
       skipDuplicates: true,
     });
-    return count;
+
+    const sellerProducts = loadSellerProducts();
+    const sellerResult = await prisma.product.createMany({
+      data: sellerProducts.map((p) => ({
+        id: productId(p.id),
+        shopId: shopId(p.shopId),
+        slug: p.slug,
+        name: p.name,
+        sku: p.sku,
+        categoryId: categoryId(p.categoryId),
+        brand: p.brand,
+        shortDescription: p.shortDescription,
+        description: p.description,
+        specs: p.specs,
+        usageTips: p.usageTips,
+        status: p.status,
+        featured: p.featured,
+        dealOfTheDay: p.dealOfTheDay,
+        isNew: p.isNew,
+        tags: p.tags,
+        condition: p.condition,
+        moderation: p.moderation,
+        moderationIssues: p.moderationIssues,
+        moderationNote: p.moderationNote ?? null,
+        moderationVersion: p.moderationVersion,
+        createdAt: p.createdAt,
+      })),
+      skipDuplicates: true,
+    });
+    await prisma.productImage.createMany({
+      data: sellerProducts.flatMap((p) =>
+        p.images.map((url, position) => ({
+          id: legacyUuid('product-image', `${p.id}:${position}`),
+          productId: productId(p.id),
+          url,
+          alt: p.name,
+          position,
+        })),
+      ),
+      skipDuplicates: true,
+    });
+    await prisma.variant.createMany({
+      data: sellerProducts.flatMap((p) =>
+        p.variants.map((v, position) => ({
+          id: variantId(v.id),
+          productId: productId(p.id),
+          sku: v.sku,
+          label: v.label,
+          attributes: v.attributes,
+          price: v.price,
+          cost: v.cost ?? null,
+          stock: v.stock,
+          reserved: v.reserved,
+          lowStockThreshold: v.lowStockThreshold,
+          image: v.image,
+          position,
+        })),
+      ),
+      skipDuplicates: true,
+    });
+    return count + sellerResult.count;
   },
 };

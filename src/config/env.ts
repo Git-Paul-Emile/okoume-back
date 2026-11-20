@@ -57,8 +57,12 @@ const schema = z
     GEMINI_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(20).optional()),
     // Alias tenu à jour par Google (vérifié dans la liste des modèles de la clé) : pas de version figée qui disparaît
     GEMINI_MODEL: z.string().min(3).default('gemini-flash-latest'),
-    // Mot de passe commun des comptes de démonstration créés par le seed (développement et staging seulement)
+    // Mot de passe commun des comptes de démonstration créés par le seed.
     SEED_DEMO_PASSWORD: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(12).optional()),
+    ALLOW_PRODUCTION_DEMO_SEED: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
     // Hébergement des images (Cloudinary, console > Settings > API Keys). Facultatif : sans ces trois valeurs,
     // l'envoi d'images est indisponible et seules des adresses HTTPS peuvent être saisies.
     CLOUDINARY_CLOUD_NAME: z.preprocess(

@@ -1,0 +1,428 @@
+{
+  "listings": [
+    {
+      "id": "listing-lampe-rotin",
+      "shopId": "shop-mabouja",
+      "slug": "lampe-rotin-occasion-demo",
+      "title": "Lampe en rotin artisanale",
+      "description": "Lampe décorative en bon état, remise en main propre ou livraison.",
+      "categoryId": "maison",
+      "kind": "product",
+      "condition": "good",
+      "price": 16000,
+      "minPrice": 14000,
+      "sellerNotes": "Prix négociable dans la limite indiquée.",
+      "quantity": 3,
+      "city": "Libreville",
+      "district": "Louis",
+      "status": "published",
+      "version": 1,
+      "submittedAt": "2026-10-02T09:00:00.000Z",
+      "publishedAt": "2026-10-02T09:05:00.000Z",
+      "createdAt": "2026-10-02T08:30:00.000Z",
+      "photos": ["https://cdn.dummyjson.com/product-images/home-decoration/decoration/thumbnail.webp"]
+    },
+    {
+      "id": "listing-service-deco",
+      "shopId": "shop-mabouja",
+      "slug": "conseil-decoration-demo",
+      "title": "Conseil décoration à domicile",
+      "description": "Accompagnement fictif pour aménager une pièce.",
+      "categoryId": "maison",
+      "kind": "service",
+      "condition": null,
+      "price": 35000,
+      "minPrice": null,
+      "sellerNotes": "Créneaux à convenir par messagerie.",
+      "quantity": null,
+      "city": "Libreville",
+      "district": "Louis",
+      "status": "published",
+      "version": 1,
+      "submittedAt": "2026-10-03T09:00:00.000Z",
+      "publishedAt": "2026-10-03T09:05:00.000Z",
+      "createdAt": "2026-10-03T08:30:00.000Z",
+      "photos": []
+    },
+    {
+      "id": "listing-new-review",
+      "shopId": "shop-ndossy-market",
+      "slug": "robe-pagne-en-revue-demo",
+      "title": "Robe en pagne",
+      "description": "Robe fictive en attente de validation automatisée.",
+      "categoryId": "mode-femme",
+      "kind": "product",
+      "condition": "new",
+      "price": 22000,
+      "minPrice": null,
+      "sellerNotes": "Taille M.",
+      "quantity": 2,
+      "city": "Libreville",
+      "district": "Glass",
+      "status": "in_review",
+      "version": 1,
+      "submittedAt": "2026-10-04T09:00:00.000Z",
+      "publishedAt": null,
+      "createdAt": "2026-10-04T08:30:00.000Z",
+      "photos": ["https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=800&q=80"]
+    },
+    {
+      "id": "listing-changes-requested",
+      "shopId": "shop-ndossy-market",
+      "slug": "sac-a-corriger-demo",
+      "title": "Sac à main",
+      "description": "Annonce fictive avec correction demandée.",
+      "categoryId": "mode-femme",
+      "kind": "product",
+      "condition": "like_new",
+      "price": 14000,
+      "minPrice": null,
+      "sellerNotes": "Ajouter les détails de remise.",
+      "quantity": 1,
+      "city": "Libreville",
+      "district": "Glass",
+      "status": "changes_requested",
+      "version": 2,
+      "submittedAt": "2026-10-05T09:00:00.000Z",
+      "publishedAt": null,
+      "createdAt": "2026-10-05T08:30:00.000Z",
+      "photos": ["https://cdn.dummyjson.com/product-images/womens-bags/women-handbag/thumbnail.webp"]
+    },
+    {
+      "id": "listing-human-review",
+      "shopId": "shop-mabouja",
+      "slug": "meuble-en-attente-de-moderation-demo",
+      "title": "Meuble en bois",
+      "description": "Annonce fictive transmise à une personne pour examen.",
+      "categoryId": "maison",
+      "kind": "product",
+      "condition": "used",
+      "price": 45000,
+      "minPrice": null,
+      "sellerNotes": "Défaut mineur sur un côté.",
+      "quantity": 1,
+      "city": "Libreville",
+      "district": "Louis",
+      "status": "pending_moderation",
+      "version": 1,
+      "submittedAt": "2026-10-06T09:00:00.000Z",
+      "publishedAt": null,
+      "createdAt": "2026-10-06T08:30:00.000Z",
+      "photos": []
+    },
+    {
+      "id": "listing-rejected",
+      "shopId": "shop-atelier-owendo",
+      "slug": "article-refuse-demo",
+      "title": "Article non conforme",
+      "description": "Annonce fictive refusée pendant la modération.",
+      "categoryId": "maison",
+      "kind": "product",
+      "condition": "used",
+      "price": 8000,
+      "minPrice": null,
+      "sellerNotes": "Démonstration de refus.",
+      "quantity": 1,
+      "city": "Owendo",
+      "district": "Akournam",
+      "status": "rejected",
+      "version": 1,
+      "submittedAt": "2026-10-07T09:00:00.000Z",
+      "publishedAt": null,
+      "createdAt": "2026-10-07T08:30:00.000Z",
+      "photos": []
+    },
+    {
+      "id": "listing-withdrawn",
+      "shopId": "shop-ndossy-market",
+      "slug": "annonce-retiree-demo",
+      "title": "Article retiré",
+      "description": "Annonce fictive retirée par sa vendeuse.",
+      "categoryId": "mode-femme",
+      "kind": "product",
+      "condition": "good",
+      "price": 6000,
+      "minPrice": null,
+      "sellerNotes": "Exemple de retrait vendeur.",
+      "quantity": 1,
+      "city": "Libreville",
+      "district": "Glass",
+      "status": "withdrawn",
+      "version": 1,
+      "submittedAt": "2026-10-08T09:00:00.000Z",
+      "publishedAt": null,
+      "createdAt": "2026-10-08T08:30:00.000Z",
+      "photos": []
+    },
+    {
+      "id": "listing-sold",
+      "shopId": "shop-mabouja",
+      "slug": "objet-vendu-demo",
+      "title": "Vase décoratif vendu",
+      "description": "Annonce fictive conclue puis marquée comme vendue.",
+      "categoryId": "maison",
+      "kind": "product",
+      "condition": "good",
+      "price": 7000,
+      "minPrice": null,
+      "sellerNotes": "Exemple de stock épuisé.",
+      "quantity": 0,
+      "city": "Libreville",
+      "district": "Louis",
+      "status": "sold",
+      "version": 1,
+      "submittedAt": "2026-10-09T09:00:00.000Z",
+      "publishedAt": "2026-10-09T09:05:00.000Z",
+      "createdAt": "2026-10-09T08:30:00.000Z",
+      "photos": []
+    }
+  ],
+  "reviews": [
+    {
+      "id": "lr1",
+      "listingId": "listing-lampe-rotin",
+      "version": 1,
+      "source": "ai",
+      "outcome": "approved",
+      "issues": [],
+      "createdAt": "2026-10-02T09:05:00.000Z"
+    },
+    {
+      "id": "lr2",
+      "listingId": "listing-changes-requested",
+      "version": 2,
+      "source": "ai",
+      "outcome": "changes_requested",
+      "issues": [{ "field": "description", "message": "Préciser les dimensions." }],
+      "createdAt": "2026-10-05T09:05:00.000Z"
+    },
+    {
+      "id": "lr3",
+      "listingId": "listing-human-review",
+      "version": 1,
+      "source": "ai",
+      "outcome": "moderation",
+      "issues": [{ "field": "photos", "message": "Une vérification humaine est nécessaire." }],
+      "createdAt": "2026-10-06T09:05:00.000Z"
+    },
+    {
+      "id": "lr4",
+      "listingId": "listing-rejected",
+      "version": 1,
+      "source": "staff",
+      "outcome": "rejected",
+      "issues": [],
+      "reason": "Contenu non conforme aux règles de publication.",
+      "staffId": "adm1",
+      "createdAt": "2026-10-07T09:10:00.000Z"
+    }
+  ],
+  "reports": [
+    {
+      "id": "lrpt1",
+      "listingId": "listing-lampe-rotin",
+      "reporterId": "u19",
+      "reason": "misleading",
+      "comment": "Le descriptif devrait préciser une petite éraflure.",
+      "status": "open",
+      "createdAt": "2026-10-10T10:00:00.000Z"
+    },
+    {
+      "id": "lrpt2",
+      "listingId": "listing-service-deco",
+      "reporterId": "u20",
+      "reason": "other",
+      "comment": "Signalement fictif déjà traité.",
+      "status": "dismissed",
+      "decidedById": "adm1",
+      "decidedAt": "2026-10-11T10:00:00.000Z",
+      "createdAt": "2026-10-10T11:00:00.000Z"
+    }
+  ],
+  "requests": [
+    {
+      "id": "lreq1",
+      "number": "ANN-2026-00001",
+      "listingId": "listing-lampe-rotin",
+      "buyerId": "u9",
+      "quantity": 1,
+      "unitPrice": 15000,
+      "paymentMethod": "cash",
+      "handover": "pickup",
+      "status": "sent",
+      "message": "La lampe est-elle toujours disponible ?",
+      "createdAt": "2026-10-12T08:00:00.000Z",
+      "events": [{ "status": "sent", "actor": "buyer", "createdAt": "2026-10-12T08:00:00.000Z" }]
+    },
+    {
+      "id": "lreq2",
+      "number": "ANN-2026-00002",
+      "listingId": "listing-lampe-rotin",
+      "buyerId": "u10",
+      "quantity": 2,
+      "unitPrice": 14000,
+      "paymentMethod": "airtel",
+      "handover": "seller_delivery",
+      "status": "accepted",
+      "message": "Je propose 14 000 FCFA par article.",
+      "createdAt": "2026-10-12T09:00:00.000Z",
+      "events": [
+        { "status": "sent", "actor": "buyer", "createdAt": "2026-10-12T09:00:00.000Z" },
+        { "status": "accepted", "actor": "seller", "createdAt": "2026-10-12T09:30:00.000Z" }
+      ]
+    },
+    {
+      "id": "lreq3",
+      "number": "ANN-2026-00003",
+      "listingId": "listing-service-deco",
+      "buyerId": "u11",
+      "quantity": null,
+      "unitPrice": 35000,
+      "paymentMethod": "moov",
+      "handover": "pickup",
+      "status": "refused",
+      "reason": "Créneau indisponible.",
+      "message": "Intervention cette semaine ?",
+      "createdAt": "2026-10-12T10:00:00.000Z",
+      "events": [
+        { "status": "sent", "actor": "buyer", "createdAt": "2026-10-12T10:00:00.000Z" },
+        {
+          "status": "refused",
+          "actor": "seller",
+          "note": "Créneau indisponible.",
+          "createdAt": "2026-10-12T10:15:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "lreq4",
+      "number": "ANN-2026-00004",
+      "listingId": "listing-lampe-rotin",
+      "buyerId": "u12",
+      "quantity": 1,
+      "unitPrice": 15000,
+      "paymentMethod": "cash",
+      "handover": "pickup",
+      "status": "cancelled",
+      "reason": "L’acheteur a changé d’avis.",
+      "message": "Je réserve l’article.",
+      "createdAt": "2026-10-12T11:00:00.000Z",
+      "events": [
+        { "status": "sent", "actor": "buyer", "createdAt": "2026-10-12T11:00:00.000Z" },
+        {
+          "status": "cancelled",
+          "actor": "buyer",
+          "note": "L’acheteur a changé d’avis.",
+          "createdAt": "2026-10-12T12:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "lreq5",
+      "number": "ANN-2026-00005",
+      "listingId": "listing-lampe-rotin",
+      "buyerId": "u13",
+      "quantity": 1,
+      "unitPrice": 16000,
+      "paymentMethod": "cash",
+      "handover": "seller_delivery",
+      "status": "concluded",
+      "message": "Demande conclue pour la démonstration.",
+      "createdAt": "2026-10-12T13:00:00.000Z",
+      "events": [
+        { "status": "sent", "actor": "buyer", "createdAt": "2026-10-12T13:00:00.000Z" },
+        { "status": "accepted", "actor": "seller", "createdAt": "2026-10-12T13:30:00.000Z" },
+        { "status": "concluded", "actor": "seller", "createdAt": "2026-10-13T08:00:00.000Z" }
+      ]
+    },
+    {
+      "id": "lreq6",
+      "number": "ANN-2026-00006",
+      "listingId": "listing-service-deco",
+      "buyerId": "u14",
+      "quantity": null,
+      "unitPrice": 35000,
+      "paymentMethod": "airtel",
+      "handover": "pickup",
+      "status": "not_concluded",
+      "reason": "Le client ne s’est pas présenté.",
+      "message": "Je souhaite prendre rendez-vous.",
+      "createdAt": "2026-10-12T14:00:00.000Z",
+      "events": [
+        { "status": "sent", "actor": "buyer", "createdAt": "2026-10-12T14:00:00.000Z" },
+        { "status": "accepted", "actor": "seller", "createdAt": "2026-10-12T14:30:00.000Z" },
+        {
+          "status": "not_concluded",
+          "actor": "seller",
+          "note": "Le client ne s’est pas présenté.",
+          "createdAt": "2026-10-14T14:30:00.000Z"
+        }
+      ]
+    }
+  ],
+  "conversations": [
+    {
+      "id": "chat-open-1",
+      "listingId": "listing-lampe-rotin",
+      "buyerId": "u15",
+      "status": "open",
+      "needsSeller": true,
+      "agreedPrice": null,
+      "agreementExpiresAt": null,
+      "createdAt": "2026-10-15T08:00:00.000Z",
+      "lastMessageAt": "2026-10-15T08:05:00.000Z",
+      "messages": [
+        {
+          "id": "chat-msg-1",
+          "author": "buyer",
+          "body": "La lampe comporte-t-elle des dommages ?",
+          "createdAt": "2026-10-15T08:00:00.000Z"
+        },
+        {
+          "id": "chat-msg-2",
+          "author": "assistant",
+          "body": "Je vérifie ce détail auprès du vendeur.",
+          "replyToId": "chat-msg-1",
+          "model": "gemini-flash-latest",
+          "createdAt": "2026-10-15T08:01:00.000Z"
+        },
+        {
+          "id": "chat-msg-3",
+          "author": "buyer",
+          "body": "Merci, je peux passer demain matin.",
+          "createdAt": "2026-10-15T08:05:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "chat-closed-1",
+      "listingId": "listing-service-deco",
+      "buyerId": "u16",
+      "status": "closed",
+      "needsSeller": false,
+      "agreedPrice": 32000,
+      "agreementExpiresAt": "2026-10-20T09:00:00.000Z",
+      "createdAt": "2026-10-16T09:00:00.000Z",
+      "lastMessageAt": "2026-10-16T09:10:00.000Z",
+      "messages": [
+        {
+          "id": "chat-msg-4",
+          "author": "buyer",
+          "body": "Avez-vous un créneau vendredi ?",
+          "createdAt": "2026-10-16T09:00:00.000Z"
+        },
+        {
+          "id": "chat-msg-5",
+          "author": "seller",
+          "body": "Oui, le tarif convenu est de 32 000 FCFA.",
+          "createdAt": "2026-10-16T09:10:00.000Z"
+        }
+      ]
+    }
+  ],
+  "views": [
+    { "listingId": "listing-lampe-rotin", "day": "2026-10-12T00:00:00.000Z", "count": 24 },
+    { "listingId": "listing-lampe-rotin", "day": "2026-10-13T00:00:00.000Z", "count": 17 },
+    { "listingId": "listing-service-deco", "day": "2026-10-12T00:00:00.000Z", "count": 8 }
+  ]
+}

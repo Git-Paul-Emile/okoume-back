@@ -1,0 +1,68 @@
+[
+  {
+    "id": "shop-mabouja",
+    "ownerId": "u2",
+    "slug": "mabouja-maison",
+    "name": "Mabouja Maison",
+    "description": "Sélection de décoration et d’articles pratiques pour la maison.",
+    "city": "Libreville",
+    "district": "Louis",
+    "latitude": -0.3912,
+    "longitude": 9.4456,
+    "phone": "+241 06 20 00 12",
+    "planId": "gratuit",
+    "status": "active",
+    "verified": true,
+    "acceptedPaymentMethods": ["cash", "airtel", "moov"],
+    "handoverModes": ["pickup", "seller_delivery"],
+    "deliveryMode": "okoume",
+    "createdAt": "2026-09-12T10:00:00.000Z",
+    "zoneFees": [
+      { "zoneId": "1", "fee": 2000 },
+      { "zoneId": "3", "fee": 1500 }
+    ]
+  },
+  {
+    "id": "shop-ndossy-market",
+    "ownerId": "u4",
+    "slug": "ndossy-market",
+    "name": "Ndossy Market",
+    "description": "Vêtements et accessoires sélectionnés à Libreville.",
+    "city": "Libreville",
+    "district": "Glass",
+    "latitude": -0.4052,
+    "longitude": 9.4551,
+    "phone": "+241 07 20 00 14",
+    "planId": "gratuit",
+    "status": "active",
+    "verified": true,
+    "acceptedPaymentMethods": ["cash", "airtel"],
+    "handoverModes": ["pickup", "seller_delivery"],
+    "deliveryMode": "seller",
+    "createdAt": "2026-09-18T10:00:00.000Z",
+    "zoneFees": [
+      { "zoneId": "1", "fee": 1500 },
+      { "zoneId": "3", "fee": 1000 }
+    ]
+  },
+  {
+    "id": "shop-atelier-owendo",
+    "ownerId": "u6",
+    "slug": "atelier-owendo",
+    "name": "Atelier d’Owendo",
+    "description": "Boutique de démonstration suspendue pour illustrer la modération administrative.",
+    "city": "Owendo",
+    "district": "Akournam",
+    "phone": "+241 06 20 00 16",
+    "planId": "gratuit",
+    "status": "suspended",
+    "suspensionReason": "Compte de démonstration : suspension d’exemple.",
+    "suspendedById": "adm1",
+    "suspendedAt": "2026-10-02T09:00:00.000Z",
+    "acceptedPaymentMethods": ["cash"],
+    "handoverModes": ["pickup"],
+    "deliveryMode": "okoume",
+    "createdAt": "2026-09-20T10:00:00.000Z",
+    "zoneFees": []
+  }
+]

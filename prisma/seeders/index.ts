@@ -1,8 +1,8 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import { env } from '../../src/config/env.js';
+import { pino } from 'pino';
 import { hashPassword } from '../../src/core/security/passwords.js';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
-import { logger } from '../../src/lib/logger.js';
+import { seedConfig } from './config.js';
 import { accessPlansSeeder } from './access-plans.seeder.js';
 import { categoriesSeeder } from './categories.seeder.js';
 import { contentSeeder } from './content.seeder.js';
@@ -21,7 +21,16 @@ import { reviewsSeeder } from './reviews.seeder.js';
 import { ticketsSeeder } from './tickets.seeder.js';
 import { privacySeeder } from './privacy.seeder.js';
 import { assistantSeeder } from './assistant.seeder.js';
+import { shopsSeeder } from './shops.seeder.js';
+import { sellerOrdersSeeder } from './seller-orders.seeder.js';
+import { marketplaceSeeder } from './marketplace.seeder.js';
 import type { Seeder } from './support.js';
+
+const logger = pino({
+  level: seedConfig.LOG_LEVEL,
+  base: { service: 'okoume-api-seed', env: seedConfig.NODE_ENV },
+  redact: { paths: ['*.password', '*.token', '*.refreshToken', '*.code'], censor: '[masqué]' },
+});
 
 /** Ordre imposé par les relations : chaque donnée vient après celles qu'elle référence. */
 const SEEDERS: Seeder[] = [
@@ -32,12 +41,15 @@ const SEEDERS: Seeder[] = [
   accessPlansSeeder,
   staffSeeder,
   customersSeeder,
+  shopsSeeder,
   categoriesSeeder,
+  marketplaceSeeder,
   productsSeeder,
   promoCodesSeeder,
   contentSeeder,
   couriersSeeder,
   ordersSeeder,
+  sellerOrdersSeeder,
   loyaltyMovementsSeeder,
   reviewsSeeder,
   ticketsSeeder,
@@ -47,27 +59,31 @@ const SEEDERS: Seeder[] = [
 
 /**
  * Remplit la base à partir de prisma/seeders/data (npm run db:seed). Rejouable : seules les lignes absentes
- * sont créées. En production, seules les données de référence sont chargées : jamais de comptes ni de
- * commandes de démonstration.
+ * sont créées. En production, les démonstrations sont exclues par défaut et exigent ALLOW_PRODUCTION_DEMO_SEED.
  */
 async function main() {
-  const production = env.NODE_ENV === 'production';
-  const seeders = SEEDERS.filter((s) => !production || !s.demo);
-  if (production) logger.warn('Production : données de démonstration ignorées, données de référence seules');
+  const production = seedConfig.NODE_ENV === 'production';
+  const seedDemoInProduction = production && seedConfig.ALLOW_PRODUCTION_DEMO_SEED;
+  if (seedDemoInProduction && !seedConfig.SEED_DEMO_PASSWORD)
+    throw new Error('SEED_DEMO_PASSWORD is mandatory when ALLOW_PRODUCTION_DEMO_SEED=true');
+  const seeders = SEEDERS.filter((s) => !production || seedDemoInProduction || !s.demo);
+  if (production && !seedDemoInProduction)
+    logger.warn('Production : données de démonstration ignorées, données de référence seules');
+  if (seedDemoInProduction) logger.warn('Production: explicit demo data seeding enabled');
 
   let hash: Promise<string> | null = null;
   const demoPasswordHash = () => {
-    if (!env.SEED_DEMO_PASSWORD)
+    if (!seedConfig.SEED_DEMO_PASSWORD)
       throw new Error(
         'SEED_DEMO_PASSWORD manquant : mot de passe des comptes de démonstration (12 caractères au moins)',
       );
-    hash ??= hashPassword(env.SEED_DEMO_PASSWORD);
+    hash ??= hashPassword(seedConfig.SEED_DEMO_PASSWORD!);
     return hash;
   };
 
   // Connexion directe quand elle existe : elle convient mieux que le pooler de Neon aux gros envois du seed
   const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: env.DIRECT_DATABASE_URL ?? env.DATABASE_URL }),
+    adapter: new PrismaPg({ connectionString: seedConfig.DIRECT_DATABASE_URL ?? seedConfig.DATABASE_URL }),
   });
   try {
     for (const seeder of seeders) {

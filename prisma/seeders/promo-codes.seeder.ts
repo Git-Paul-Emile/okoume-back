@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { logger } from '../../src/lib/logger.js';
+import { logger } from './logger.js';
 import { categoryId } from './categories.seeder.js';
 import { productId } from './products.seeder.js';
 import { isoDate, legacyUuid, readData, type Seeder } from './support.js';

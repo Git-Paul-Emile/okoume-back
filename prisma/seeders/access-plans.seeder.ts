@@ -22,6 +22,7 @@ const schema = z.array(
 
 /** Contenu validé de data/access-plans.json */
 export const loadAccessPlans = () => readData('access-plans.json', schema);
+export const accessPlanId = (legacyId: string) => legacyUuid('access-plan', legacyId);
 
 /**
  * Offres d'accès des boutiques de vendeurs tiers (32.2) : l'offre gratuite de départ. Les offres payantes et
@@ -32,7 +33,7 @@ export const accessPlansSeeder: Seeder = {
   demo: false,
   async run({ prisma }) {
     const { count } = await prisma.accessPlan.createMany({
-      data: loadAccessPlans().map(({ id, ...plan }) => ({ id: legacyUuid('access-plan', id), ...plan })),
+      data: loadAccessPlans().map(({ id, ...plan }) => ({ id: accessPlanId(id), ...plan })),
       skipDuplicates: true,
     });
     return count;

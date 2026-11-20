@@ -33,7 +33,7 @@ export interface Seeder {
   /** Nom affiché et nom du fichier de data/ concerné */
   name: string;
   /**
-   * Données de démonstration (comptes, commandes, catalogue fictif) : jamais en production.
+   * Données de démonstration (comptes, commandes, catalogue fictif), exclues en production par défaut.
    * Les données de référence (réglages, zones, rôles) sont utilisables partout.
    */
   demo: boolean;
