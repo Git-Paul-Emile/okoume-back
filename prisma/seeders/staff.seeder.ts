@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { randomBackupCode } from '../../src/core/security/secrets.js';
+import { BACKUP_CODE_COUNT, hashBackupCode } from '../../src/features/staff-auth/backup-codes.js';
 import { legacyUuid, readData, type Seeder } from './support.js';
 
 const schema = z.array(
@@ -31,7 +33,7 @@ export function ownerStaffId() {
 export const staffSeeder: Seeder = {
   name: 'staff',
   demo: true,
-  async run({ prisma, demoPasswordHash }) {
+  async run({ prisma, demoPasswordHash, reportDemoBackupCodes }) {
     const passwordHash = await demoPasswordHash();
     const members = loadStaff();
     const { count } = await prisma.staffMember.createMany({
@@ -49,6 +51,22 @@ export const staffSeeder: Seeder = {
       }),
       skipDuplicates: true,
     });
+
+    // Les codes sont des secrets irrécupérables : ne les crée que si le terminal peut les remettre une seule fois.
+    if (!reportDemoBackupCodes) return count;
+
+    for (const member of members.filter((m) => (m.status ?? 'active') === 'active')) {
+      const id = staffId(member.id);
+      const existingCodes = await prisma.backupCode.count({ where: { staffId: id } });
+      if (existingCodes > 0) continue;
+
+      const codes = Array.from({ length: BACKUP_CODE_COUNT }, randomBackupCode);
+      await prisma.backupCode.createMany({
+        data: codes.map((code) => ({ staffId: id, codeHash: hashBackupCode(code) })),
+      });
+      reportDemoBackupCodes(member.email.toLowerCase(), codes);
+    }
+
     return count;
   },
 };

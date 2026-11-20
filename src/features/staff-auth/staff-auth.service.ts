@@ -7,7 +7,8 @@ import {
 } from '../../core/errors/AppError.js';
 import type { AccessClaims } from '../../core/security/accessTokens.js';
 import { burnPasswordCheck, hashPassword, verifyPassword } from '../../core/security/passwords.js';
-import { normalizeBackupCode, randomBackupCode, sha256 } from '../../core/security/secrets.js';
+import { randomBackupCode, sha256 } from '../../core/security/secrets.js';
+import { BACKUP_CODE_COUNT, hashBackupCode } from './backup-codes.js';
 import type { EmailSender } from '../../infrastructure/email/emailSender.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { VerificationService } from '../verification/verification.service.js';
@@ -15,10 +16,9 @@ import { toGrantee, toStaffMeDto } from './staff-auth.dto.js';
 import { staffInvitationCodeEmail, staffLoginCodeEmail, staffPasswordResetEmail } from './staff-auth.emails.js';
 import type { StaffRecord, StaffRepository } from './staff-auth.repository.js';
 
-export const BACKUP_CODE_COUNT = 8;
-const INVALID_CREDENTIALS = 'E-mail ou mot de passe incorrect.';
+export { BACKUP_CODE_COUNT } from './backup-codes.js';
 
-const hashBackupCode = (code: string) => sha256(normalizeBackupCode(code));
+const INVALID_CREDENTIALS = 'E-mail ou mot de passe incorrect.';
 
 export interface StaffAuthDependencies {
   staff: StaffRepository;

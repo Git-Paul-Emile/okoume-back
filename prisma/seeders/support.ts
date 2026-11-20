@@ -27,6 +27,7 @@ export interface SeedContext {
   prisma: PrismaClient;
   /** Empreinte Argon2id du mot de passe commun aux comptes de démonstration (SEED_DEMO_PASSWORD) */
   demoPasswordHash(): Promise<string>;
+  reportDemoBackupCodes?(email: string, codes: string[]): void;
 }
 
 export interface Seeder {

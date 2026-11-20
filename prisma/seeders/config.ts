@@ -7,6 +7,10 @@ const schema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   DIRECT_DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }).optional(),
   SEED_DEMO_PASSWORD: z.preprocess((value) => (value === '' ? undefined : value), z.string().min(12).optional()),
+  SEED_DEMO_BACKUP_CODES: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   ALLOW_PRODUCTION_DEMO_SEED: z
     .enum(['true', 'false'])
     .default('false')
