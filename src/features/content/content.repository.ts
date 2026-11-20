@@ -90,6 +90,7 @@ export interface ContentRepository {
   updateBanner(id: string, changes: BannerChanges): Promise<BannerRecord | null>;
   /** liveAt : seulement les espaces actifs dont la campagne est en cours à cette date */
   ads(filters: { placement?: string | undefined; liveAt?: Date | undefined }): Promise<AdRecord[]>;
+  createAd(ad: Omit<AdRecord, 'id'>): Promise<AdRecord>;
   updateAd(id: string, changes: AdChanges): Promise<AdRecord | null>;
   /** Encarts actifs dont le produit est publié */
   offers(): Promise<OfferRecord[]>;
@@ -211,6 +212,8 @@ export const contentRepository: ContentRepository = {
       select: adColumns,
       orderBy: [{ placement: 'asc' }, { priority: 'desc' }, { createdAt: 'asc' }],
     }),
+
+  createAd: (data) => prisma.ad.create({ data, select: adColumns }),
 
   updateAd: (id, changes) => orNull(() => prisma.ad.update({ where: { id }, data: changes, select: adColumns })),
 

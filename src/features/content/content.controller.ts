@@ -50,6 +50,9 @@ export const createContentController = (service: ContentService) => ({
     privateData(res);
     return sendSuccess(res, await service.staffAds(req.staff!));
   },
+  async createAd(req: Request, res: Response) {
+    return sendSuccess(res, await service.createAd(req.body, req.staff!), 201, 'Campagne publicitaire créée.');
+  },
   async updateAd(req: Request, res: Response) {
     return sendSuccess(
       res,

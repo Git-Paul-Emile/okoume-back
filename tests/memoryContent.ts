@@ -36,6 +36,11 @@ export function createMemoryContent(now: () => Date) {
         )
         .sort((a, b) => b.priority - a.priority)
         .map(copy),
+    async createAd(data) {
+      const ad = { ...copy(data), id: randomUUID() };
+      ads.push(ad);
+      return copy(ad);
+    },
     async updateAd(id, changes) {
       const ad = ads.find((a) => a.id === id);
       return ad ? copy(Object.assign(ad, changes)) : null;

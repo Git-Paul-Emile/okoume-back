@@ -6,6 +6,7 @@ import { idParam } from '../../core/validation/common.schemas.js';
 import { createContentController } from './content.controller.js';
 import {
   articleBody,
+  createAdBody,
   legalPageBody,
   legalSlugParam,
   listAdsQuery,
@@ -40,6 +41,7 @@ export const createStaffContentRoutes = (
   router.get('/banners', asyncHandler(c.staffBanners));
   router.patch('/banners/:id', validate({ params: idParam, body: updateBannerBody }), asyncHandler(c.updateBanner));
   router.get('/ads', asyncHandler(c.staffAds));
+  router.post('/ads', validate({ body: createAdBody }), asyncHandler(c.createAd));
   router.patch('/ads/:id', validate({ params: idParam, body: updateAdBody }), asyncHandler(c.updateAd));
   router.get('/articles', asyncHandler(c.staffArticles));
   router.post('/articles', validate({ body: articleBody }), asyncHandler(c.createArticle));

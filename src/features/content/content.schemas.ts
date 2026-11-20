@@ -30,6 +30,20 @@ export type UpdateBannerInput = z.infer<typeof updateBannerBody>;
 
 const isoDateTime = z.iso.datetime({ offset: true }).transform((v) => new Date(v));
 
+export const createAdBody = z.strictObject({
+  placement: z.enum(AD_PLACEMENTS),
+  advertiser: z.string().trim().min(2).max(80).nullable(),
+  startsAt: isoDateTime.nullable(),
+  endsAt: isoDateTime.nullable(),
+  priority: z.number().int().min(0).max(100),
+  image,
+  imageMobile: image.nullable(),
+  alt: z.string().trim().min(5, 'Décrivez le visuel : ce texte est lu par les lecteurs d’écran.').max(250),
+  href: link,
+  active: z.boolean(),
+});
+export type CreateAdInput = z.infer<typeof createAdBody>;
+
 export const updateAdBody = z
   .strictObject({
     advertiser: z.string().trim().min(2).max(80).nullable(),

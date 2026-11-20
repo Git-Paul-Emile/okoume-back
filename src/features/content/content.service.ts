@@ -8,7 +8,13 @@ import type {
   LegalPageRecord,
   SaveArticleResult,
 } from './content.repository.js';
-import type { ArticleInput, LegalPageInput, UpdateAdInput, UpdateBannerInput } from './content.schemas.js';
+import type {
+  ArticleInput,
+  CreateAdInput,
+  LegalPageInput,
+  UpdateAdInput,
+  UpdateBannerInput,
+} from './content.schemas.js';
 
 export const toAdDto = (a: AdRecord) => ({
   ...a,
@@ -107,6 +113,12 @@ export const createContentService = (deps: { content: ContentRepository; now: ()
     async staffAds(actor: Grantee) {
       require(actor, 'catalogue:consulter');
       return (await content.ads({})).map(toAdDto);
+    },
+
+    async createAd(input: CreateAdInput, actor: Grantee) {
+      require(actor, 'catalogue:modifier');
+      checkCampaign(input.startsAt, input.endsAt);
+      return toAdDto(await content.createAd(input));
     },
 
     async updateAd(id: string, input: UpdateAdInput, actor: Grantee) {

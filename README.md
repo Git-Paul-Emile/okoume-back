@@ -705,9 +705,10 @@ les motifs ne sont jamais dans la vue du client.
   historique de navigation et demandes d'assistance anciennes ne sont pas encore purgés par l'API.
 - Données personnelles : le client n'est pas prévenu par e-mail de la réponse à sa demande (elle est visible dans
   son compte). Les messages du tchat d'un compte anonymisé sont conservés.
-- Espaces publicitaires : le contrat de l'annonceur n'est pas stocké par l'API ; pas de création ni de suppression
-  de bannière ou d'espace depuis l'API (modification seule, comme l'écran actuel). Les offres exclusives se lisent
-  mais ne se modifient pas encore.
+- Espaces publicitaires : l'équipe peut créer et modifier des campagnes depuis le back-office, les programmer,
+  choisir leur emplacement et les activer ou désactiver. Les campagnes désactivées sont conservées ; leur suppression
+  n'est pas disponible. Le contrat de l'annonceur n'est pas stocké par l'API. Les offres exclusives se lisent mais ne
+  se modifient pas encore.
 - Produits associés (`relatedIds`) et tri par note (avis) : pas encore modélisés.
 
 - Envoi des e-mails par Resend (`src/infrastructure/email/resendEmailSender.ts`) dès que `RESEND_API_KEY` est fournie.
