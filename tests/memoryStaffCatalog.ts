@@ -3,6 +3,7 @@ import type { CategoryRecord } from '../src/features/categories/categories.repos
 import type { DeliveryZoneRecord } from '../src/features/delivery-zones/delivery-zones.repository.js';
 import type { ProductRecord } from '../src/features/products/products.repository.js';
 import type {
+  ProductModeration,
   PriceChangeRecord,
   StaffCatalogRepository,
   StaffProductRecord,
@@ -28,20 +29,40 @@ export function createMemoryStaffCatalog(store: {
   const priceChanges: PriceChangeRecord[] = [];
   const updatedAt = new Map<string, Date>();
   const zoneExtras = new Map<string, { courierCost: number | null; position: number }>();
+  // Colonnes propres aux produits des vendeurs (32.3), que le catalogue public ne lit pas
+  const review = new Map<
+    string,
+    {
+      shopId: string | null;
+      moderation: ProductModeration | null;
+      issues: string[];
+      note: string | null;
+      version: number;
+    }
+  >();
+  const reviewOf = (id: string) =>
+    review.get(id) ?? { shopId: null, moderation: null, issues: [], note: null, version: 0 };
 
   const toStaff = (p: ProductRecord): StaffProductRecord => ({
     ...p,
     variants: p.variants.map((v) => ({ ...v, cost: costs.get(v.id) ?? null, unsellable: 0 })),
+    shopId: reviewOf(p.id).shopId,
+    moderation: reviewOf(p.id).moderation,
+    moderationIssues: reviewOf(p.id).issues,
+    moderationNote: reviewOf(p.id).note,
+    moderationVersion: reviewOf(p.id).version,
     updatedAt: updatedAt.get(p.id) ?? p.createdAt,
   });
   const product = (id: string) => store.products.find((p) => p.id === id);
   const touch = (id: string) => updatedAt.set(id, store.now());
 
   const catalog: StaffCatalogRepository = {
-    async list({ search, status, categoryId, page, limit }) {
+    async list({ search, status, categoryId, shopId, moderation, page, limit }) {
       const matching = store.products.filter(
         (p) =>
           (!status || p.status === status) &&
+          (!shopId || reviewOf(p.id).shopId === (shopId === 'okoume' ? null : shopId)) &&
+          (!moderation || reviewOf(p.id).moderation === moderation) &&
           (!categoryId || p.categoryId === categoryId) &&
           (!search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.includes(search)),
       );
@@ -56,11 +77,13 @@ export function createMemoryStaffCatalog(store: {
     slugsLike: async (base) => store.products.filter((p) => p.slug.startsWith(base)).map((p) => p.slug),
     async create(input) {
       if (store.products.some((p) => p.sku === input.sku || p.slug === input.slug)) return { outcome: 'taken' };
-      const { variants, ...fields } = input;
+      const { variants, shopId = null, moderation = null, condition = null, ...fields } = input;
       const record: ProductRecord = {
         ...fields,
         id: randomUUID(),
         createdAt: store.now(),
+        seller: shopId ? { id: shopId, slug: 'boutique', name: 'Boutique' } : null,
+        condition,
         variants: variants.map(({ cost, weightGrams: _w, ...v }) => {
           const id = randomUUID();
           costs.set(id, cost);
@@ -68,6 +91,7 @@ export function createMemoryStaffCatalog(store: {
         }),
       };
       store.products.push(record);
+      review.set(record.id, { shopId, moderation, issues: [], note: null, version: 0 });
       return { outcome: 'created', product: toStaff(record) };
     },
     async update(id, { images, ...fields }) {
@@ -110,6 +134,21 @@ export function createMemoryStaffCatalog(store: {
       Object.assign(variant, patch);
       if (cost !== undefined) costs.set(variantId, cost);
       return toStaff(product(productId)!);
+    },
+    async submitForReview(id) {
+      const current = reviewOf(id);
+      const version = current.version + 1;
+      review.set(id, { ...current, moderation: 'in_review', issues: [], note: null, version });
+      product(id)!.status = 'draft';
+      return version;
+    },
+    async applyModeration(id, expected, patch) {
+      const current = reviewOf(id);
+      if (current.version !== expected.version || !current.moderation || !expected.states.includes(current.moderation))
+        return false;
+      review.set(id, { ...current, moderation: patch.moderation, issues: patch.issues, note: patch.note });
+      product(id)!.status = patch.status;
+      return true;
     },
     isAssignableCategory: async (id) => store.categories.some((c) => c.id === id && !c.isCollection),
     async listPriceChanges({ productId, page, limit }) {

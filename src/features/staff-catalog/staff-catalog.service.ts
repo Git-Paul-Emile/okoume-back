@@ -8,6 +8,7 @@ import type {
   AddVariantInput,
   CreateProductInput,
   ListStaffProductsQuery,
+  ModerationInput,
   PriceChangesQuery,
   UpdateProductInput,
   UpdateVariantInput,
@@ -117,6 +118,33 @@ export const createStaffCatalogService = (catalog: StaffCatalogRepository) => {
       throw new ConflictError('Création simultanée d’un autre produit : réessayez.');
     },
 
+    /**
+     * Décision humaine sur un produit de vendeur transmis par la vérification automatique, ou repris après
+     * publication. Publier exige une vérification favorable ; un refus retire le produit définitivement.
+     */
+    async moderate(id: string, input: ModerationInput, actor: CatalogActor) {
+      require(actor, 'vendeurs:valider');
+      const product = await load(id);
+      if (!product.shopId) throw new UnprocessableError('Seuls les produits des vendeurs passent par la vérification.');
+      if (product.moderation === 'rejected') throw new ConflictError('Ce produit a déjà été refusé.');
+      const patch = {
+        approve: { moderation: 'approved', issues: [], status: 'published' },
+        request_changes: { moderation: 'changes_requested', issues: input.issues, status: 'draft' },
+        reject: { moderation: 'rejected', issues: input.issues, status: 'archived' },
+      } as const;
+      const next = patch[input.decision];
+      const applied = await catalog.applyModeration(
+        id,
+        {
+          version: product.moderationVersion,
+          states: ['in_review', 'pending_moderation', 'approved', 'changes_requested'],
+        },
+        { ...next, issues: [...next.issues], note: input.note },
+      );
+      if (!applied) throw new ConflictError('Le produit vient d’être modifié par le vendeur : rechargez-le.');
+      return toStaffProductDto(await load(id));
+    },
+
     async update(id: string, input: UpdateProductInput, actor: CatalogActor) {
       require(actor, 'catalogue:modifier');
       await load(id);
@@ -128,7 +156,11 @@ export const createStaffCatalogService = (catalog: StaffCatalogRepository) => {
     async setStatus(id: string, status: 'draft' | 'published' | 'archived', actor: CatalogActor) {
       require(actor, 'catalogue:publier');
       const product = await load(id);
-      if (status === 'published') {
+      // Produit de vendeur : publié seulement après une vérification favorable, sans coût d'achat (32.3)
+      if (status === 'published' && product.shopId) {
+        if (product.moderation !== 'approved')
+          throw new UnprocessableError('Ce produit de vendeur doit d’abord être validé par la vérification.');
+      } else if (status === 'published') {
         const blocker = publicationBlocker(product);
         if (blocker) throw new UnprocessableError(blocker);
         await assertCategory(product.categoryId);

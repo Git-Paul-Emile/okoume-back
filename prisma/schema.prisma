@@ -130,6 +130,7 @@ model StaffMember {
   supportMessages   SupportMessage[]
   activities        StaffActivity[]
   assignedAlerts    StaffAlert[]
+  sellerPayouts     SellerPayout[]
 
   @@map("staff_members")
 }
@@ -299,32 +300,43 @@ enum PromotionType {
 
 /// Prix TTC en francs CFA, sans décimale. La promotion est portée par le produit et vaut pour toutes ses variantes.
 model Product {
-  id                String         @id @default(uuid()) @db.Uuid
-  slug              String         @unique
+  id                String             @id @default(uuid()) @db.Uuid
+  slug              String             @unique
   name              String
-  sku               String         @unique
-  categoryId        String         @map("category_id") @db.Uuid
+  sku               String             @unique
+  categoryId        String             @map("category_id") @db.Uuid
   brand             String?
-  shortDescription  String         @map("short_description")
+  shortDescription  String             @map("short_description")
   description       String[]
   /// Liste de { label, value }
-  specs             Json           @default("[]")
-  usageTips         String?        @map("usage_tips")
-  vatRate           Decimal        @default(18) @map("vat_rate") @db.Decimal(5, 2)
-  hsCode            String?        @map("hs_code")
-  status            ProductStatus  @default(draft)
-  featured          Boolean        @default(false)
-  dealOfTheDay      Boolean        @default(false) @map("deal_of_the_day")
-  isNew             Boolean        @default(false) @map("is_new")
+  specs             Json               @default("[]")
+  usageTips         String?            @map("usage_tips")
+  vatRate           Decimal            @default(18) @map("vat_rate") @db.Decimal(5, 2)
+  hsCode            String?            @map("hs_code")
+  status            ProductStatus      @default(draft)
+  featured          Boolean            @default(false)
+  dealOfTheDay      Boolean            @default(false) @map("deal_of_the_day")
+  isNew             Boolean            @default(false) @map("is_new")
   tags              String[]
-  promotionType     PromotionType? @map("promotion_type")
-  promotionValue    Decimal?       @map("promotion_value") @db.Decimal(12, 0)
-  promotionStartsAt DateTime?      @map("promotion_starts_at")
-  promotionEndsAt   DateTime?      @map("promotion_ends_at")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
+  promotionType     PromotionType?     @map("promotion_type")
+  promotionValue    Decimal?           @map("promotion_value") @db.Decimal(12, 0)
+  promotionStartsAt DateTime?          @map("promotion_starts_at")
+  promotionEndsAt   DateTime?          @map("promotion_ends_at")
+  /// Boutique du vendeur (32.3) ; vide pour un produit de la boutique Okoumé
+  shopId            String?            @map("shop_id") @db.Uuid
+  /// État d'un produit de vendeur (32.3) ; neuf pour la boutique Okoumé, renseigné par le vendeur sinon
+  condition         ListingCondition?
+  /// Vérification d'un produit de vendeur avant publication (32.3) ; vide pour la boutique Okoumé
+  moderation        ProductModeration?
+  moderationIssues  String[]           @default([]) @map("moderation_issues")
+  moderationNote    String?            @map("moderation_note")
+  /// Version examinée : un avis rendu sur une version modifiée depuis est ignoré
+  moderationVersion Int                @default(0) @map("moderation_version")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
 
   category   Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  shop       Shop?              @relation(fields: [shopId], references: [id], onDelete: Restrict)
   images     ProductImage[]
   variants   Variant[]
   promoCodes PromoCodeProduct[]
@@ -334,6 +346,8 @@ model Product {
 
   @@index([status, categoryId])
   @@index([status, createdAt])
+  @@index([shopId, status])
+  @@index([moderation])
   @@map("products")
 }
 
@@ -451,6 +465,7 @@ model DeliveryZone {
   orders    Order[]
   couriers  CourierZone[]
   addresses CustomerAddress[]
+  shopFees  ShopZoneFee[]
 
   @@unique([city, name])
   @@map("delivery_zones")
@@ -527,6 +542,15 @@ model Order {
   paymentReference  String?       @map("payment_reference")
   paymentDeclaredAt DateTime?     @map("payment_declared_at")
   status            OrderStatus   @default(confirmed)
+  /// Boutique du vendeur qui reçoit la commande (32.4) ; vide pour la boutique Okoumé
+  shopId            String?       @map("shop_id") @db.Uuid
+  /// Passage en caisse commun aux commandes issues d'un même panier (une commande par boutique)
+  checkoutNumber    String?       @map("checkout_number")
+  /// Qui livre, figé à la commande (32.5) : les livreurs Okoumé ou ceux du vendeur
+  fulfilledBy       Fulfillment   @default(okoume) @map("fulfilled_by")
+  /// Confirmation de remise de ce lot au livreur central.
+  collectionConfirmedAt DateTime? @map("collection_confirmed_at")
+  collectionConfirmedBy String?  @map("collection_confirmed_by")
   createdAt         DateTime      @default(now()) @map("created_at")
   updatedAt         DateTime      @updatedAt @map("updated_at")
 
@@ -541,6 +565,8 @@ model Order {
   loyaltyMovements LoyaltyMovement[]
   invoices         Invoice[]
   courier          Courier?             @relation(fields: [courierId], references: [id], onDelete: Restrict)
+  shop             Shop?                @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  payout           SellerPayout?
   feeChanges       DeliveryFeeChange[]
   disputes         DeliveryDispute[]
   stockMovements   StockMovement[]
@@ -557,6 +583,8 @@ model Order {
   @@index([status, createdAt])
   @@index([phoneKey, createdAt])
   @@index([reviewStatus])
+  @@index([shopId, status, createdAt])
+  @@index([checkoutNumber])
   @@map("orders")
 }
 
@@ -585,6 +613,8 @@ enum OrderActor {
   customer
   staff
   system
+  /// Vendeur de la boutique qui a reçu la commande (32.4)
+  seller
 }
 
 /// Étapes de la commande : nouvel état, état précédent, auteur, motif.
@@ -650,11 +680,12 @@ model Payment {
   noReferenceReason String?       @map("no_reference_reason")
   /// Remboursement par un autre moyen que le paiement initial : accord du client
   clientAgreed      Boolean       @default(false) @map("client_agreed")
-  staffId           String        @map("staff_id") @db.Uuid
+  /// null : encaissement déclaré par le vendeur qui a livré lui-même (32.6)
+  staffId           String?       @map("staff_id") @db.Uuid
   createdAt         DateTime      @default(now()) @map("created_at")
 
-  order Order       @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  staff StaffMember @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  order Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  staff StaffMember? @relation(fields: [staffId], references: [id], onDelete: Restrict)
 
   @@index([orderId, createdAt])
   @@map("payments")
@@ -1185,6 +1216,8 @@ model Shop {
   acceptedPaymentMethods PaymentMethod[] @default([cash]) @map("accepted_payment_methods")
   /// Modes de remise proposés : retrait sur place ou livraison par le vendeur lui-même
   handoverModes          HandoverMode[]  @default([pickup]) @map("handover_modes")
+  /// Qui livre les commandes de la boutique (32.5)
+  deliveryMode           Fulfillment     @default(okoume) @map("delivery_mode")
   createdAt              DateTime        @default(now()) @map("created_at")
   updatedAt              DateTime        @updatedAt @map("updated_at")
 
@@ -1197,10 +1230,81 @@ model Shop {
   conversations Conversation[]
   boosts        ListingBoost[]
   listings      Listing[]
+  products      Product[]
+  orders        Order[]
+  zoneFees      ShopZoneFee[]
+  payouts       SellerPayout[]
 
   @@index([status, accessEndsAt])
   @@index([planId])
   @@map("shops")
+}
+
+/// Qui livre une commande : les livreurs Okoumé ou ceux du vendeur (32.5)
+enum Fulfillment {
+  okoume
+  seller
+}
+
+/// Frais d'un quartier pour un vendeur qui livre lui-même (32.5). Quartiers communs à toute la plateforme.
+model ShopZoneFee {
+  id        String   @id @default(uuid()) @db.Uuid
+  shopId    String   @map("shop_id") @db.Uuid
+  zoneId    String   @map("zone_id") @db.Uuid
+  fee       Decimal  @db.Decimal(12, 0)
+  available Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shop Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  zone DeliveryZone @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  @@unique([shopId, zoneId])
+  @@index([zoneId])
+  @@map("shop_zone_fees")
+}
+
+/// Vérification d'un produit de vendeur (32.3) : l'IA publie, demande une correction ou transmet à une personne.
+enum ProductModeration {
+  in_review
+  changes_requested
+  pending_moderation
+  approved
+  rejected
+}
+
+enum PayoutStatus {
+  pending
+  paid
+  cancelled
+}
+
+/// Reversement au vendeur de ce qu'un livreur Okoumé a encaissé pour lui (32.6) : un par commande.
+/// Montants figés à la création : encaissé = sous-total + livraison ; reversé = encaissé - livraison - commission.
+model SellerPayout {
+  id             String         @id @default(uuid()) @db.Uuid
+  shopId         String         @map("shop_id") @db.Uuid
+  orderId        String         @unique @map("order_id") @db.Uuid
+  collected      Decimal        @db.Decimal(12, 0)
+  deliveryFee    Decimal        @map("delivery_fee") @db.Decimal(12, 0)
+  commissionRate Decimal        @map("commission_rate") @db.Decimal(5, 2)
+  commission     Decimal        @db.Decimal(12, 0)
+  amount         Decimal        @db.Decimal(12, 0)
+  status         PayoutStatus   @default(pending)
+  method         PaymentMethod?
+  reference      String?
+  paidAt         DateTime?      @map("paid_at")
+  paidById       String?        @map("paid_by_id") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  shop   Shop         @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  order  Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  paidBy StaffMember? @relation(fields: [paidById], references: [id], onDelete: SetNull)
+
+  @@index([shopId, status, createdAt])
+  @@index([status, createdAt])
+  @@map("seller_payouts")
 }
 
 enum ShopPaymentStatus {
@@ -1248,6 +1352,8 @@ model MarketplaceSettings {
   agreementValidityHours Int      @default(48) @map("agreement_validity_hours")
   /// Plafond mensuel de réponses du négociateur IA (16.6) ; au-delà, le vendeur répond lui-même
   aiChatMonthlyLimit     Int      @default(5000) @map("ai_chat_monthly_limit")
+  /// Commission d'Okoumé sur les ventes des vendeurs, en pourcentage du sous-total (32.6)
+  commissionRate         Decimal  @default(0) @map("commission_rate") @db.Decimal(5, 2)
   updatedAt              DateTime @updatedAt @map("updated_at")
 
   @@map("marketplace_settings")

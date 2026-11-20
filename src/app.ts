@@ -10,7 +10,6 @@ import { createApiLimiter, createStaffLimiter } from './core/middlewares/rateLim
 import { requestLogger } from './core/middlewares/requestLogger.js';
 import { createHealthRoutes } from './features/health/health.routes.js';
 import type { HealthService } from './features/health/health.service.js';
-import { createSharePreviewRoutes } from './features/listings/listings.share.js';
 import { createApiRoutes, type ApiServices } from './routes.js';
 
 const JSON_LIMIT = '100kb';
@@ -38,10 +37,6 @@ export function createApp(dependencies: AppDependencies) {
   app.use(requestLogger);
 
   app.use(createHealthRoutes(dependencies.health));
-  // Aperçus des liens partagés, lus par les robots des réseaux sociaux (hors de l'API versionnée)
-  // Limiteur monté sur /partage seulement : à la racine, il compterait aussi chaque appel de /api/v1
-  app.use('/partage', createApiLimiter());
-  app.use(createSharePreviewRoutes(dependencies.listings));
   app.use('/api/v1', createApiLimiter(), createStaffLimiter(), csrfProtection, createApiRoutes(dependencies));
 
   app.use(notFound);

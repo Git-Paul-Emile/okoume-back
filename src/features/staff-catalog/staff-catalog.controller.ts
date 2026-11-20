@@ -28,6 +28,15 @@ export const createStaffCatalogController = (service: StaffCatalogService) => ({
     return sendSuccess(res, await service.update(String(req.params.id), req.body, req.staff!), 200, 'Produit modifié.');
   },
 
+  async moderate(req: Request, res: Response) {
+    return sendSuccess(
+      res,
+      await service.moderate(String(req.params.id), req.body, req.staff!),
+      200,
+      'Décision enregistrée.',
+    );
+  },
+
   async setStatus(req: Request, res: Response) {
     return sendSuccess(res, await service.setStatus(String(req.params.id), req.body.status, req.staff!));
   },

@@ -12,6 +12,7 @@ import type {
 } from '../src/features/orders/orders.repository.js';
 import type { ProductRecord, ProductsRepository, VariantRecord } from '../src/features/products/products.repository.js';
 import type { PaymentRecord, PaymentsRepository } from '../src/features/payments/payments.repository.js';
+import type { PayoutRecord, PayoutsRepository } from '../src/features/payouts/payouts.repository.js';
 import type {
   LoyaltyMovementRecord,
   LoyaltyRepository,
@@ -260,6 +261,7 @@ export function createMemoryCatalog(now: () => Date) {
             productName: product.name,
             categoryId: product.categoryId,
             published: product.status === 'published',
+            shopId: product.seller?.id ?? null,
             label: variant.label,
             price: variant.price,
             image: variant.image ?? product.images[0] ?? '',
@@ -276,6 +278,29 @@ export function createMemoryCatalog(now: () => Date) {
   };
 
   const ordersRepository: OrdersRepository = {
+    /** Contrôles du panier entier d'abord, comme la transaction : toutes les commandes, ou aucune. */
+    async createCheckout(newOrders) {
+      if (orders.some((o) => newOrders.some((n) => n.idempotencyKey === o.idempotencyKey)))
+        return { outcome: 'duplicate_request' };
+      if (orders.some((o) => newOrders.some((n) => n.number === o.number))) return { outcome: 'number_taken' };
+      const quantities = new Map<string, number>();
+      for (const i of newOrders.flatMap((o) => o.items))
+        quantities.set(i.variantId, (quantities.get(i.variantId) ?? 0) + i.quantity);
+      const shortages = [...quantities].flatMap(([variantId, quantity]) => {
+        const v = variantById(variantId)?.variant;
+        const available = v ? v.stock - v.reserved : 0;
+        return available < quantity ? [{ variantId, available }] : [];
+      });
+      if (shortages.length) return { outcome: 'out_of_stock', shortages };
+      const created: OrderRecord[] = [];
+      for (const order of newOrders) {
+        const result = await ordersRepository.create(order);
+        if (result.outcome !== 'created') return result;
+        created.push(result.order);
+      }
+      return { outcome: 'created', orders: created };
+    },
+    findByCheckout: async (checkoutNumber) => orders.filter((o) => o.checkoutNumber === checkoutNumber),
     async create(order) {
       if (orders.some((o) => o.idempotencyKey === order.idempotencyKey)) return { outcome: 'duplicate_request' };
       if (orders.some((o) => o.number === order.number)) return { outcome: 'number_taken' };
@@ -303,6 +328,9 @@ export function createMemoryCatalog(now: () => Date) {
       for (const [variantId, quantity] of quantities) variantById(variantId)!.variant.reserved += quantity;
       const created: OrderRecord = {
         ...order,
+        shop: order.shopId
+          ? { id: order.shopId, slug: 'boutique', name: 'Boutique', city: 'Libreville', district: 'Centre', phone: '077000000' }
+          : null,
         id: randomUUID(),
         status: 'confirmed',
         review: order.reviewStatus
@@ -323,6 +351,8 @@ export function createMemoryCatalog(now: () => Date) {
         deliveryCost: null,
         feeChange: null,
         dispute: null,
+        collectionConfirmedAt: null,
+        collectionConfirmedBy: null,
         createdAt: now(),
       };
       orders.push(created);
@@ -346,11 +376,13 @@ export function createMemoryCatalog(now: () => Date) {
     },
     findById: async (id) => orders.find((o) => o.id === id) ?? null,
     findByNumber: async (number) => orders.find((o) => o.number === number) ?? null,
-    async listForStaff({ status, search, page, limit }) {
+    async listForStaff({ status, search, shopId, page, limit }) {
       const matching = orders
         .filter(
           (o) =>
-            (!status || o.status === status) && (!search || o.number.includes(search) || o.recipient.includes(search)),
+            (!status || o.status === status) &&
+            (!shopId || o.shopId === (shopId === 'okoume' ? null : shopId)) &&
+            (!search || o.number.includes(search) || o.recipient.includes(search)),
         )
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       return { items: matching.slice((page - 1) * limit, page * limit), total: matching.length };
@@ -360,6 +392,56 @@ export function createMemoryCatalog(now: () => Date) {
       if (!stored || stored.status !== change.from) return { outcome: 'stale' };
       apply(stored, change, actor);
       return { outcome: 'applied', order: stored };
+    },
+    async applyCentralRouteTransition(order, change, actor) {
+      const route = orders.filter(
+        (candidate) =>
+          candidate.fulfilledBy === 'okoume' &&
+          candidate.status !== 'cancelled' &&
+          (order.checkoutNumber ? candidate.checkoutNumber === order.checkoutNumber : candidate.id === order.id),
+      );
+      if (!route.length || route.some((stop) => stop.status !== change.from)) return { outcome: 'stale' };
+      route.forEach((stop, index) => {
+        const courier = change.courier
+          ? { ...change.courier, deliveryCost: index === 0 ? change.courier.deliveryCost : 0 }
+          : change.courier;
+        apply(stop, { ...change, courier }, actor);
+        if (change.to === 'courier_assigned' || change.to === 'ready') {
+          stop.collectionConfirmedAt = null;
+          stop.collectionConfirmedBy = null;
+        }
+      });
+      return { outcome: 'applied', orders: route };
+    },
+    async confirmCentralCollection(order, by, actor, at) {
+      const route = orders.filter(
+        (candidate) =>
+          candidate.fulfilledBy === 'okoume' &&
+          candidate.status !== 'cancelled' &&
+          (order.checkoutNumber ? candidate.checkoutNumber === order.checkoutNumber : candidate.id === order.id),
+      );
+      const target = route.find((candidate) => candidate.id === order.id);
+      if (!target || route.some((stop) => stop.status !== 'courier_assigned') || target.collectionConfirmedAt)
+        return { outcome: 'stale' };
+      target.collectionConfirmedAt = at;
+      target.collectionConfirmedBy = by;
+      target.events.push({
+        status: 'courier_assigned',
+        fromStatus: 'courier_assigned',
+        note: `Collecte confirmée par ${by}`,
+        actor: actor.type,
+        by: actor.type === 'staff' ? `Membre ${actor.staffId}` : null,
+        createdAt: at,
+      });
+      if (route.every((stop) => stop.collectionConfirmedAt))
+        route.forEach((stop) =>
+          apply(
+            stop,
+            { from: 'courier_assigned', to: 'shipping', note: 'Toutes les collectes sont terminées', stock: null },
+            { type: 'system' },
+          ),
+        );
+      return { outcome: 'applied', orders: route };
     },
     async setDeliveryCost(orderId, cost) {
       const stored = orders.find((o) => o.id === orderId);
@@ -404,6 +486,32 @@ export function createMemoryCatalog(now: () => Date) {
       });
       return { outcome: 'applied', order: stored };
     },
+    async changeCheckoutPaymentMethod(routeOrders, to, note) {
+      if (
+        !routeOrders.length ||
+        routeOrders.some(
+          (order) =>
+            order.paymentMethod !== routeOrders[0]!.paymentMethod ||
+            order.paymentStatus !== 'awaiting_payment' ||
+            ['delivered', 'cancelled'].includes(order.status),
+        )
+      )
+        return false;
+      for (const routeOrder of routeOrders) {
+        const stored = orders.find((order) => order.id === routeOrder.id);
+        if (!stored) return false;
+        stored.paymentMethod = to;
+        stored.events.push({
+          status: stored.status,
+          fromStatus: stored.status,
+          note,
+          actor: 'customer',
+          by: null,
+          createdAt: now(),
+        });
+      }
+      return true;
+    },
     async riskHistory(phoneKey, email, at) {
       const keyOf = (phone: string) => phone.replace(/\D/g, '').slice(-8);
       const mine = orders.filter((o) => keyOf(o.phone) === phoneKey);
@@ -431,6 +539,14 @@ export function createMemoryCatalog(now: () => Date) {
       const stored = orders.find((o) => o.id === orderId);
       if (!stored || stored.customerId) return false;
       stored.customerId = customerId;
+      return true;
+    },
+    async claimCheckout(routeOrders, customerId) {
+      const stored = routeOrders.map((routeOrder) => orders.find((order) => order.id === routeOrder.id));
+      if (!stored.length || stored.some((order) => !order || order.customerId)) return false;
+      stored.forEach((order) => {
+        order!.customerId = customerId;
+      });
       return true;
     },
     async openDispute(orderId, reason) {
@@ -462,6 +578,27 @@ export function createMemoryCatalog(now: () => Date) {
   };
 
   const payments: Array<PaymentRecord & { orderId: string }> = [];
+  // Reversements aux vendeurs (32.6), créés avec l'encaissement comme en base ; commission réglable par les tests
+  const payouts: PayoutRecord[] = [];
+  const marketplace = { commissionRate: 0 };
+  const payoutsRepository: PayoutsRepository = {
+    async list({ shopId, status, page, limit }) {
+      const matching = payouts
+        .filter((p) => (!shopId || p.shop.id === shopId) && (!status || p.status === status))
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      const due = payouts
+        .filter((p) => (!shopId || p.shop.id === shopId) && p.status === 'pending')
+        .reduce((sum, p) => sum + p.amount, 0);
+      return { items: matching.slice((page - 1) * limit, page * limit), total: matching.length, due };
+    },
+    findById: async (id) => payouts.find((p) => p.id === id) ?? null,
+    async markPaid(id, { method, reference, staffId, at }) {
+      const found = payouts.find((p) => p.id === id && p.status === 'pending');
+      if (!found) return null;
+      Object.assign(found, { status: 'paid', method, reference, paidAt: at, paidBy: `Membre ${staffId}` });
+      return found;
+    },
+  };
   const paymentsRepository: PaymentsRepository = {
     listForOrder: async (orderId) => payments.filter((p) => p.orderId === orderId),
     async record(order, payment, nextStatus, note, { issuedAt, returnRefund }) {
@@ -498,16 +635,82 @@ export function createMemoryCatalog(now: () => Date) {
       stored.paymentStatus = nextStatus;
       creditEarned(stored);
       rewardFirstOrderInMemory(stored);
-      if (payment.kind === 'payment' && nextStatus === 'paid') issueInvoiceInMemory(stored, issuedAt);
-      if (payment.kind === 'refund') issueCreditNoteInMemory(stored.id, payment.amount, note, issuedAt);
+      if (payment.kind === 'payment' && nextStatus === 'paid' && !stored.shopId) issueInvoiceInMemory(stored, issuedAt);
+      if (payment.kind === 'payment' && nextStatus === 'paid' && stored.shopId && stored.fulfilledBy === 'okoume') {
+        const t = stored.totals;
+        const deliveryFee = Math.min(payment.amount, Math.max(0, t.deliveryFee - t.deliveryDiscount));
+        const commission = Math.floor(((payment.amount - deliveryFee) * marketplace.commissionRate) / 100);
+        payouts.push({
+          id: randomUUID(),
+          shop: { id: stored.shopId, name: stored.shop?.name ?? 'Boutique' },
+          order: { id: stored.id, number: stored.number },
+          collected: payment.amount,
+          deliveryFee,
+          commissionRate: marketplace.commissionRate,
+          commission,
+          amount: payment.amount - deliveryFee - commission,
+          status: 'pending',
+          method: null,
+          reference: null,
+          paidAt: null,
+          paidBy: null,
+          createdAt: now(),
+        });
+      }
+      if (payment.kind === 'refund' && !stored.shopId)
+        issueCreditNoteInMemory(stored.id, payment.amount, note, issuedAt);
+      if (payment.kind === 'refund' && stored.shopId)
+        for (const p of payouts) if (p.order.id === stored.id && p.status === 'pending') p.status = 'cancelled';
       stored.events.push({
         status: stored.status,
         fromStatus: stored.status,
         note,
-        actor: 'staff',
-        by: `Membre ${staffId}`,
+        actor: staffId ? 'staff' : 'seller',
+        by: staffId ? `Membre ${staffId}` : null,
         createdAt: now(),
       });
+      return { outcome: 'applied' };
+    },
+    async recordCheckout(checkoutOrders, payment, options) {
+      if (
+        !checkoutOrders.length ||
+        checkoutOrders.some(
+          (order) =>
+            order.status !== 'delivered' ||
+            (order.paymentStatus !== 'awaiting_payment' && order.paymentStatus !== 'awaiting_verification') ||
+            order.paymentMethod !== payment.method,
+        )
+      )
+        return { outcome: 'stale' };
+      if (
+        payment.reference &&
+        payments.some(
+          (record) => record.kind === 'payment' && record.reference?.toLowerCase() === payment.reference!.toLowerCase(),
+        )
+      )
+        return { outcome: 'reference_taken', orderNumber: null };
+      for (const [index, order] of checkoutOrders.entries()) {
+        const result = await paymentsRepository.record(
+          order,
+          {
+            kind: 'payment',
+            amount: order.totals.total,
+            method: payment.method,
+            occurredAt: payment.occurredAt,
+            reference: index === 0 ? payment.reference : null,
+            noReferenceReason:
+              index === 0 || payment.method === 'cash'
+                ? null
+                : `Part du paiement global du panier ${order.checkoutNumber ?? order.number}`,
+            clientAgreed: false,
+            staffId: payment.staffId,
+          },
+          'paid',
+          `Part du paiement global du panier ${order.checkoutNumber ?? order.number} : ${order.totals.total} FCFA`,
+          options,
+        );
+        if (result.outcome !== 'applied') return result;
+      }
       return { outcome: 'applied' };
     },
     async changeMethod(order, to, note) {
@@ -982,6 +1185,8 @@ export function createMemoryCatalog(now: () => Date) {
       images: ['https://images.okoume.test/produit.jpg'],
       createdAt: now(),
       ...product,
+      seller: product.seller ?? null,
+      condition: product.condition ?? null,
       variants: variants.map((v, index) => ({
         id: randomUUID(),
         sku: `VAR-${products.length + 1}-${index + 1}`,
@@ -1017,6 +1222,8 @@ export function createMemoryCatalog(now: () => Date) {
     products,
     zones,
     orders,
+    payouts,
+    marketplace,
     movements,
     returns,
     unsellable,
@@ -1040,6 +1247,7 @@ export function createMemoryCatalog(now: () => Date) {
       ordersRepository,
       stockRepository,
       paymentsRepository,
+      payoutsRepository,
       returnsRepository,
       promoCodesRepository,
       loyaltyRepository,

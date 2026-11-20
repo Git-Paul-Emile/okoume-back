@@ -43,6 +43,7 @@ export const createProductsService = (
         onSale: query.onSale,
         attributes: groupAttributes(query.attribute),
         sort: query.sort ? (SORTS[query.sort] ?? 'relevance') : 'relevance',
+        shop: query.shop,
         page: query.page,
         limit: query.limit,
       },
@@ -58,7 +59,7 @@ export const createProductsService = (
   },
 
   async getBySlug(slug: string) {
-    const product = await products.findPublishedBySlug(slug);
+    const product = await products.findPublishedBySlug(slug, now());
     if (!product) throw new NotFoundError('Ce produit n’existe pas ou n’est plus en vente.');
     return toProductDto(product, await categories.index(), now());
   },

@@ -9,7 +9,13 @@ import { logger } from '../../lib/logger.js';
 import type { OrderRecord, OrdersRepository } from '../orders/orders.repository.js';
 import type { StaffZonesRepository } from '../staff-delivery-zones/staff-delivery-zones.repository.js';
 import type { CouriersRepository } from '../staff-couriers/staff-couriers.repository.js';
-import { courierAssignmentEmail, feeChangeEmail, shippingEmail } from './staff-orders.emails.js';
+import {
+  courierAssignmentEmail,
+  courierRouteAssignmentEmail,
+  feeChangeEmail,
+  routeShippingEmail,
+  shippingEmail,
+} from './staff-orders.emails.js';
 import {
   advancePlan,
   assignCourierPlan,
@@ -31,6 +37,7 @@ export type StaffActor = Grantee & { id: string };
 /** Droit exigé par action (cahier des charges, 2.4) ; vérifié ici, jamais seulement dans l'interface. */
 const REQUIRED: Record<TransitionInput['action'], Permission> = {
   advance: 'commandes:modifier',
+  confirm_collection: 'commandes:modifier',
   assign_courier: 'commandes:modifier',
   cancel: 'commandes:annuler',
   reopen: 'commandes:valider',
@@ -98,6 +105,7 @@ export const createStaffOrdersService = ({
         paymentMethod: query.paymentMethod,
         paymentStatus: query.paymentStatus,
         search: query.search,
+        shopId: query.shopId,
         sort: sort
           ? { field: sort.field === 'total' ? 'total' : 'createdAt', direction: sort.direction }
           : { field: 'createdAt', direction: 'desc' },
@@ -125,17 +133,50 @@ export const createStaffOrdersService = ({
     async transition(id: string, input: TransitionInput, actor: StaffActor) {
       if (!can(actor, REQUIRED[input.action])) throw new ForbiddenError();
       const order = await load(id);
+      if (input.action === 'confirm_collection') {
+        if (order.shopId !== null || order.fulfilledBy !== 'okoume')
+          throw new UnprocessableError('Seule la boutique officielle Okoumé confirme cette collecte depuis cet écran.');
+        const result = await orders.confirmCentralCollection(
+          order,
+          'Boutique officielle OKOUMÉ',
+          { type: 'staff', staffId: actor.id },
+          now(),
+        );
+        if (result.outcome === 'stale') throw new ConflictError(STALE);
+        const route = result.orders;
+        const updated = route.find((stop) => stop.id === order.id);
+        if (!updated) throw new ConflictError(STALE);
+        if (updated.status === 'shipping') {
+          const courier = updated.courierId ? await couriers.findById(updated.courierId) : null;
+          if (courier) await notify(routeShippingEmail(route, courier), updated.id);
+          await notifyCustomer(updated);
+        }
+        return toStaffOrderDto(updated);
+      }
       let assigned: Awaited<ReturnType<typeof courierFor>> | null = null;
       let plan: TransitionPlan;
       switch (input.action) {
         case 'advance':
+          if (order.fulfilledBy === 'okoume' && order.status === 'courier_assigned')
+            throw new ConflictError('Attendez les confirmations de collecte de toutes les boutiques de la tournée.');
           // Commande signalée : la préparation attend la vérification d'un membre de l'équipe (19.3)
           if (order.status === 'confirmed' && order.review?.status === 'pending')
             throw new ConflictError('Commande à vérifier : validez-la avant de commencer la préparation.');
           plan = advancePlan(order, input.note);
           break;
         case 'assign_courier':
+          if (order.fulfilledBy !== 'okoume')
+            throw new UnprocessableError('Cette commande utilise le livreur indépendant de la boutique.');
           assigned = await courierFor(order, input.courierId, input.deliveryCost);
+          if (order.checkoutNumber) {
+            const route = (await orders.findByCheckout(order.checkoutNumber)).filter(
+              (stop) => stop.fulfilledBy === 'okoume' && stop.status !== 'cancelled',
+            );
+            if (
+              route.some((stop) => stop.status !== 'ready' || stop.review?.status === 'pending' || stop.feeChange?.status === 'pending')
+            )
+              throw new ConflictError('Tous les vendeurs de la tournée doivent avoir une commande prête et validée.');
+          }
           plan = assignCourierPlan(order, assigned.plan);
           break;
         case 'cancel':
@@ -151,17 +192,35 @@ export const createStaffOrdersService = ({
               : cancelPlan(order, `Annulée par la boutique : échec de livraison (${input.reason})`);
           break;
       }
-      const result = await orders.applyTransition(order, plan, { type: 'staff', staffId: actor.id });
+      const routeTransition =
+        order.fulfilledBy === 'okoume' &&
+        (input.action === 'assign_courier' ||
+          input.action === 'delivery_failed' ||
+          (input.action === 'advance' && plan.to === 'delivered') ||
+          (input.action === 'cancel' && ['courier_assigned', 'shipping'].includes(order.status)));
+      const result = routeTransition
+        ? await orders.applyCentralRouteTransition(order, plan, { type: 'staff', staffId: actor.id })
+        : await orders.applyTransition(order, plan, { type: 'staff', staffId: actor.id });
       if (result.outcome === 'stale') throw new ConflictError(STALE);
-      const updated = result.order;
-      if (assigned?.courier.email)
+      const updatedRoute = 'orders' in result ? result.orders : [result.order];
+      const updated = updatedRoute.find((stop) => stop.id === order.id);
+      if (!updated) throw new ConflictError(STALE);
+      if (assigned?.courier.email) {
+        const courier = { ...assigned.courier, email: assigned.courier.email };
         await notify(
-          courierAssignmentEmail(updated, { ...assigned.courier, email: assigned.courier.email }),
+          routeTransition
+            ? courierRouteAssignmentEmail(updatedRoute, courier)
+            : courierAssignmentEmail(updated, courier),
           updated.id,
         );
+      }
       if (plan.to === 'shipping' && updated.courierId) {
         const courier = await couriers.findById(updated.courierId);
-        if (courier) await notify(shippingEmail(updated, courier), updated.id);
+        if (courier)
+          await notify(
+            routeTransition ? routeShippingEmail(updatedRoute, courier) : shippingEmail(updated, courier),
+            updated.id,
+          );
       }
       await notifyCustomer(updated);
       return toStaffOrderDto(updated);

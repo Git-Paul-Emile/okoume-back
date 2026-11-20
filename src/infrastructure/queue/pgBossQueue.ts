@@ -52,18 +52,8 @@ const QUEUES: Record<JobName, Omit<QueueSettings, 'deadLetter'>> = {
     warningQueueSize: 1_000,
   },
   // Rejouable sans doublon (une récompense par client et par an) : quelques reprises suffisent
-  // Une réponse de tchat attendue en quelques secondes : reprises rapprochées, puis le vendeur prend le relais
-  'chat.reply': {
-    retryLimit: 3,
-    retryDelay: 5,
-    retryBackoff: true,
-    retryDelayMax: 60,
-    expireInSeconds: 90,
-    deleteAfterSeconds: DAY,
-    retentionSeconds: HOUR,
-  },
-  // Avis gardé par version : rejouable sans effet en double. Après les reprises, l'annonce passe en modération humaine
-  'listings.review': {
+  // Avis gardé par version : rejouable sans effet en double. Après les reprises, le produit passe en modération humaine
+  'products.review': {
     retryLimit: 4,
     retryDelay: 30,
     retryBackoff: true,

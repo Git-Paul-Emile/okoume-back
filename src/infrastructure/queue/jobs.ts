@@ -23,10 +23,8 @@ export interface JobPayloads {
   'alerts.detect': Record<string, never>;
   /** Suppression quotidienne de l'historique de navigation de plus de 13 mois (19.5) : aucune donnée */
   'analytics.purge': Record<string, never>;
-  /** Vérification assistée d'une annonce soumise (32.3) : la version évite d'appliquer l'avis à une annonce modifiée */
-  'listings.review': { listingId: string; version: number };
-  /** Réponse de l'assistant du tchat (32.5) au message de l'acheteur : une seule réponse par message */
-  'chat.reply': { conversationId: string; messageId: string };
+  /** Vérification assistée d'un produit de vendeur (32.3) : la version évite d'appliquer l'avis à un produit modifié */
+  'products.review': { productId: string; version: number };
   /** Notification push (10.2, 10.3) : identifiant unique pour ne jamais la remettre deux fois au même appareil */
   'push.send': { notificationId: string; audience: PushAudience; message: PushMessage; urgent: boolean };
 }

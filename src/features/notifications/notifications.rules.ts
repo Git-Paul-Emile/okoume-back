@@ -78,6 +78,17 @@ export function orderStatusMessage(order: { number: string }, status: OrderStatu
 }
 
 /** Alerte de l'équipe à chaque nouvelle commande : numéro et montant, sans les coordonnées du client. */
+/** Nouvelle commande pour la boutique d'un vendeur (32.4) : elle se traite depuis son espace vendeur. */
+export const sellerOrderMessage = (
+  order: { number: string; totals: { total: number } },
+  appUrl: string,
+): PushMessage => ({
+  title: 'Nouvelle commande pour votre boutique',
+  body: `Commande ${order.number} : ${fcfa(order.totals.total)}`,
+  url: `${appUrl}/vendeur/commandes`,
+  tag: `commande-vendeur-${order.number}`,
+});
+
 export const newOrderMessage = (order: { number: string; totals: { total: number } }, appUrl: string): PushMessage => ({
   title: 'Nouvelle commande',
   body: `Commande ${order.number} : ${fcfa(order.totals.total)}`,

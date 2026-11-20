@@ -69,22 +69,15 @@ import { createStaffMediaService } from '../src/features/staff-media/staff-media
 import { createShopsService } from '../src/features/shops/shops.service.js';
 import { createStaffShopsService } from '../src/features/staff-shops/staff-shops.service.js';
 import { createMemoryShops } from './memoryShops.js';
-import { createMemoryListings } from './memoryListings.js';
-import { createMemoryListingRequests } from './memoryListingRequests.js';
-import { createMemoryChat } from './memoryChat.js';
+import { createMemorySellerTerms } from './memorySellerTerms.js';
 import { createMemorySellerDashboard } from './memorySellerDashboard.js';
-import { createMemoryBoosts } from './memoryBoosts.js';
-import { createBoostsService } from '../src/features/boosts/boosts.service.js';
-import { createStaffBoostsService } from '../src/features/staff-boosts/staff-boosts.service.js';
 import { createSellerDashboardService } from '../src/features/seller-dashboard/seller-dashboard.service.js';
-import { createChatService } from '../src/features/chat/chat.service.js';
-import { createChatReplyWorker } from '../src/features/chat/chat.reply.js';
-import { createFakeChatAssistant } from '../src/infrastructure/ai/fakeChatAssistant.js';
-import { createListingRequestsService } from '../src/features/listing-requests/listing-requests.service.js';
-import { createListingsService } from '../src/features/listings/listings.service.js';
-import { createListingReviewWorker } from '../src/features/listings/listings.review.js';
-import { createStaffListingsService } from '../src/features/staff-listings/staff-listings.service.js';
 import { createFakeListingReviewer } from '../src/infrastructure/ai/fakeListingReviewer.js';
+import { createSellerProductsService } from '../src/features/seller-products/seller-products.service.js';
+import { createProductReviewWorker } from '../src/features/seller-products/seller-products.review.js';
+import { createSellerOrdersService } from '../src/features/seller-orders/seller-orders.service.js';
+import { createSellerDeliveryService } from '../src/features/seller-delivery/seller-delivery.service.js';
+import { createPayoutsService } from '../src/features/payouts/payouts.service.js';
 import { createMemoryCatalog } from './memoryCatalog.js';
 import {
   createMemoryCustomers,
@@ -148,6 +141,7 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
   const notifier = createNotifier(pushQueue);
   const notificationsStore = createMemoryNotifications();
   const shopsStore = createMemoryShops(clock.now);
+  const sellerTerms = createMemorySellerTerms(shopsStore.repository);
   const marketplace = {
     shops: shopsStore.repository,
     email,
@@ -155,35 +149,12 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
     appUrl: 'http://localhost:5173',
     now: clock.now,
   };
-  // Annonces : la file en mémoire reçoit aussi les vérifications ; le relecteur IA est un faux réglable
-  // Le dépôt des mises en avant dépend des annonces : la recherche le consulte par une fonction, appelée plus tard
-  let isSponsored: (listingId: string, at: Date) => boolean = () => false;
-  const listingsStore = createMemoryListings({
-    now: clock.now,
-    shops: shopsStore.repository,
-    categories: catalog.categories,
-    sponsored: (listingId, at) => isSponsored(listingId, at),
-  });
-  const boostsStore = createMemoryBoosts({ listings: listingsStore.repository, now: clock.now });
-  isSponsored = boostsStore.isActive;
   const reviewer = createFakeListingReviewer();
   const media = createFakeMediaStorage();
   // Membres de l'équipe connus de l'assistance (responsables, auteurs des réponses)
   const supportStaff: Array<{ id: string; firstName: string; lastName: string }> = [];
   const supportStore = createMemorySupport(clock.now, () => supportStaff);
-  const listingsDeps = { ...marketplace, listings: listingsStore.repository };
-  const chatStore = createMemoryChat({ listings: listingsStore.repository, shops: shopsStore.repository });
-  const chatAssistant = createFakeChatAssistant();
-  const requestsStore = createMemoryListingRequests({
-    listings: listingsStore.repository,
-    storedListings: listingsStore.listings,
-    shops: shopsStore.repository,
-  });
-  const dashboardStore = createMemorySellerDashboard({
-    listings: listingsStore.listings,
-    requests: requestsStore.requests,
-    conversations: chatStore.conversations,
-  });
+  // Vérificateur IA des produits de vendeurs : un faux réglable
   return {
     catalog,
     pushQueue,
@@ -203,51 +174,19 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
       reopenDays: 15,
       now: clock.now,
     }),
-    listingsStore,
     reviewer,
-    dashboardStore,
-    listings: createListingsService({
-      ...listingsDeps,
-      queue: pushQueue,
-      media,
-      views: dashboardStore.repository,
-      shareBaseUrl: 'http://localhost:3000',
-    }),
-    sellerDashboard: createSellerDashboardService({
-      dashboard: dashboardStore.repository,
-      shops: shopsStore.repository,
-      listings: listingsStore.repository,
-      now: clock.now,
-    }),
-    listingReviews: createListingReviewWorker({ ...listingsDeps, reviewer: reviewer.reviewer }),
-    staffListings: createStaffListingsService(listingsDeps),
-    requestsStore,
-    listingRequests: createListingRequestsService({
-      ...listingsDeps,
-      requests: requestsStore.repository,
-      chat: chatStore.repository,
-    }),
-    chatStore,
-    chatAssistant,
-    chat: createChatService({ ...listingsDeps, chat: chatStore.repository, queue: pushQueue }),
-    chatReplies: createChatReplyWorker({
-      ...listingsDeps,
-      chat: chatStore.repository,
-      assistant: chatAssistant.assistant,
-    }),
     shopsStore,
-    shops: createShopsService({ ...marketplace, boostReferences: boostsStore.repository }),
-    boostsStore,
-    boosts: createBoostsService({ ...marketplace, boosts: boostsStore.repository, listings: listingsStore.repository }),
-    staffBoosts: createStaffBoostsService({ ...marketplace, boosts: boostsStore.repository }),
+    shops: createShopsService(marketplace),
     staffShops: createStaffShopsService(marketplace),
     staffCatalogStore: staffStore,
     categories,
     products: createProductsService(productsRepository, categories, clock.now),
     deliveryZones: createDeliveryZonesService(zonesRepository),
     accountEmails,
+    sellerTerms,
     orders: createOrdersService({
       orders: ordersRepository,
+      sellers: sellerTerms.repository,
       accounts: { emailOf: async (id) => accountEmails.get(id) ?? null },
       products: productsRepository,
       zones: zonesRepository,
@@ -283,6 +222,9 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
       media,
       windowDays: 14,
       reopenDays: 14,
+      shops: shopsStore.repository,
+      notifier,
+      appUrl: 'http://localhost:5173',
       now: clock.now,
     }),
     staffReturns: createStaffReturnsService(catalog.repositories.returnsRepository, ordersRepository, clock.now),
@@ -306,6 +248,42 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
     publicPromoCodes: createPublicPromoCodesService(catalog.repositories.promoCodesRepository, clock.now),
     staffStock: createStaffStockService(catalog.repositories.stockRepository),
     staffCatalog: createStaffCatalogService(staffStore.catalog),
+    payouts: createPayoutsService(catalog.repositories.payoutsRepository, shopsStore.repository, clock.now),
+    sellerDashboard: createSellerDashboardService({
+      dashboard: createMemorySellerDashboard({ catalog: staffStore.catalog, orders: catalog.orders }).repository,
+      shops: shopsStore.repository,
+      payouts: catalog.repositories.payoutsRepository,
+      now: clock.now,
+    }),
+    sellerDelivery: createSellerDeliveryService({
+      delivery: sellerTerms.delivery,
+      shops: shopsStore.repository,
+      zones: zonesRepository,
+    }),
+    sellerOrders: createSellerOrdersService({
+      orders: ordersRepository,
+      shops: shopsStore.repository,
+      payments: catalog.repositories.paymentsRepository,
+      notifier,
+      appUrl: 'http://localhost:5173',
+      now: clock.now,
+    }),
+    sellerProducts: createSellerProductsService({
+      catalog: staffStore.catalog,
+      shops: shopsStore.repository,
+      stock: catalog.repositories.stockRepository,
+      queue: pushQueue,
+      media: null,
+      now: clock.now,
+    }),
+    productReviews: createProductReviewWorker({
+      catalog: staffStore.catalog,
+      shops: shopsStore.repository,
+      categories: categoriesRepository,
+      reviewer: reviewer.reviewer,
+      notifier,
+      appUrl: 'https://okoume.test',
+    }),
     staffCategories: createStaffCategoriesService(staffStore.categories),
     staffZones: createStaffZonesService(staffStore.zones),
   };
@@ -466,19 +444,17 @@ export const buildApp = ({ databaseUp = true }: { databaseUp?: boolean } = {}) =
     staffPromoCodes: shop.staffPromoCodes,
     staffStock: shop.staffStock,
     staffCatalog: shop.staffCatalog,
+    sellerProducts: shop.sellerProducts,
+    sellerOrders: shop.sellerOrders,
+    sellerDelivery: shop.sellerDelivery,
+    payouts: shop.payouts,
     staffCategories: shop.staffCategories,
     staffZones: shop.staffZones,
     notifications: shop.notifications,
     staffMedia: shop.staffMedia,
     shops: shop.shops,
     staffShops: shop.staffShops,
-    listings: shop.listings,
-    staffListings: shop.staffListings,
-    listingRequests: shop.listingRequests,
-    chat: shop.chat,
     sellerDashboard: shop.sellerDashboard,
-    boosts: shop.boosts,
-    staffBoosts: shop.staffBoosts,
     health: createHealthService({
       pingDatabase: () => (databaseUp ? Promise.resolve() : Promise.reject(new Error('connexion refusée'))),
     }),

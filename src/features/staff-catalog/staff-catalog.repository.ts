@@ -13,9 +13,27 @@ export interface StaffVariantRecord extends VariantRecord {
   unsellable: number;
 }
 
+export type ProductModeration = 'in_review' | 'changes_requested' | 'pending_moderation' | 'approved' | 'rejected';
+export type ProductCondition = 'new' | 'like_new' | 'good' | 'used';
+
 export interface StaffProductRecord extends Omit<ProductRecord, 'variants'> {
   variants: StaffVariantRecord[];
+  /** Boutique du vendeur (32.3) ; null pour la boutique Okoumé */
+  shopId: string | null;
+  moderation: ProductModeration | null;
+  moderationIssues: string[];
+  moderationNote: string | null;
+  moderationVersion: number;
   updatedAt: Date;
+}
+
+/** Résultat d'une vérification, appliqué seulement si le produit est encore dans l'un des états attendus. */
+export interface ModerationPatch {
+  moderation: ProductModeration;
+  issues: string[];
+  note: string | null;
+  /** Publication automatique quand la vérification est favorable ; retrait de la vente sinon */
+  status: 'draft' | 'published' | 'archived';
 }
 
 export interface NewVariant {
@@ -45,9 +63,13 @@ export interface ProductFields {
   dealOfTheDay: boolean;
   tags: string[];
   promotion: ProductRecord['promotion'];
+  condition?: ProductCondition | null;
 }
 
 export interface NewProduct extends ProductFields {
+  /** Boutique du vendeur ; absent ou null pour la boutique Okoumé */
+  shopId?: string | null;
+  moderation?: ProductModeration | null;
   slug: string;
   sku: string;
   status: 'draft' | 'published';
@@ -64,7 +86,8 @@ export interface PriceChangeInput {
   before: number;
   after: number;
   reason: string;
-  staffId: string;
+  /** null : changement fait par le vendeur depuis son espace */
+  staffId: string | null;
 }
 
 export interface PriceChangeRecord {
@@ -84,6 +107,9 @@ export interface StaffProductFilters {
   search?: string | undefined;
   status?: 'draft' | 'published' | 'archived' | undefined;
   categoryId?: string | undefined;
+  /** Identifiant d'une boutique de vendeur, ou « okoume » pour la boutique Okoumé seule */
+  shopId?: string | undefined;
+  moderation?: ProductModeration | undefined;
   page: number;
   limit: number;
 }
@@ -99,10 +125,19 @@ export interface StaffCatalogRepository {
   lastSkuNumber(): Promise<number>;
   /** Adresses déjà prises qui commencent par cette base (pagne-wax, pagne-wax-2…). */
   slugsLike(base: string): Promise<string[]>;
-  create(product: NewProduct, staffId: string): Promise<CreateProductResult>;
+  /** staffId null : produit créé par un vendeur depuis son espace */
+  create(product: NewProduct, staffId: string | null): Promise<CreateProductResult>;
   update(id: string, fields: Partial<ProductFields> & { images?: string[] | undefined }): Promise<StaffProductRecord>;
   setStatus(id: string, status: 'draft' | 'published' | 'archived'): Promise<StaffProductRecord>;
-  addVariant(productId: string, variant: NewVariant, staffId: string): Promise<StaffProductRecord | null>;
+  addVariant(productId: string, variant: NewVariant, staffId: string | null): Promise<StaffProductRecord | null>;
+  /** Soumet un produit de vendeur à la vérification : version suivante, retiré de la vente. Renvoie la version. */
+  submitForReview(id: string): Promise<number>;
+  /** Applique un avis si la version et l'état n'ont pas changé depuis ; false sinon (avis périmé). */
+  applyModeration(
+    id: string,
+    expected: { version: number; states: ProductModeration[] },
+    patch: ModerationPatch,
+  ): Promise<boolean>;
   /** Le changement de prix éventuel est écrit dans la même transaction que la variante */
   updateVariant(
     productId: string,
@@ -128,6 +163,11 @@ const toStaffRecord = (row: Prisma.ProductGetPayload<{ include: typeof productIn
       const source = row.variants[i]!;
       return { ...v, cost: source.cost?.toNumber() ?? null, unsellable: source.unsellable };
     }),
+    shopId: row.shopId,
+    moderation: row.moderation,
+    moderationIssues: row.moderationIssues,
+    moderationNote: row.moderationNote,
+    moderationVersion: row.moderationVersion,
     updatedAt: row.updatedAt,
   };
 };
@@ -151,9 +191,11 @@ function fieldColumns(fields: Partial<ProductFields>) {
 const variantData = (v: NewVariant, position: number) => ({ ...v, position });
 
 export const staffCatalogRepository: StaffCatalogRepository = {
-  async list({ search, status, categoryId, page, limit }) {
+  async list({ search, status, categoryId, shopId, moderation, page, limit }) {
     const where: Prisma.ProductWhereInput = {
       ...(status ? { status } : {}),
+      ...(shopId ? { shopId: shopId === 'okoume' ? null : shopId } : {}),
+      ...(moderation ? { moderation } : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(search
         ? {
@@ -284,6 +326,34 @@ export const staffCatalogRepository: StaffCatalogRepository = {
       return true;
     });
     return applied ? staffCatalogRepository.findById(productId) : null;
+  },
+
+  async submitForReview(id) {
+    const row = await prisma.product.update({
+      where: { id },
+      data: {
+        moderation: 'in_review',
+        moderationIssues: [],
+        moderationNote: null,
+        status: 'draft',
+        moderationVersion: { increment: 1 },
+      },
+      select: { moderationVersion: true },
+    });
+    return row.moderationVersion;
+  },
+
+  async applyModeration(id, expected, patch) {
+    const updated = await prisma.product.updateMany({
+      where: { id, moderationVersion: expected.version, moderation: { in: expected.states } },
+      data: {
+        moderation: patch.moderation,
+        moderationIssues: patch.issues,
+        moderationNote: patch.note,
+        status: patch.status,
+      },
+    });
+    return updated.count === 1;
   },
 
   async listPriceChanges({ productId, page, limit }) {

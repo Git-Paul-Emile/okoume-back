@@ -377,7 +377,7 @@ Routes publiques, sous `/api/v1` :
 | `GET /products`       | Catalogue publié : `search`, `category`, `minPrice`, `maxPrice`, `inStock`, `onSale`, `attribute=Taille:M` (répétable), `sort` (`price`, `-price`, `-createdAt`, `-discount`), `page`, `limit` |
 | `GET /products/:slug` | Fiche produit                                                                                                                                                                                  |
 | `GET /delivery-zones` | Zones desservies et frais                                                                                                                                                                      |
-| `POST /orders`        | Passage de commande, avec ou sans compte ; 201 à la création, 200 si la clé est rejouée ; consignes pour le livreur facultatives (`delivery.instructions`)                                     |
+| `POST /orders`        | Passage de commande, avec ou sans compte ; panier multi-boutiques réparti en sous-commandes dans une transaction ; un numéro PAN et un code de suivi communs ; 201 à la création, 200 si la clé est rejouée |
 | `GET /orders`         | Commandes du client connecté (3 dernières années) ; `?number=CMD-...` pour en retrouver une par son numéro                                                                                     |
 | `GET /orders/:id`     | Détail d'une commande du client connecté ; 404 pour celle d'un autre                                                                                                                           |
 
@@ -392,14 +392,30 @@ Routes publiques, sous `/api/v1` :
 | `PATCH /orders/:id/delivery-fee-change` | Réponse du client aux nouveaux frais de livraison (accord ou refus) |
 | `POST /orders/:id/delivery-disputes` | Contestation d'une livraison marquée « Livrée » ; le statut reste inchangé |
 | `GET /loyalty/referral`, `GET /loyalty/codes`, `PUT /loyalty/preferences` | Code parrain et filleuls, codes personnels utilisables, date d'anniversaire et choix points ou code |
-| `GET /order-tracking` | Suivi sans compte par `number` et `code` ; aucune coordonnée du client dans la réponse |
+| `GET /order-tracking` | Suivi sans compte par numéro de commande `CMD-…` ou panier `PAN-…` et code commun ; résumé de tous les arrêts, sans coordonnées du client |
+
+Commandes vendeurs, sous `/api/v1/seller/orders` (compte propriétaire de la boutique) :
+
+| Route | Rôle |
+| --- | --- |
+| `GET /`, `GET /:id` | Sous-commandes de sa boutique uniquement |
+| `POST /:id/progress` | Préparation et progression de sa sous-commande |
+| `POST /:id/handover` | Confirmer la remise au livreur OKOUMÉ ; le panier part en livraison après la dernière collecte |
+| `POST /:id/cancellation` | Annuler sa sous-commande avant son départ, avec motif |
+| `POST /:id/collection` | Déclarer l'encaissement après livraison quand la boutique utilise son propre livreur |
+
+Pour un panier centralisé, l'équipe affecte un livreur à toutes les sous-commandes OKOUMÉ prêtes en une seule action.
+Chaque boutique confirme ensuite sa collecte ; une seule notification de départ est envoyée après la dernière remise.
+Le livreur encaisse le total de cette tournée une fois. Les sous-commandes livrées par les vendeurs restent
+indépendantes. Les paiements reçus sur la tournée sont ventilés par sous-commande, avec la référence Mobile Money
+enregistrée une seule fois.
 
 Équipe, sous `/api/v1/staff` (session de l'équipe et droit `domaine:action` vérifiés à chaque requête) :
 
 | Route                                                         | Rôle                                                                                                                |
 | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `GET /orders`, `GET /orders/:id`                              | Liste filtrée (statut, paiement, recherche) et détail ; `commandes:consulter`                                       |
-| `POST /orders/:id/transitions`                                | `advance` (`commandes:modifier`), `cancel` (`commandes:annuler`), `reopen` (`commandes:valider`), `delivery_failed` |
+| `POST /orders/:id/transitions`                                | `advance`, `assign_courier`, `confirm_collection`, `cancel`, `reopen`, `delivery_failed` ; une affectation et une fin de livraison couvrent toute la tournée centralisée |
 | `GET` / `POST /orders/:id/payments`                           | Paiements de la commande ; encaissement vérifié `paiements:valider`                                                 |
 | `POST /orders/:id/refunds`                                    | Remboursement effectué ; `paiements:valider` et plafond de la personne                                              |
 | `PATCH /orders/:id/cancellation-request`                      | Décision sur la demande du client ; `commandes:annuler`                                                             |

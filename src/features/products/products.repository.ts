@@ -35,6 +35,10 @@ export interface ProductRecord {
   promotion: { type: 'percent' | 'fixed'; value: number; startsAt: Date; endsAt: Date } | null;
   images: string[];
   variants: VariantRecord[];
+  /** Boutique du vendeur (32.1) ; null pour la boutique Okoumé */
+  seller: { id: string; slug: string; name: string } | null;
+  /** État annoncé par le vendeur ; null pour la boutique Okoumé (produits neufs) */
+  condition: 'new' | 'like_new' | 'good' | 'used' | null;
   createdAt: Date;
 }
 
@@ -50,6 +54,8 @@ export interface ProductSearch {
   /** Valeurs acceptées par attribut : { Taille: ['M', 'L'] }. ET entre attributs, OU entre valeurs. */
   attributes: Record<string, string[]>;
   sort: ProductSort;
+  /** Boutique : adresse d'un vendeur, ou « okoume » pour la boutique Okoumé seule */
+  shop?: string | undefined;
   page: number;
   limit: number;
 }
@@ -66,20 +72,44 @@ export interface SellableVariant {
   image: string;
   vatRate: number;
   promotion: ProductRecord['promotion'];
+  /** Boutique du vendeur qui reçoit la commande (32.4) ; null pour la boutique Okoumé */
+  shopId: string | null;
 }
 
 /** Contrat de lecture du catalogue public. */
 export interface ProductsRepository {
   search(criteria: ProductSearch, now: Date): Promise<{ ids: string[]; total: number }>;
   findByIds(ids: string[]): Promise<ProductRecord[]>;
-  findPublishedBySlug(slug: string): Promise<ProductRecord | null>;
-  findSellableVariants(variantIds: string[]): Promise<SellableVariant[]>;
+  findPublishedBySlug(slug: string, now: Date): Promise<ProductRecord | null>;
+  findSellableVariants(variantIds: string[], now: Date): Promise<SellableVariant[]>;
 }
 
 export const productInclude = {
   images: { orderBy: { position: 'asc' }, select: { url: true } },
   variants: { orderBy: { position: 'asc' } },
+  shop: { select: { id: true, slug: true, name: true } },
 } as const satisfies Prisma.ProductInclude;
+
+/**
+ * Produit visible : boutique Okoumé, ou boutique de vendeur active dont l'accès court encore (délai de grâce
+ * compris, 32.2). En SQL pour la recherche, en filtre Prisma pour les lectures unitaires.
+ */
+const visibleShopSql = (now: Date) => Prisma.sql`(p.shop_id IS NULL OR EXISTS (
+    SELECT 1 FROM shops s JOIN access_plans ap ON ap.id = s.plan_id
+    WHERE s.id = p.shop_id AND s.status = 'active'
+      AND (ap.kind = 'free' OR s.access_ends_at > ${now}::timestamp
+        - make_interval(days => (SELECT grace_days FROM marketplace_settings WHERE id = 1)))))`;
+
+async function visibleShopWhere(now: Date): Promise<Prisma.ProductWhereInput> {
+  const settings = await prisma.marketplaceSettings.findUnique({ where: { id: 1 }, select: { graceDays: true } });
+  const cutoff = new Date(now.getTime() - (settings?.graceDays ?? 0) * 86_400_000);
+  return {
+    OR: [
+      { shopId: null },
+      { shop: { status: 'active', OR: [{ plan: { kind: 'free' } }, { accessEndsAt: { gt: cutoff } }] } },
+    ],
+  };
+}
 
 export type ProductRow = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
 
@@ -124,6 +154,8 @@ export function toProductRecord(row: ProductRow): ProductRecord {
     tags: row.tags,
     promotion,
     images: row.images.map((i) => i.url),
+    seller: row.shop ? { id: row.shop.id, slug: row.shop.slug, name: row.shop.name } : null,
+    condition: row.condition,
     variants: row.variants.map((v) => ({
       id: v.id,
       sku: v.sku,
@@ -153,7 +185,9 @@ function searchQuery(c: ProductSearch, now: Date) {
            ELSE GREATEST(0, v.price - p.promotion_value) END
     ELSE v.price END`;
 
-  const where: Prisma.Sql[] = [Prisma.sql`p.status = 'published'`];
+  const where: Prisma.Sql[] = [Prisma.sql`p.status = 'published'`, visibleShopSql(now)];
+  if (c.shop === 'okoume') where.push(Prisma.sql`p.shop_id IS NULL`);
+  else if (c.shop) where.push(Prisma.sql`p.shop_id = (SELECT id FROM shops WHERE slug = ${c.shop})`);
   if (c.categorySlug) where.push(Prisma.sql`p.category_id IN (SELECT id FROM tree)`);
   if (c.search) {
     const pattern = likePattern(c.search);
@@ -226,25 +260,36 @@ export const productsRepository: ProductsRepository = {
     return ids.flatMap((id) => byId.get(id) ?? []);
   },
 
-  async findPublishedBySlug(slug) {
-    const row = await prisma.product.findFirst({ where: { slug, status: 'published' }, include: productInclude });
+  async findPublishedBySlug(slug, now) {
+    const row = await prisma.product.findFirst({
+      where: { slug, status: 'published', ...(await visibleShopWhere(now)) },
+      include: productInclude,
+    });
     return row ? toProductRecord(row) : null;
   },
 
-  async findSellableVariants(variantIds) {
+  async findSellableVariants(variantIds, now) {
     if (!variantIds.length) return [];
-    const rows = await prisma.variant.findMany({
-      where: { id: { in: variantIds } },
-      include: { product: { include: { images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } } } } },
-    });
+    const [rows, visible] = await Promise.all([
+      prisma.variant.findMany({
+        where: { id: { in: variantIds } },
+        include: { product: { include: { images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } } } } },
+      }),
+      // Un produit d'une boutique suspendue ou sans accès ne se vend plus, même s'il est encore publié
+      visibleShopWhere(now).then((where) =>
+        prisma.variant.findMany({ where: { id: { in: variantIds }, product: where }, select: { id: true } }),
+      ),
+    ]);
+    const sellable = new Set(visible.map((v) => v.id));
     return rows.map((v) => {
-      const { promotion, vatRate } = toProductRecord({ ...v.product, images: [], variants: [] });
+      const { promotion, vatRate } = toProductRecord({ ...v.product, images: [], variants: [], shop: null });
       return {
         variantId: v.id,
         productId: v.productId,
         productName: v.product.name,
         categoryId: v.product.categoryId,
-        published: v.product.status === 'published',
+        published: v.product.status === 'published' && sellable.has(v.id),
+        shopId: v.product.shopId,
         label: v.label,
         price: v.price.toNumber(),
         image: v.image ?? v.product.images[0]?.url ?? '',

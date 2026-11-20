@@ -9,6 +9,7 @@ import {
   createProductBody,
   listStaffProductsQuery,
   priceChangesQuery,
+  moderationBody,
   productStatusBody,
   updateProductBody,
   updateVariantBody,
@@ -33,6 +34,7 @@ export const createStaffCatalogRoutes = (
   router.get('/:id', validate({ params: idParam }), asyncHandler(c.get));
   router.patch('/:id', validate({ params: idParam, body: updateProductBody }), asyncHandler(c.update));
   router.put('/:id/status', validate({ params: idParam, body: productStatusBody }), asyncHandler(c.setStatus));
+  router.put('/:id/moderation', validate({ params: idParam, body: moderationBody }), asyncHandler(c.moderate));
   router.post('/:id/variants', validate({ params: idParam, body: addVariantBody }), asyncHandler(c.addVariant));
   router.patch(
     '/:id/variants/:variantId',

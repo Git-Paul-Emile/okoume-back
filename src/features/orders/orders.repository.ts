@@ -35,7 +35,7 @@ export interface OrderEventRecord {
   status: OrderStatus;
   fromStatus: OrderStatus | null;
   note: string | null;
-  actor: 'customer' | 'staff' | 'system';
+  actor: 'customer' | 'staff' | 'system' | 'seller';
   /** Prénom et nom du membre de l'équipe auteur de l'étape */
   by: string | null;
   createdAt: Date;
@@ -100,6 +100,16 @@ export interface OrderRecord {
   items: OrderItemRecord[];
   events: OrderEventRecord[];
   cancellation: CancellationRecord | null;
+  /** Boutique du vendeur qui a reçu la commande (32.4) ; null pour la boutique Okoumé */
+  shopId: string | null;
+  shop: { id: string; slug: string; name: string; city?: string; district?: string; phone?: string } | null;
+  /** Passage en caisse commun aux commandes d'un même panier ; null si le panier ne venait que d'une boutique */
+  checkoutNumber: string | null;
+  /** Qui livre (32.5), figé à la commande */
+  fulfilledBy: 'okoume' | 'seller';
+  /** Confirmation de remise au livreur central pour cet arrêt de la tournée */
+  collectionConfirmedAt: Date | null;
+  collectionConfirmedBy: string | null;
   createdAt: Date;
 }
 
@@ -123,6 +133,9 @@ export type NewOrder = Omit<
   | 'feeChange'
   | 'dispute'
   | 'review'
+  | 'shop'
+  | 'collectionConfirmedAt'
+  | 'collectionConfirmedBy'
 > & {
   /** Clé du téléphone (8 derniers chiffres), pour rapprocher les commandes d'un même numéro */
   phoneKey: string;
@@ -132,7 +145,12 @@ export type NewOrder = Omit<
 };
 
 /** Auteur d'un changement : le client, un membre de l'équipe, ou un traitement automatique. */
-export type OrderActor = { type: 'customer' } | { type: 'staff'; staffId: string } | { type: 'system' };
+export type OrderActor =
+  | { type: 'customer' }
+  | { type: 'staff'; staffId: string }
+  | { type: 'system' }
+  /** Vendeur de la boutique qui a reçu la commande (32.4) */
+  | { type: 'seller' };
 
 /** Changement d'état à appliquer (calculé par orders.transitions.ts). */
 export interface AppliedTransition {
@@ -147,6 +165,7 @@ export interface AppliedTransition {
 
 /** « stale » : la commande a changé entre la lecture et l'écriture, rien n'a été appliqué. */
 export type TransitionResult = { outcome: 'applied'; order: OrderRecord } | { outcome: 'stale' };
+export type RouteUpdateResult = { outcome: 'applied'; orders: OrderRecord[] } | { outcome: 'stale' };
 
 export interface StaffOrderFilters {
   status?: OrderStatus | undefined;
@@ -156,6 +175,8 @@ export interface StaffOrderFilters {
   paymentStatus?: PaymentStatus | undefined;
   /** Numéro de commande, nom du destinataire ou téléphone */
   search?: string | undefined;
+  /** Identifiant d'une boutique de vendeur, ou « okoume » pour les commandes de la boutique Okoumé */
+  shopId?: string | undefined;
   sort: { field: 'createdAt' | 'total'; direction: 'asc' | 'desc' };
   page: number;
   limit: number;
@@ -172,9 +193,17 @@ export type CreateOrderResult =
   /** Solde de points devenu insuffisant entre le calcul et l'écriture */
   | { outcome: 'points_unavailable' };
 
+/** Issue de la création des commandes d'un même panier : toutes, ou aucune. */
+export type CreateCheckoutResult =
+  { outcome: 'created'; orders: OrderRecord[] } | Exclude<CreateOrderResult, { outcome: 'created' }>;
+
 /** Contrat de stockage des commandes. */
 export interface OrdersRepository {
   create(order: NewOrder): Promise<CreateOrderResult>;
+  /** Commandes d'un même panier, une par boutique (32.4), écrites dans une seule transaction. */
+  createCheckout(orders: NewOrder[]): Promise<CreateCheckoutResult>;
+  /** Commandes d'un même passage en caisse, dans l'ordre de création */
+  findByCheckout(checkoutNumber: string): Promise<OrderRecord[]>;
   findByIdempotencyKey(key: string): Promise<OrderRecord | null>;
   findForCustomer(id: string, customerId: string): Promise<OrderRecord | null>;
   listForCustomer(
@@ -188,6 +217,15 @@ export interface OrdersRepository {
   listForStaff(filters: StaffOrderFilters): Promise<{ items: OrderRecord[]; total: number }>;
   /** Applique un changement d'état, ses effets sur le stock et l'étape d'historique, ensemble ou pas du tout. */
   applyTransition(order: OrderRecord, change: AppliedTransition, actor: OrderActor): Promise<TransitionResult>;
+  /** Affecte un seul livreur à toutes les sous-commandes de la tournée centralisée, dans une transaction. */
+  applyCentralRouteTransition(order: OrderRecord, change: AppliedTransition, actor: OrderActor): Promise<RouteUpdateResult>;
+  /** Confirme un arrêt de collecte ; la tournée passe en livraison quand tous les arrêts sont confirmés. */
+  confirmCentralCollection(
+    order: OrderRecord,
+    by: string,
+    actor: OrderActor,
+    at: Date,
+  ): Promise<RouteUpdateResult>;
   /** Enregistre la demande d'annulation du client ; false si la commande en a déjà une. */
   requestCancellation(orderId: string, request: { reason: string; comment: string }): Promise<boolean>;
   /**
@@ -199,6 +237,8 @@ export interface OrdersRepository {
   proposeFeeChange(order: OrderRecord, change: { toFee: number; reason: string; staffId: string }): Promise<boolean>;
   /** Décision du client : acceptée, les frais et le total changent dans la même transaction. */
   decideFeeChange(order: OrderRecord, accept: boolean, at: Date): Promise<TransitionResult>;
+  /** Met à jour le moyen de paiement commun aux commandes de la tournée centralisée. */
+  changeCheckoutPaymentMethod(orders: readonly OrderRecord[], to: PaymentMethod, note: string): Promise<boolean>;
   /** false : une contestation est déjà ouverte. */
   openDispute(orderId: string, reason: string): Promise<boolean>;
   /** Historique d'un numéro de téléphone avant une nouvelle commande (signaux anti-fraude) */
@@ -209,6 +249,8 @@ export interface OrdersRepository {
   clearReview(orderId: string, review: { note: string; staffId: string; at: Date }): Promise<boolean>;
   /** Rattache une commande passée sans compte ; false si elle a déjà un compte (vérifié dans la même écriture). */
   claim(orderId: string, customerId: string): Promise<boolean>;
+  /** Rattache atomiquement toutes les sous-commandes d'un panier au même compte. */
+  claimCheckout(orders: readonly OrderRecord[], customerId: string): Promise<boolean>;
   resolveDispute(orderId: string, resolution: string, staffId: string, at: Date): Promise<boolean>;
   decideCancellation(
     order: OrderRecord,
@@ -223,6 +265,7 @@ const include = {
   cancellation: true,
   feeChanges: { orderBy: { createdAt: 'desc' }, take: 1 },
   disputes: { orderBy: { createdAt: 'desc' }, take: 1 },
+  shop: { select: { id: true, slug: true, name: true, city: true, district: true, phone: true } },
 } as const satisfies Prisma.OrderInclude;
 
 type OrderRow = Prisma.OrderGetPayload<{ include: typeof include }>;
@@ -239,6 +282,12 @@ const toRecord = (row: OrderRow): OrderRecord => ({
   zoneId: row.zoneId,
   zoneName: row.zoneName,
   landmark: row.landmark,
+  shopId: row.shopId,
+  shop: row.shop,
+  checkoutNumber: row.checkoutNumber,
+  fulfilledBy: row.fulfilledBy,
+  collectionConfirmedAt: row.collectionConfirmedAt,
+  collectionConfirmedBy: row.collectionConfirmedBy,
   instructions: row.instructions,
   totals: {
     subtotal: row.subtotal.toNumber(),
@@ -320,6 +369,9 @@ class PromoUnavailable extends Error {}
 /** Solde de points insuffisant au moment d'écrire : la transaction est annulée. */
 class PointsUnavailable extends Error {}
 
+/** Un panier appartient déjà à un compte ou a été rattaché en parallèle. */
+class StaleClaim extends Error {}
+
 /** Levée dans la transaction pour l'annuler entièrement quand un article manque. */
 class OutOfStock extends Error {
   constructor(readonly shortages: Array<{ variantId: string; available: number }>) {
@@ -331,29 +383,36 @@ const isUniqueViolation = (error: unknown) =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 
 export const ordersRepository: OrdersRepository = {
-  /**
-   * Réservation du stock et création de la commande dans une seule transaction. Les variantes sont
-   * verrouillées (FOR UPDATE) dans un ordre fixe : deux commandes simultanées sur le même article
-   * passent l'une après l'autre, sans survente ni interblocage.
-   */
   async create(order) {
+    const result = await ordersRepository.createCheckout([order]);
+    return result.outcome === 'created' ? { outcome: 'created', order: result.orders[0]! } : result;
+  },
+
+  /**
+   * Réservation du stock et création des commandes d'un même panier dans une seule transaction : toutes ou
+   * aucune. Les variantes sont verrouillées (FOR UPDATE) une fois, dans un ordre fixe : deux paniers simultanés
+   * sur le même article passent l'un après l'autre, sans survente ni interblocage.
+   */
+  async createCheckout(newOrders) {
     const quantities = new Map<string, number>();
-    for (const item of order.items)
+    for (const item of newOrders.flatMap((o) => o.items))
       quantities.set(item.variantId, (quantities.get(item.variantId) ?? 0) + item.quantity);
     const variantIds = [...quantities.keys()].sort();
+    const customerId = newOrders[0]?.customerId ?? null;
 
     try {
       const created = await prisma.$transaction(async (tx) => {
         // Les commandes d'un même client passent l'une après l'autre : limite par client et solde de points exacts
-        if (order.customerId)
-          await tx.$queryRaw`SELECT id FROM customers WHERE id = ${order.customerId}::uuid FOR UPDATE`;
-        if (order.promoCodeId) await usePromoCode(tx, order.promoCodeId, order.customerId);
-        if (order.pointsUsed > 0) {
-          const balance = await tx.loyaltyMovement.aggregate({
-            where: { customerId: order.customerId ?? '' },
-            _sum: { points: true },
-          });
-          if ((balance._sum.points ?? 0) < order.pointsUsed) throw new PointsUnavailable();
+        if (customerId) await tx.$queryRaw`SELECT id FROM customers WHERE id = ${customerId}::uuid FOR UPDATE`;
+        for (const order of newOrders) {
+          if (order.promoCodeId) await usePromoCode(tx, order.promoCodeId, order.customerId);
+          if (order.pointsUsed > 0) {
+            const balance = await tx.loyaltyMovement.aggregate({
+              where: { customerId: order.customerId ?? '' },
+              _sum: { points: true },
+            });
+            if ((balance._sum.points ?? 0) < order.pointsUsed) throw new PointsUnavailable();
+          }
         }
 
         const locked = await tx.$queryRaw<Array<{ id: string; available: number }>>`
@@ -368,45 +427,58 @@ export const ordersRepository: OrdersRepository = {
         for (const [id, quantity] of quantities)
           await tx.variant.update({ where: { id }, data: { reserved: { increment: quantity } }, select: { id: true } });
 
-        const { totals, items, ...fields } = order;
-        const row = await tx.order.create({
-          data: {
-            ...fields,
-            ...totals,
-            status: 'confirmed',
-            items: { create: items },
-            events: { create: { status: 'confirmed', actor: order.customerId ? 'customer' : 'system' } },
-          },
-          include,
-        });
-        if (order.pointsUsed > 0 && order.customerId)
-          await tx.loyaltyMovement.create({
+        const rows = [];
+        for (const order of newOrders) {
+          const { totals, items, ...fields } = order;
+          const row = await tx.order.create({
             data: {
-              customerId: order.customerId,
-              points: -order.pointsUsed,
-              type: 'redeem',
-              label: `Points utilisés sur la commande ${order.number}`,
-              orderId: row.id,
+              ...fields,
+              ...totals,
+              status: 'confirmed',
+              items: { create: items },
+              events: { create: { status: 'confirmed', actor: order.customerId ? 'customer' : 'system' } },
             },
-            select: { id: true },
+            include,
           });
-        return row;
+          if (order.pointsUsed > 0 && order.customerId)
+            await tx.loyaltyMovement.create({
+              data: {
+                customerId: order.customerId,
+                points: -order.pointsUsed,
+                type: 'redeem',
+                label: `Points utilisés sur la commande ${order.number}`,
+                orderId: row.id,
+              },
+              select: { id: true },
+            });
+          rows.push(row);
+        }
+        return rows;
       });
-      return { outcome: 'created', order: toRecord(created) };
+      return { outcome: 'created', orders: created.map(toRecord) };
     } catch (error) {
       if (error instanceof OutOfStock) return { outcome: 'out_of_stock', shortages: error.shortages };
       if (error instanceof PromoUnavailable) return { outcome: 'promo_unavailable' };
       if (error instanceof PointsUnavailable) return { outcome: 'points_unavailable' };
       if (isUniqueViolation(error)) {
         // Deux contraintes uniques possibles : la clé d'idempotence (requête rejouée) ou le numéro tiré au hasard
-        const replay = await prisma.order.findUnique({
-          where: { idempotencyKey: order.idempotencyKey },
+        const replay = await prisma.order.findFirst({
+          where: { idempotencyKey: { in: newOrders.map((o) => o.idempotencyKey) } },
           select: { id: true },
         });
         return { outcome: replay ? 'duplicate_request' : 'number_taken' };
       }
       throw error;
     }
+  },
+
+  async findByCheckout(checkoutNumber) {
+    const rows = await prisma.order.findMany({
+      where: { checkoutNumber },
+      include,
+      orderBy: [{ createdAt: 'asc' }, { idempotencyKey: 'asc' }],
+    });
+    return rows.map(toRecord);
   },
 
   async findByIdempotencyKey(idempotencyKey) {
@@ -438,9 +510,10 @@ export const ordersRepository: OrdersRepository = {
     return row ? toRecord(row) : null;
   },
 
-  async listForStaff({ status, review, paymentMethod, paymentStatus, search, sort, page, limit }) {
+  async listForStaff({ status, review, paymentMethod, paymentStatus, search, shopId, sort, page, limit }) {
     const where: Prisma.OrderWhereInput = {
       ...(status ? { status } : {}),
+      ...(shopId ? { shopId: shopId === 'okoume' ? null : shopId } : {}),
       ...(review ? { reviewStatus: review } : {}),
       ...(paymentMethod ? { paymentMethod } : {}),
       ...(paymentStatus ? { paymentStatus } : {}),
@@ -474,6 +547,86 @@ export const ordersRepository: OrdersRepository = {
         return tx.order.findUniqueOrThrow({ where: { id: order.id }, include });
       });
       return { outcome: 'applied', order: toRecord(row) };
+    } catch (error) {
+      if (error instanceof StaleOrder) return { outcome: 'stale' };
+      throw error;
+    }
+  },
+
+  async applyCentralRouteTransition(order, change, actor) {
+    try {
+      const rows = await prisma.$transaction(async (tx) => {
+        const where = order.checkoutNumber
+          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoume' as const, status: { not: 'cancelled' as const } }
+          : { id: order.id, fulfilledBy: 'okoume' as const, status: { not: 'cancelled' as const } };
+        const route = (await tx.order.findMany({ where, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] })).map(
+          toRecord,
+        );
+        if (!route.length || route.some((stop) => stop.status !== change.from)) throw new StaleOrder();
+        if (change.to === 'courier_assigned' && route.some((stop) => stop.collectionConfirmedAt)) throw new StaleOrder();
+        if (change.to === 'shipping' && route.some((stop) => !stop.collectionConfirmedAt)) throw new StaleOrder();
+        if (change.to === 'delivered' && route.some((stop) => stop.status !== 'shipping')) throw new StaleOrder();
+
+        for (const [index, stop] of route.entries()) {
+          const courier =
+            change.to === 'courier_assigned' && change.courier
+              ? { ...change.courier, deliveryCost: index === 0 ? change.courier.deliveryCost : 0 }
+              : change.courier;
+          await applyInTransaction(tx, stop, { ...change, courier }, actor);
+        }
+        return tx.order.findMany({ where: { id: { in: route.map((stop) => stop.id) } }, include });
+      });
+      return { outcome: 'applied', orders: rows.map(toRecord) };
+    } catch (error) {
+      if (error instanceof StaleOrder) return { outcome: 'stale' };
+      throw error;
+    }
+  },
+
+  async confirmCentralCollection(order, by, actor, at) {
+    try {
+      const rows = await prisma.$transaction(async (tx) => {
+        const where = order.checkoutNumber
+          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoume' as const, status: { not: 'cancelled' as const } }
+          : { id: order.id, fulfilledBy: 'okoume' as const, status: { not: 'cancelled' as const } };
+        const route = (await tx.order.findMany({ where, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] })).map(
+          toRecord,
+        );
+        if (!route.length || route.some((stop) => stop.status !== 'courier_assigned')) throw new StaleOrder();
+        const moved = await tx.order.updateMany({
+          where: { id: order.id, status: 'courier_assigned', collectionConfirmedAt: null },
+          data: { collectionConfirmedAt: at, collectionConfirmedBy: by },
+        });
+        if (moved.count !== 1) throw new StaleOrder();
+        await tx.orderEvent.create({
+          data: {
+            orderId: order.id,
+            status: 'courier_assigned',
+            fromStatus: 'courier_assigned',
+            note: `Collecte confirmée par ${by}`,
+            actor: actor.type,
+            staffId: actor.type === 'staff' ? actor.staffId : null,
+            createdAt: at,
+          },
+          select: { id: true },
+        });
+
+        const updated = (await tx.order.findMany({ where, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] })).map(
+          toRecord,
+        );
+        if (updated.every((stop) => stop.collectionConfirmedAt)) {
+          for (const stop of updated)
+            await applyInTransaction(
+              tx,
+              stop,
+              { from: 'courier_assigned', to: 'shipping', note: 'Toutes les collectes sont terminées', stock: null },
+              { type: 'system' },
+            );
+        }
+        const ids = updated.map((stop) => stop.id);
+        return tx.order.findMany({ where: { id: { in: ids } }, include });
+      });
+      return { outcome: 'applied', orders: rows.map(toRecord) };
     } catch (error) {
       if (error instanceof StaleOrder) return { outcome: 'stale' };
       throw error;
@@ -544,6 +697,34 @@ export const ordersRepository: OrdersRepository = {
     }
   },
 
+  async changeCheckoutPaymentMethod(routeOrders, to, note) {
+    if (!routeOrders.length) return false;
+    return prisma.$transaction(async (tx) => {
+      const first = routeOrders[0]!;
+      const ids = routeOrders.map((order) => order.id);
+      const changed = await tx.order.updateMany({
+        where: {
+          id: { in: ids },
+          paymentMethod: first.paymentMethod,
+          paymentStatus: 'awaiting_payment',
+          status: { notIn: ['delivered', 'cancelled'] },
+        },
+        data: { paymentMethod: to },
+      });
+      if (changed.count !== routeOrders.length) return false;
+      await tx.orderEvent.createMany({
+        data: routeOrders.map((order) => ({
+          orderId: order.id,
+          status: order.status,
+          fromStatus: order.status,
+          note,
+          actor: 'customer' as const,
+        })),
+      });
+      return true;
+    });
+  },
+
   async riskHistory(phoneKey, email, at) {
     const day = new Date(at.getTime() - DAY_MS);
     const month = new Date(at.getTime() - HISTORY_DAYS * DAY_MS);
@@ -581,6 +762,23 @@ export const ordersRepository: OrdersRepository = {
   async claim(orderId, customerId) {
     const updated = await prisma.order.updateMany({ where: { id: orderId, customerId: null }, data: { customerId } });
     return updated.count === 1;
+  },
+
+  async claimCheckout(routeOrders, customerId) {
+    if (!routeOrders.length) return false;
+    try {
+      await prisma.$transaction(async (tx) => {
+        const ids = routeOrders.map((order) => order.id);
+        const unclaimed = await tx.order.count({ where: { id: { in: ids }, customerId: null } });
+        if (unclaimed !== ids.length) throw new StaleClaim();
+        const updated = await tx.order.updateMany({ where: { id: { in: ids }, customerId: null }, data: { customerId } });
+        if (updated.count !== ids.length) throw new StaleClaim();
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof StaleClaim) return false;
+      throw error;
+    }
   },
 
   async openDispute(orderId, reason) {
@@ -658,6 +856,9 @@ async function applyInTransaction(tx: Tx, order: OrderRecord, change: AppliedTra
       ...(change.paymentStatus ? { paymentStatus: change.paymentStatus } : {}),
       ...(change.courier === null ? { courierId: null } : {}),
       ...(change.courier ? { courierId: change.courier.id, deliveryCost: change.courier.deliveryCost } : {}),
+      ...(change.to === 'courier_assigned' || (change.to === 'ready' && order.fulfilledBy === 'okoume')
+        ? { collectionConfirmedAt: null, collectionConfirmedBy: null }
+        : {}),
     },
   });
   if (moved.count !== 1) throw new StaleOrder();

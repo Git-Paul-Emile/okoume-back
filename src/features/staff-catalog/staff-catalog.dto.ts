@@ -40,6 +40,11 @@ export const toStaffProductDto = (p: StaffProductRecord) => ({
     lowStockThreshold: v.lowStockThreshold,
     image: v.image,
   })),
+  seller: p.seller && { id: p.seller.id, slug: p.seller.slug, name: p.seller.name },
+  condition: p.condition,
+  moderation: p.moderation,
+  moderationIssues: p.moderationIssues,
+  moderationNote: p.moderationNote,
   createdAt: p.createdAt.toISOString(),
   updatedAt: p.updatedAt.toISOString(),
 });

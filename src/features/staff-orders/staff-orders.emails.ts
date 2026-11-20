@@ -24,6 +24,56 @@ export const courierAssignmentEmail = (
   ].join('\n'),
 });
 
+/** Une course et un encaissement pour les arrêts centralisés d'un même panier. */
+export const courierRouteAssignmentEmail = (
+  orders: readonly OrderRecord[],
+  courier: CourierRecord & { email: string },
+): EmailMessage => {
+  const first = orders[0];
+  if (!first) throw new Error('Une tournée doit contenir au moins une commande.');
+  const due = orders.reduce((sum, order) => sum + order.totals.total, 0);
+  return {
+    to: courier.email,
+    subject: `Collecte multi-boutiques ${first.checkoutNumber ?? first.number} : ${first.zoneName}`,
+    text: [
+      `Bonjour ${courier.firstName},`,
+      '',
+      `Une tournée vous est confiée pour le panier ${first.checkoutNumber ?? first.number}.`,
+      ...orders.map((order, index) => {
+        const shop = order.shop;
+        const location = shop
+          ? `${shop.name}, ${shop.district ?? ''}, ${shop.city ?? ''}, ${shop.phone ?? ''}`
+          : 'Boutique officielle OKOUMÉ : contacter l’équipe pour le point de collecte';
+        return `${index + 1}. ${location} - commande ${order.number} - ${order.items.reduce((sum, item) => sum + item.quantity, 0)} article(s)`;
+      }),
+      '',
+      `Client : ${first.recipient}, ${first.phone}`,
+      `Adresse de livraison : ${first.zoneName}, ${first.landmark}`,
+      ...(first.instructions ? [`Consignes : ${first.instructions}`] : []),
+      `À encaisser une seule fois à la livraison : ${fcfa(due)} (${first.paymentMethod === 'cash' ? 'espèces' : first.paymentMethod === 'airtel' ? 'Airtel Money' : 'Moov Money'}).`,
+    ].join('\n'),
+  };
+};
+
+/** Une notification globale au client quand toutes les boutiques ont remis leurs produits. */
+export const routeShippingEmail = (orders: readonly OrderRecord[], courier: CourierRecord): EmailMessage => {
+  const first = orders[0];
+  if (!first) throw new Error('Une tournée doit contenir au moins une commande.');
+  const due = orders.reduce((sum, order) => sum + order.totals.total, 0);
+  return {
+    to: first.email,
+    subject: `Votre panier ${first.checkoutNumber ?? first.number} est en cours de livraison`,
+    text: [
+      `Bonjour ${first.recipient},`,
+      '',
+      `Le livreur a récupéré tous les produits de votre panier ${first.checkoutNumber ?? first.number}.`,
+      `Il vous les remettra en une seule livraison à ${first.zoneName}, ${first.landmark}.`,
+      `Livreur : ${courier.firstName} ${courier.lastName}, ${courier.phone}`,
+      `Total à régler une fois à la réception : ${fcfa(due)}.`,
+    ].join('\n'),
+  };
+};
+
 /** E-mail au client au départ du colis (9.4) : qui le livre et comment le joindre. */
 export const shippingEmail = (order: OrderRecord, courier: CourierRecord): EmailMessage => ({
   to: order.email,

@@ -32,6 +32,14 @@ import type { EmailDeliveriesService } from './features/email-deliveries/email-d
 import { createStaffAssistantRoutes } from './features/staff-assistant/staff-assistant.routes.js';
 import type { StaffAssistantService } from './features/staff-assistant/staff-assistant.service.js';
 import { createShopAssistantRoutes } from './features/shop-assistant/shop-assistant.routes.js';
+import { createSellerProductsRoutes } from './features/seller-products/seller-products.routes.js';
+import type { SellerProductsService } from './features/seller-products/seller-products.service.js';
+import { createSellerOrdersRoutes } from './features/seller-orders/seller-orders.routes.js';
+import type { SellerOrdersService } from './features/seller-orders/seller-orders.service.js';
+import { createSellerDeliveryRoutes } from './features/seller-delivery/seller-delivery.routes.js';
+import type { SellerDeliveryService } from './features/seller-delivery/seller-delivery.service.js';
+import { createSellerPayoutsRoutes, createStaffPayoutsRoutes } from './features/payouts/payouts.routes.js';
+import type { PayoutsService } from './features/payouts/payouts.service.js';
 import type { ShopAssistantService } from './features/shop-assistant/shop-assistant.service.js';
 import { createAnalyticsRoutes, createStaffAnalyticsRoutes } from './features/analytics/analytics.routes.js';
 import type { AnalyticsService } from './features/analytics/analytics.service.js';
@@ -106,27 +114,8 @@ import {
 import type { ShopsService } from './features/shops/shops.service.js';
 import { createStaffMarketplaceRoutes } from './features/staff-shops/staff-shops.routes.js';
 import type { StaffShopsService } from './features/staff-shops/staff-shops.service.js';
-import {
-  createPublicListingsRoutes,
-  createSellerListingsRoutes,
-  createShopListingsRoutes,
-} from './features/listings/listings.routes.js';
-import type { ListingsService } from './features/listings/listings.service.js';
-import { createStaffListingsRoutes } from './features/staff-listings/staff-listings.routes.js';
-import type { StaffListingsService } from './features/staff-listings/staff-listings.service.js';
-import {
-  createBuyerRequestsRoutes,
-  createSellerRequestsRoutes,
-} from './features/listing-requests/listing-requests.routes.js';
-import type { ListingRequestsService } from './features/listing-requests/listing-requests.service.js';
-import { createBuyerChatRoutes, createSellerChatRoutes } from './features/chat/chat.routes.js';
-import type { ChatService } from './features/chat/chat.service.js';
 import { createSellerDashboardRoutes } from './features/seller-dashboard/seller-dashboard.routes.js';
 import type { SellerDashboardService } from './features/seller-dashboard/seller-dashboard.service.js';
-import { createBoostPlansRoutes, createSellerBoostsRoutes } from './features/boosts/boosts.routes.js';
-import type { BoostsService } from './features/boosts/boosts.service.js';
-import { createStaffBoostsRoutes } from './features/staff-boosts/staff-boosts.routes.js';
-import type { StaffBoostsService } from './features/staff-boosts/staff-boosts.service.js';
 
 export interface ApiServices {
   auth: AuthService;
@@ -144,6 +133,10 @@ export interface ApiServices {
   staffAlerts: StaffAlertsService;
   emailDeliveries: EmailDeliveriesService;
   staffAssistant: StaffAssistantService;
+  sellerProducts: SellerProductsService;
+  sellerOrders: SellerOrdersService;
+  sellerDelivery: SellerDeliveryService;
+  payouts: PayoutsService;
   shopAssistant: ShopAssistantService;
   analytics: AnalyticsService;
   staffAuth: StaffAuthService;
@@ -170,13 +163,7 @@ export interface ApiServices {
   staffMedia: StaffMediaService;
   shops: ShopsService;
   staffShops: StaffShopsService;
-  listings: ListingsService;
-  staffListings: StaffListingsService;
-  listingRequests: ListingRequestsService;
-  chat: ChatService;
   sellerDashboard: SellerDashboardService;
-  boosts: BoostsService;
-  staffBoosts: StaffBoostsService;
   now: () => Date;
 }
 
@@ -269,27 +256,16 @@ export const createApiRoutes = (services: ApiServices) => {
   router.use('/access-plans', createAccessPlansRoutes(services.shops));
   router.use('/shops', createPublicShopsRoutes(services.shops));
   router.use('/seller/shop', createSellerShopRoutes(services.shops, services.now));
+  router.use('/seller/products', createSellerProductsRoutes(services.sellerProducts, services.now));
+  router.use('/seller/orders', createSellerOrdersRoutes(services.sellerOrders, services.now));
+  router.use('/seller/delivery', createSellerDeliveryRoutes(services.sellerDelivery, services.now));
+  router.use('/seller/payouts', createSellerPayoutsRoutes(services.payouts, services.now));
+  router.use('/staff/payouts', createStaffPayoutsRoutes(services.payouts, services.staffAuth, services.now));
   const marketplace = createStaffMarketplaceRoutes(services.staffShops, services.staffAuth, services.now);
   router.use('/staff/access-plans', marketplace.plans);
   router.use('/staff/shops', marketplace.shops);
   router.use('/staff/shop-payments', marketplace.payments);
   router.use('/staff/settings/marketplace', marketplace.settings);
-  router.use('/shops', createShopListingsRoutes(services.listings));
-  router.use('/listings', createPublicListingsRoutes(services.listings, services.now));
-  router.use('/seller/listings', createSellerListingsRoutes(services.listings, services.now));
-  const moderation = createStaffListingsRoutes(services.staffListings, services.staffAuth, services.now);
-  router.use('/staff/listings', moderation.listings);
-  router.use('/staff/listing-reports', moderation.reports);
-  router.use('/listing-requests', createBuyerRequestsRoutes(services.listingRequests, services.now));
-  router.use('/seller/listing-requests', createSellerRequestsRoutes(services.listingRequests, services.now));
-  router.use('/conversations', createBuyerChatRoutes(services.chat, services.now));
-  router.use('/seller/conversations', createSellerChatRoutes(services.chat, services.now));
   router.use('/seller/dashboard', createSellerDashboardRoutes(services.sellerDashboard, services.now));
-  // Mise en avant payante (32.10)
-  router.use('/boost-plans', createBoostPlansRoutes(services.boosts));
-  router.use('/seller', createSellerBoostsRoutes(services.boosts, services.now));
-  const promotion = createStaffBoostsRoutes(services.staffBoosts, services.staffAuth, services.now);
-  router.use('/staff/boost-plans', promotion.plans);
-  router.use('/staff/boosts', promotion.boosts);
   return router;
 };

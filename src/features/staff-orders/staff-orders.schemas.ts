@@ -21,6 +21,8 @@ export const listStaffOrdersQuery = listQuery(['createdAt', 'total'])
     paymentStatus: z.enum(PAYMENT_STATUSES).optional(),
     /** pending : commandes signalées, en attente de vérification (19.3) */
     review: z.enum(['pending']).optional(),
+    /** Identifiant d'une boutique de vendeur, ou « okoume » pour la boutique Okoumé seule (32.4) */
+    shopId: z.union([z.literal('okoume'), z.uuid()]).optional(),
   })
   .strict();
 
@@ -45,6 +47,7 @@ const reason = z.string().trim().min(5, 'Indiquez le motif (5 caractères au moi
 /** Une transition par requête ; chaque action a ses propres champs obligatoires. */
 export const transitionBody = z.discriminatedUnion('action', [
   z.strictObject({ action: z.literal('advance'), note: z.string().trim().max(500).optional() }),
+  z.strictObject({ action: z.literal('confirm_collection') }),
   /** Affectation (9.4) ; coût réel de la course, par défaut le coût habituel de la zone */
   z.strictObject({
     action: z.literal('assign_courier'),

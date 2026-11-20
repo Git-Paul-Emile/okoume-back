@@ -70,6 +70,20 @@ export const createStaffPaymentsService = (
     const list = await payments.listForOrder(order.id);
     const paid = paidAmount(list);
     const refunded = refundedAmount(list);
+    const route = order.checkoutNumber
+      ? (await orders.findByCheckout(order.checkoutNumber)).filter(
+          (stop) => stop.fulfilledBy === 'okoume' && stop.status !== 'cancelled',
+        )
+      : [order];
+    const checkout =
+      route.length > 1
+        ? {
+            number: order.checkoutNumber,
+            total: route.reduce((total, stop) => total + stop.totals.total, 0),
+            orders: route.length,
+            shops: route.map((stop) => stop.shop?.name ?? 'OKOUMÉ'),
+          }
+        : null;
     return {
       order: toStaffOrderDto(order),
       payments: list.map(toPaymentDto),
@@ -77,6 +91,7 @@ export const createStaffPaymentsService = (
       refunded,
       due: Math.max(0, expectedPayment(order) - paid),
       refundable: Math.max(0, paid - refunded),
+      checkout,
     };
   }
 
@@ -103,6 +118,34 @@ export const createStaffPaymentsService = (
     async record(orderId: string, input: RecordPaymentInput, actor: PaymentActor) {
       if (!can(actor, 'paiements:valider')) throw new ForbiddenError();
       const order = await load(orderId);
+      const route = order.checkoutNumber
+        ? (await orders.findByCheckout(order.checkoutNumber)).filter(
+            (stop) => stop.fulfilledBy === 'okoume' && stop.status !== 'cancelled',
+          )
+        : [order];
+      if (route.length > 1) {
+        if (route.some((stop) => stop.status !== 'delivered'))
+          throw new ConflictError('L’encaissement global attend la livraison de toutes les commandes centralisées.');
+        if (route.some((stop) => stop.paymentMethod !== order.paymentMethod))
+          throw new ConflictError('Les commandes centralisées doivent partager le même moyen de paiement.');
+        const total = route.reduce((sum, stop) => sum + expectedPayment(stop), 0);
+        if (input.amount !== total)
+          throw new UnprocessableError(`Montant attendu pour le panier complet : ${fcfa(total)}.`);
+        if (order.paymentMethod !== 'cash' && !input.reference)
+          throw new UnprocessableError('Indiquez la référence de la transaction Mobile Money.');
+        for (const stop of route) assertDate(input.receivedAt, stop);
+        const result = await payments.recordCheckout(
+          route,
+          {
+            method: order.paymentMethod,
+            occurredAt: input.receivedAt,
+            reference: input.reference,
+            staffId: actor.id,
+          },
+          { issuedAt: now() },
+        );
+        return applied(result, orderId);
+      }
       if (order.paymentStatus !== 'awaiting_payment' && order.paymentStatus !== 'awaiting_verification')
         throw new ConflictError('Le paiement de cette commande est déjà enregistré.');
       const expected = expectedPayment(order);

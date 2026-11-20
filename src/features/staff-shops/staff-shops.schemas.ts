@@ -98,6 +98,8 @@ export const marketplaceSettingsBody = z
     aiReviewMonthlyLimit: z.int().min(0).max(1_000_000),
     agreementValidityHours: z.int().min(1).max(720),
     aiChatMonthlyLimit: z.int().min(0).max(10_000_000),
+    /** Commission sur les ventes des vendeurs, en pourcentage avec deux décimales au plus (32.6) */
+    commissionRate: z.number().min(0).max(100).multipleOf(0.01),
   })
   .partial()
   .refine((s) => Object.keys(s).length > 0, { message: 'Aucune modification envoyée.' });

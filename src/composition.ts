@@ -72,6 +72,13 @@ import { couriersRepository } from './features/staff-couriers/staff-couriers.rep
 import { createStaffCouriersService } from './features/staff-couriers/staff-couriers.service.js';
 import { createStaffOrdersService } from './features/staff-orders/staff-orders.service.js';
 import { stockRepository } from './features/staff-stock/staff-stock.repository.js';
+import { createSellerProductsService } from './features/seller-products/seller-products.service.js';
+import { sellerTermsRepository } from './features/orders/orders.sellers.repository.js';
+import { createSellerOrdersService } from './features/seller-orders/seller-orders.service.js';
+import { createSellerDeliveryService } from './features/seller-delivery/seller-delivery.service.js';
+import { sellerDeliveryRepository } from './features/seller-delivery/seller-delivery.repository.js';
+import { createPayoutsService } from './features/payouts/payouts.service.js';
+import { payoutsRepository } from './features/payouts/payouts.repository.js';
 import { createStaffStockService } from './features/staff-stock/staff-stock.service.js';
 import { verificationRepository } from './features/verification/verification.repository.js';
 import { createVerificationService } from './features/verification/verification.service.js';
@@ -83,18 +90,8 @@ import { selectMediaStorage } from './infrastructure/media/selectMediaStorage.js
 import { shopsRepository } from './features/shops/shops.repository.js';
 import { createShopsService } from './features/shops/shops.service.js';
 import { createStaffShopsService } from './features/staff-shops/staff-shops.service.js';
-import { listingsRepository } from './features/listings/listings.repository.js';
-import { createListingsService } from './features/listings/listings.service.js';
-import { createStaffListingsService } from './features/staff-listings/staff-listings.service.js';
-import { listingRequestsRepository } from './features/listing-requests/listing-requests.repository.js';
-import { createListingRequestsService } from './features/listing-requests/listing-requests.service.js';
-import { chatRepository } from './features/chat/chat.repository.js';
-import { createChatService } from './features/chat/chat.service.js';
 import { sellerDashboardRepository } from './features/seller-dashboard/seller-dashboard.repository.js';
 import { createSellerDashboardService } from './features/seller-dashboard/seller-dashboard.service.js';
-import { boostsRepository } from './features/boosts/boosts.repository.js';
-import { createBoostsService } from './features/boosts/boosts.service.js';
-import { createStaffBoostsService } from './features/staff-boosts/staff-boosts.service.js';
 import { createStaffMediaService } from './features/staff-media/staff-media.service.js';
 import type { JobQueue } from './infrastructure/queue/jobQueue.js';
 
@@ -144,6 +141,7 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
       categories,
       promoCodes: promoCodesRepository,
       loyalty: loyaltyRepository,
+      sellers: sellerTermsRepository,
       email,
       notifier,
       appUrl: env.APP_URL,
@@ -173,6 +171,9 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
       media,
       windowDays: env.RETURN_WINDOW_DAYS,
       reopenDays: env.RETURN_REOPEN_DAYS,
+      shops: shopsRepository,
+      notifier,
+      appUrl: env.APP_URL,
       now,
     }),
     staffReturns: createStaffReturnsService(returnsRepository, ordersRepository, now),
@@ -185,6 +186,28 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
     staffPromoCodes: createStaffPromoCodesService(promoCodesRepository),
     staffStock: createStaffStockService(stockRepository),
     staffCatalog: createStaffCatalogService(staffCatalogRepository),
+    payouts: createPayoutsService(payoutsRepository, shopsRepository, now),
+    sellerDelivery: createSellerDeliveryService({
+      delivery: sellerDeliveryRepository,
+      shops: shopsRepository,
+      zones: deliveryZonesRepository,
+    }),
+    sellerOrders: createSellerOrdersService({
+      orders: ordersRepository,
+      shops: shopsRepository,
+      payments: paymentsRepository,
+      notifier,
+      appUrl: env.APP_URL,
+      now,
+    }),
+    sellerProducts: createSellerProductsService({
+      catalog: staffCatalogRepository,
+      shops: shopsRepository,
+      stock: stockRepository,
+      queue,
+      media,
+      now,
+    }),
     staffCategories: createStaffCategoriesService(staffCategoriesRepository),
     staffZones: createStaffZonesService(staffZonesRepository),
     // Seule la clé publique sert à l'API : la clé privée n'est lue que par le worker, qui envoie
@@ -228,72 +251,16 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
     reviews: createReviewsService({ reviews: reviewsRepository, customers: customersRepository, media, now }),
     shops: createShopsService({
       shops: shopsRepository,
-      boostReferences: boostsRepository,
       email,
       notifier,
       appUrl: env.APP_URL,
       now,
     }),
     staffShops: createStaffShopsService({ shops: shopsRepository, email, notifier, appUrl: env.APP_URL, now }),
-    listings: createListingsService({
-      listings: listingsRepository,
-      shops: shopsRepository,
-      queue,
-      email,
-      notifier,
-      media,
-      views: sellerDashboardRepository,
-      appUrl: env.APP_URL,
-      shareBaseUrl: env.API_PUBLIC_URL?.replace(/\/$/, '') ?? null,
-      now,
-    }),
-    boosts: createBoostsService({
-      boosts: boostsRepository,
-      listings: listingsRepository,
-      shops: shopsRepository,
-      notifier,
-      appUrl: env.APP_URL,
-      now,
-    }),
-    staffBoosts: createStaffBoostsService({
-      boosts: boostsRepository,
-      shops: shopsRepository,
-      email,
-      notifier,
-      appUrl: env.APP_URL,
-      now,
-    }),
     sellerDashboard: createSellerDashboardService({
       dashboard: sellerDashboardRepository,
       shops: shopsRepository,
-      listings: listingsRepository,
-      now,
-    }),
-    chat: createChatService({
-      chat: chatRepository,
-      listings: listingsRepository,
-      shops: shopsRepository,
-      queue,
-      notifier,
-      appUrl: env.APP_URL,
-      now,
-    }),
-    listingRequests: createListingRequestsService({
-      requests: listingRequestsRepository,
-      chat: chatRepository,
-      listings: listingsRepository,
-      shops: shopsRepository,
-      email,
-      notifier,
-      appUrl: env.APP_URL,
-      now,
-    }),
-    staffListings: createStaffListingsService({
-      listings: listingsRepository,
-      shops: shopsRepository,
-      email,
-      notifier,
-      appUrl: env.APP_URL,
+      payouts: payoutsRepository,
       now,
     }),
   };

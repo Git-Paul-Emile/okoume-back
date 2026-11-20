@@ -99,6 +99,8 @@ export interface MarketplaceSettingsRecord {
   agreementValidityHours: number;
   /** Réponses du négociateur IA par mois (16.6) ; au-delà, le vendeur répond lui-même */
   aiChatMonthlyLimit: number;
+  /** Commission d'Okoumé sur les ventes des vendeurs, en pourcentage (32.6) */
+  commissionRate: number;
 }
 
 export interface Page<T> {
@@ -214,6 +216,7 @@ const settingsOf = (row: Prisma.MarketplaceSettingsGetPayload<object>): Marketpl
   aiReviewMonthlyLimit: row.aiReviewMonthlyLimit,
   agreementValidityHours: row.agreementValidityHours,
   aiChatMonthlyLimit: row.aiChatMonthlyLimit,
+  commissionRate: row.commissionRate.toNumber(),
 });
 
 export const shopsRepository: ShopsRepository = {

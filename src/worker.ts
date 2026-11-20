@@ -22,19 +22,15 @@ import { notificationsRepository } from './features/notifications/notifications.
 import { createPushDelivery } from './features/notifications/notifications.service.js';
 import { logger } from './lib/logger.js';
 import { shopsRepository } from './features/shops/shops.repository.js';
-import { boostsRepository } from './features/boosts/boosts.repository.js';
 import { createShopsService } from './features/shops/shops.service.js';
 import { createNotifier } from './features/notifications/notifier.js';
 import { createQueuedEmailSender } from './infrastructure/email/queuedEmailSender.js';
 import { createAccessRemindersHandler } from './jobs/shops.jobs.js';
-import { listingsRepository } from './features/listings/listings.repository.js';
-import { createListingReviewWorker } from './features/listings/listings.review.js';
 import { selectListingReviewer } from './infrastructure/ai/selectListingReviewer.js';
-import { createDeadListingReviewHandler, createListingReviewHandler } from './jobs/listings.jobs.js';
-import { chatRepository } from './features/chat/chat.repository.js';
-import { createChatReplyWorker } from './features/chat/chat.reply.js';
-import { selectChatAssistant } from './infrastructure/ai/selectChatAssistant.js';
-import { createChatReplyHandler, createDeadChatReplyHandler } from './jobs/chat.jobs.js';
+import { createProductReviewWorker } from './features/seller-products/seller-products.review.js';
+import { createDeadProductReviewHandler, createProductReviewHandler } from './jobs/products.jobs.js';
+import { staffCatalogRepository } from './features/staff-catalog/staff-catalog.repository.js';
+import { categoriesRepository } from './features/categories/categories.repository.js';
 import { customersRepository } from './features/auth/auth.repository.js';
 import { privacyRepository } from './features/privacy/privacy.repository.js';
 import { createPrivacyService } from './features/privacy/privacy.service.js';
@@ -58,8 +54,6 @@ const EMAIL_CONCURRENCY = 2;
 const PUSH_CONCURRENCY = 2;
 // Appels au modèle en parallèle : limite le débit vers le fournisseur et le coût d'une rafale
 const REVIEW_CONCURRENCY = 2;
-// Réponses de tchat attendues en quelques secondes : plus de parallélisme que les vérifications d'annonces
-const CHAT_CONCURRENCY = 4;
 
 /**
  * Processus des traitements différés, séparé de l'API : une rafale d'e-mails ne ralentit pas les
@@ -100,7 +94,6 @@ try {
   const queue = createPgBossJobQueue(boss);
   const shops = createShopsService({
     shops: shopsRepository,
-    boostReferences: boostsRepository,
     email: createQueuedEmailSender(queue),
     notifier: createNotifier(queue),
     appUrl: env.APP_URL,
@@ -144,32 +137,20 @@ try {
   await registerHandler(boss, 'analytics.purge', createAnalyticsPurgeHandler(analytics));
   await registerHandler(boss, deadLetterOf('analytics.purge'), createDeadJobHandler('analytics.purge'));
   await scheduleDaily(boss, 'analytics.purge', '30 3 * * *', {});
-  // Vérification des annonces : sans clé Gemini ni Anthropic, chaque annonce va en modération humaine
+  // Vérification des produits des vendeurs : sans clé Gemini ni Anthropic, chaque produit va en modération humaine
   if (!env.GEMINI_API_KEY && !env.ANTHROPIC_API_KEY)
-    logger.warn('Vérification des annonces et tchat par IA désactivés : aucune clé Gemini ni Anthropic');
-  const reviews = createListingReviewWorker({
-    listings: listingsRepository,
+    logger.warn('Vérification des produits par IA désactivée : aucune clé Gemini ni Anthropic');
+  // Produits des vendeurs : même vérificateur ; sans clé d'IA, chaque produit va en modération humaine
+  const productReviews = createProductReviewWorker({
+    catalog: staffCatalogRepository,
     shops: shopsRepository,
+    categories: categoriesRepository,
     reviewer: selectListingReviewer(env),
-    email: createQueuedEmailSender(queue),
     notifier: createNotifier(queue),
     appUrl: env.APP_URL,
-    now: () => new Date(),
   });
-  await registerHandler(boss, 'listings.review', createListingReviewHandler(reviews), REVIEW_CONCURRENCY);
-  await registerHandler(boss, deadLetterOf('listings.review'), createDeadListingReviewHandler(reviews));
-  // Tchat : sans clé d'IA, chaque question est transmise au vendeur
-  const replies = createChatReplyWorker({
-    chat: chatRepository,
-    listings: listingsRepository,
-    shops: shopsRepository,
-    assistant: selectChatAssistant(env),
-    notifier: createNotifier(queue),
-    appUrl: env.APP_URL,
-    now: () => new Date(),
-  });
-  await registerHandler(boss, 'chat.reply', createChatReplyHandler(replies), CHAT_CONCURRENCY);
-  await registerHandler(boss, deadLetterOf('chat.reply'), createDeadChatReplyHandler(replies));
+  await registerHandler(boss, 'products.review', createProductReviewHandler(productReviews), REVIEW_CONCURRENCY);
+  await registerHandler(boss, deadLetterOf('products.review'), createDeadProductReviewHandler(productReviews));
   logger.info('Worker démarré');
 } catch (err) {
   logger.fatal({ err }, 'Démarrage du worker impossible');

@@ -142,9 +142,21 @@ export const listStaffProductsQuery = listQuery(['updatedAt'])
   .extend({
     status: z.enum(['draft', 'published', 'archived']).optional(),
     categoryId: z.uuid().optional(),
+    /** Identifiant d'une boutique de vendeur, ou « okoume » pour la boutique Okoumé seule */
+    shopId: z.union([z.literal('okoume'), z.uuid()]).optional(),
+    moderation: z.enum(['in_review', 'changes_requested', 'pending_moderation', 'approved', 'rejected']).optional(),
   })
   .strict();
 
 export type ListStaffProductsQuery = z.infer<typeof listStaffProductsQuery>;
+
+/** Décision de l'équipe sur un produit de vendeur (32.3) : toujours motivée, un refus est définitif. */
+export const moderationBody = z.strictObject({
+  decision: z.enum(['approve', 'request_changes', 'reject']),
+  note: text(3, 500),
+  issues: z.array(text(3, 300)).max(10).default([]),
+});
+
+export type ModerationInput = z.infer<typeof moderationBody>;
 
 export const variantRouteParams = z.strictObject({ id: z.uuid(), variantId: z.uuid() });

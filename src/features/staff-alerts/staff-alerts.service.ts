@@ -55,7 +55,7 @@ export function detect(c: AlertCounts, cashHours: number): DetectedAlert[] {
     ],
     [
       c.listingsToModerate,
-      { key: 'listings', level: 'warning', title: 'Annonces en modération', to: '/admin/place-de-marche' },
+      { key: 'listings', level: 'warning', title: 'Produits de vendeurs à examiner', to: '/admin/produits' },
     ],
   ];
   return rules.filter(([count]) => count > 0).map(([count, alert]) => ({ ...alert, detail: `${count} à traiter` }));

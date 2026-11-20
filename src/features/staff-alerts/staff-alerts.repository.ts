@@ -13,6 +13,7 @@ export interface AlertCounts {
   returnsPending: number;
   cashWaiting: number;
   privacyOverdue: number;
+  /** Produits de vendeurs transmis à l'équipe par la vérification (32.3) */
   listingsToModerate: number;
   emailsFailed: number;
 }
@@ -107,7 +108,7 @@ export const staffAlertsRepository: StaffAlertsRepository = {
         },
       }),
       prisma.privacyRequest.count({ where: { status: { in: ['received', 'in_progress'] }, dueAt: { lt: now } } }),
-      prisma.listing.count({ where: { status: 'pending_moderation' } }),
+      prisma.product.count({ where: { moderation: 'pending_moderation' } }),
       prisma.emailDelivery.count({ where: { status: 'failed' } }),
     ]);
     const [payments, lateSupport, cancellations, returns, cash, privacy, listings, emails] = rest;

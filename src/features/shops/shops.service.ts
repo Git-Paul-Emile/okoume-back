@@ -5,7 +5,6 @@ import { fcfa } from '../../core/text/fcfa.js';
 import { slugify } from '../../core/text/slugify.js';
 import type { EmailSender } from '../../infrastructure/email/emailSender.js';
 import { logger } from '../../lib/logger.js';
-import type { BoostsRepository } from '../boosts/boosts.repository.js';
 import type { Notifier } from '../notifications/notifier.js';
 import { toPaymentDto, toPlanDto, toPublicShopDto, toShopDto } from './shops.dto.js';
 import { accessReminderMessage, type SellerMessage } from './shops.emails.js';
@@ -17,8 +16,6 @@ const SLUG_ATTEMPTS = 5;
 
 export interface ShopsDependencies {
   shops: ShopsRepository;
-  /** Références déjà déclarées pour une mise en avant : une transaction ne sert qu'une fois (32.10) */
-  boostReferences: Pick<BoostsRepository, 'referenceUsed'>;
   email: EmailSender;
   notifier: Notifier;
   appUrl: string;
@@ -146,8 +143,6 @@ export const createShopsService = (deps: ShopsDependencies) => {
       if (plan.kind !== 'paid') throw new UnprocessableError('Cette offre est gratuite : aucun paiement à déclarer.');
       if (input.amount !== plan.price)
         throw new UnprocessableError(`Le montant de l’offre « ${plan.name} » est de ${fcfa(plan.price)}.`);
-      if (await deps.boostReferences.referenceUsed(input.method, input.reference))
-        throw new AppError('Cette référence de transaction a déjà été déclarée.', 409, 'PAYMENT_REFERENCE_USED');
       const result = await shops.declarePayment({
         shopId: shop.id,
         planId: plan.id,

@@ -40,6 +40,9 @@ export interface ProductDto {
   featured: boolean;
   isNew: boolean;
   tags: string[];
+  /** Boutique qui vend (32.1) : null pour la boutique Okoumé */
+  seller: { slug: string; name: string } | null;
+  condition: 'new' | 'like_new' | 'good' | 'used' | null;
   createdAt: string;
 }
 
@@ -85,6 +88,8 @@ export function toProductDto(p: ProductRecord, categories: ReadonlyMap<string, C
     featured: p.featured,
     isNew: p.isNew,
     tags: p.tags,
+    seller: p.seller && { slug: p.seller.slug, name: p.seller.name },
+    condition: p.condition,
     createdAt: p.createdAt.toISOString(),
   };
 }

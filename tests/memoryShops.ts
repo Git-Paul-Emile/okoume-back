@@ -23,6 +23,7 @@ export function createMemoryShops(now: () => Date) {
   const owners = new Map<string, OwnerRecord>();
   const settings: MarketplaceSettingsRecord = {
     graceDays: 3,
+    commissionRate: 0,
     reminderDays: 5,
     aiReviewMonthlyLimit: 1000,
     agreementValidityHours: 48,

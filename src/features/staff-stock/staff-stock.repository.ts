@@ -36,7 +36,8 @@ export type AdjustResult =
 
 /** Contrat du stock côté équipe. */
 export interface StockRepository {
-  adjust(variantId: string, change: ManualChange, reason: string, staffId: string): Promise<AdjustResult>;
+  /** staffId null : stock compté par le vendeur depuis son espace (32.8) */
+  adjust(variantId: string, change: ManualChange, reason: string, staffId: string | null): Promise<AdjustResult>;
   listMovements(
     variantId: string,
     page: { page: number; limit: number },

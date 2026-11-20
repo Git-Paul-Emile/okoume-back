@@ -50,7 +50,7 @@ export function accessReminderMessage(owner: OwnerRecord, shop: ShopRecord, appU
         `Pour continuer, réglez l’offre « ${shop.plan.name} » (${fcfa(shop.plan.price)}) par Airtel Money ou Moov Money,`,
         'puis déclarez votre paiement dans votre espace vendeur.',
         '',
-        'Après un court délai, vos annonces seront masquées, jamais supprimées, jusqu’au renouvellement.',
+        'Après un court délai, vos produits seront masqués, jamais supprimés, jusqu’au renouvellement.',
         '',
         shopUrl(appUrl),
       ].join('\n'),
@@ -67,7 +67,7 @@ export function accessReminderMessage(owner: OwnerRecord, shop: ShopRecord, appU
 export function suspensionMessage(owner: OwnerRecord, shop: ShopRecord, appUrl: string): SellerMessage {
   const suspended = shop.status === 'suspended';
   const body = suspended
-    ? `Votre boutique « ${shop.name} » est suspendue : ${shop.suspensionReason ?? ''}. Ses annonces ne sont plus visibles.`
+    ? `Votre boutique « ${shop.name} » est suspendue : ${shop.suspensionReason ?? ''}. Ses produits ne sont plus visibles.`
     : `Votre boutique « ${shop.name} » est de nouveau active.`;
   return {
     email: {
@@ -77,7 +77,7 @@ export function suspensionMessage(owner: OwnerRecord, shop: ShopRecord, appUrl: 
     },
     push: {
       title: suspended ? 'Boutique suspendue' : 'Boutique réactivée',
-      body: suspended ? 'Consultez le motif dans votre espace vendeur.' : 'Vos annonces sont de nouveau visibles.',
+      body: suspended ? 'Consultez le motif dans votre espace vendeur.' : 'Vos produits sont de nouveau visibles.',
       url: shopUrl(appUrl),
       tag: `boutique-statut-${shop.id}`,
     },

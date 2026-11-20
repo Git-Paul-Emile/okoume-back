@@ -113,3 +113,16 @@ questions.
 La migration `20261117090000_analytics` crée les événements de mesure d'audience et le compteur mensuel de
 l'assistant client. Contraintes : un terme seulement pour une recherche (`analytics_events_search`), un nombre de
 résultats positif, une période au format AAAA-MM et un compteur positif (`assistant_usage_period`).
+
+La migration `20261118203000_seller_shops_checks` (boutiques des vendeurs, cahier des charges 1.2, section 32) ajoute
+des contraintes `CHECK` : commission entre 0 et 100 %, frais de vendeur positifs, commande livrée par le vendeur
+rattachée à une boutique, montants d'un reversement cohérents et date de paiement présente si et seulement si le
+reversement est payé. Les conserver.
+
+La migration `20261118202930_seller_products_checks` ajoute deux contraintes `CHECK` sur `products` : la vérification ne
+concerne que les produits d'une boutique de vendeur, et un produit de vendeur n'est publié qu'après une vérification
+favorable. Les conserver.
+
+La migration `20261118210259_seller_orders` ajoute l'auteur `seller` aux étapes de commande et rend facultatif
+`payments.staff_id` : un encaissement sans membre de l'équipe est déclaré par le vendeur qui a livré lui-même
+(cahier des charges 1.2, 32.6). Migration additive.

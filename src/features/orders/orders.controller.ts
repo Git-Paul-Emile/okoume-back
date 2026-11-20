@@ -6,9 +6,15 @@ import type { OrdersService } from './orders.service.js';
 export const createOrdersController = (service: OrdersService) => ({
   /** 201 à la création, 200 quand la même clé renvoie la commande déjà créée. */
   async create(req: Request, res: Response) {
-    const { order, created } = await service.place(req.body, req.customer?.id ?? null);
+    const { order, orders, created } = await service.place(req.body, req.customer?.id ?? null);
     res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, order, created ? 201 : 200, created ? 'Commande confirmée.' : 'Commande déjà enregistrée.');
+    // La première commande, et toutes celles du même panier (une par boutique, 32.4)
+    return sendSuccess(
+      res,
+      { ...order, checkout: orders },
+      created ? 201 : 200,
+      created ? 'Commande confirmée.' : 'Commande déjà enregistrée.',
+    );
   },
 
   async list(req: Request, res: Response) {

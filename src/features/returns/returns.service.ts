@@ -5,7 +5,9 @@ import {
   ServiceUnavailableError,
 } from '../../core/errors/AppError.js';
 import type { MediaStorage } from '../../infrastructure/media/mediaStorage.js';
+import type { Notifier } from '../notifications/notifier.js';
 import type { OrdersRepository } from '../orders/orders.repository.js';
+import type { ShopsRepository } from '../shops/shops.repository.js';
 import { toReturnDto } from './returns.dto.js';
 import type { ReturnsRepository } from './returns.repository.js';
 import { assertReturnable, assertReturnItems, EVIDENCE_REQUIRED } from './returns.rules.js';
@@ -20,11 +22,25 @@ export interface ReturnsDependencies {
   media: MediaStorage | null;
   windowDays: number;
   reopenDays: number;
+  /** Vendeur prévenu d'un retour sur une de ses ventes (32.7) */
+  shops: Pick<ShopsRepository, 'findById'>;
+  notifier: Notifier;
+  appUrl: string;
   now: () => Date;
 }
 
 /** Côté client : demande de retour, suivi du dossier, réouverture après un refus. */
-export const createReturnsService = ({ orders, returns, media, windowDays, reopenDays, now }: ReturnsDependencies) => {
+export const createReturnsService = ({
+  orders,
+  returns,
+  media,
+  windowDays,
+  reopenDays,
+  shops,
+  notifier,
+  appUrl,
+  now,
+}: ReturnsDependencies) => {
   async function ownOrder(customerId: string, orderId: string) {
     const order = await orders.findForCustomer(orderId, customerId);
     if (!order) throw new NotFoundError('Commande introuvable.');
@@ -63,6 +79,15 @@ export const createReturnsService = ({ orders, returns, media, windowDays, reope
         );
       const created = await returns.create(order.id, { ...input, items });
       if (!created) throw new ConflictError('Une demande de retour existe déjà pour cette commande.');
+      // Vente d'un vendeur : il est prévenu ; l'équipe Okoumé instruit et arbitre le dossier (32.7)
+      const shop = order.shopId ? await shops.findById(order.shopId) : null;
+      if (shop)
+        await notifier.notifyCustomer(shop.ownerId, 'orders', {
+          title: 'Demande de retour',
+          body: `Le client de la commande ${order.number} demande un retour.`,
+          url: `${appUrl}/vendeur/commandes/${order.id}`,
+          tag: `retour-${order.number}`,
+        });
       return toReturnDto(created);
     },
 
