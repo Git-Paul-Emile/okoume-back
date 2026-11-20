@@ -1,7 +1,13 @@
 import type { Request, Response } from 'express';
+import type { z } from 'zod';
 import { sendSuccess } from '../../core/http/apiResponse.js';
 import { windowQuery } from './analytics.schemas.js';
 import type { AnalyticsService } from './analytics.service.js';
+
+type AnalyticsWindow = z.output<typeof windowQuery>;
+
+// Le middleware validate() a déjà converti from/to en Date.
+const validatedWindow = (req: Request): AnalyticsWindow => req.query as unknown as AnalyticsWindow;
 
 /** Traduit HTTP vers le service et inversement ; aucune règle métier ici. */
 export const createAnalyticsController = (service: AnalyticsService) => ({
@@ -21,16 +27,16 @@ export const createAnalyticsController = (service: AnalyticsService) => ({
 
   async productEvents(req: Request, res: Response) {
     res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, await service.productEvents(windowQuery.parse(req.query), req.staff!));
+    return sendSuccess(res, await service.productEvents(validatedWindow(req), req.staff!));
   },
 
   async searches(req: Request, res: Response) {
     res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, await service.searches(windowQuery.parse(req.query), req.staff!));
+    return sendSuccess(res, await service.searches(validatedWindow(req), req.staff!));
   },
 
   async daily(req: Request, res: Response) {
     res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, await service.daily(windowQuery.parse(req.query), req.staff!));
+    return sendSuccess(res, await service.daily(validatedWindow(req), req.staff!));
   },
 });
