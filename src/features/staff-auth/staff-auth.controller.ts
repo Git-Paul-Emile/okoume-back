@@ -31,7 +31,7 @@ export const createStaffAuthController = (service: StaffAuthService) => ({
       code: req.body.code,
       backupCode: req.body.backupCode,
     });
-    setAuthCookies(res, 'staff', tokens);
+    setAuthCookies(res, 'staff', tokens, req);
     return sendSuccess(res, { member, backupCodesLeft }, 200, 'Vous êtes connecté.');
   },
 
@@ -39,7 +39,7 @@ export const createStaffAuthController = (service: StaffAuthService) => ({
     const token = readRefreshToken(req, 'staff');
     if (!token) throw new SessionExpiredError('staff');
     const { member, tokens } = await service.refresh(token);
-    setAuthCookies(res, 'staff', tokens);
+    setAuthCookies(res, 'staff', tokens, req);
     return sendSuccess(res, { member });
   },
 
@@ -53,7 +53,7 @@ export const createStaffAuthController = (service: StaffAuthService) => ({
   async logout(req: Request, res: Response) {
     const token = readRefreshToken(req, 'staff');
     if (token) await service.logout(token);
-    clearAuthCookies(res, 'staff');
+    clearAuthCookies(res, 'staff', req);
     return res.status(204).end();
   },
 

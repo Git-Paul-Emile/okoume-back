@@ -20,13 +20,13 @@ export const createAuthController = (service: AuthService) => ({
 
   async verifyEmail(req: Request, res: Response) {
     const { customer, tokens } = await service.verifyEmail(req.body.email, req.body.code);
-    setAuthCookies(res, 'customer', tokens);
+    setAuthCookies(res, 'customer', tokens, req);
     return sendSuccess(res, customer, 200, 'Adresse e-mail confirmée.');
   },
 
   async login(req: Request, res: Response) {
     const { customer, tokens } = await service.login(req.body.identifier, req.body.password);
-    setAuthCookies(res, 'customer', tokens);
+    setAuthCookies(res, 'customer', tokens, req);
     return sendSuccess(res, customer, 200, 'Vous êtes connecté.');
   },
 
@@ -34,14 +34,14 @@ export const createAuthController = (service: AuthService) => ({
     const token = readRefreshToken(req, 'customer');
     if (!token) throw new SessionExpiredError('customer');
     const { customer, tokens } = await service.refresh(token);
-    setAuthCookies(res, 'customer', tokens);
+    setAuthCookies(res, 'customer', tokens, req);
     return sendSuccess(res, customer);
   },
 
   async logout(req: Request, res: Response) {
     const token = readRefreshToken(req, 'customer');
     if (token) await service.logout(token);
-    clearAuthCookies(res, 'customer');
+    clearAuthCookies(res, 'customer', req);
     return res.status(204).end();
   },
 
@@ -66,7 +66,7 @@ export const createAuthController = (service: AuthService) => ({
 
   async confirmPasswordReset(req: Request, res: Response) {
     await service.confirmPasswordReset(req.body.identifier, req.body.code, req.body.password);
-    clearAuthCookies(res, 'customer');
+    clearAuthCookies(res, 'customer', req);
     return sendSuccess(res, null, 200, 'Mot de passe modifié. Connectez-vous avec le nouveau.');
   },
 });

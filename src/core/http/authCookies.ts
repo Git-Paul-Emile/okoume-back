@@ -25,14 +25,36 @@ const base: CookieOptions = {
   httpOnly: true,
   secure: isProduction,
   sameSite: 'lax',
-  ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
 };
+
+/**
+ * Un cookie Domain ne peut viser que le site qui l'héberge. Les requêtes proxifiées par Vercel peuvent
+ * présenter une origine .vercel.app alors que l'API conserve COOKIE_DOMAIN=.okoume.ga : dans ce cas,
+ * on émet un cookie host-only, que Vercel transmet au navigateur sous l'origine du frontend.
+ */
+function optionsForRequest(req?: Request): CookieOptions {
+  const domain = env.COOKIE_DOMAIN;
+  if (!domain) return base;
+  const origin = req?.get('origin');
+  let requestHost = req?.hostname.toLowerCase();
+  try {
+    if (origin) requestHost = new URL(origin).hostname.toLowerCase();
+    if (!requestHost) return { ...base, domain };
+    const cookieDomain = domain.replace(/^\./, '').toLowerCase();
+    const matches = requestHost === cookieDomain || requestHost.endsWith(`.${cookieDomain}`);
+    return matches ? { ...base, domain } : base;
+  } catch {
+    return base;
+  }
+}
 
 export function setAuthCookies(
   res: Response,
   audience: Audience,
   tokens: { accessToken: string; refreshToken: string; refreshExpiresAt: Date },
+  req?: Request,
 ) {
+  const base = optionsForRequest(req);
   res.cookie(NAMES[audience].access, tokens.accessToken, {
     ...base,
     path: '/api',
@@ -46,7 +68,8 @@ export function setAuthCookies(
   res.cookie(CSRF_COOKIE, randomToken(), { ...base, httpOnly: false, path: '/' });
 }
 
-export function clearAuthCookies(res: Response, audience: Audience) {
+export function clearAuthCookies(res: Response, audience: Audience, req?: Request) {
+  const base = optionsForRequest(req);
   res.clearCookie(NAMES[audience].access, { ...base, path: '/api' });
   res.clearCookie(NAMES[audience].refresh, { ...base, path: REFRESH_PATH[audience] });
 }

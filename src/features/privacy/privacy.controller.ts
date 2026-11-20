@@ -23,7 +23,7 @@ export const createPrivacyController = (service: PrivacyService) => ({
 
   async deleteMine(req: Request, res: Response) {
     await service.deleteMine(req.customer!.id, req.body.password);
-    clearAuthCookies(res, 'customer');
+    clearAuthCookies(res, 'customer', req);
     return res.status(204).end();
   },
 

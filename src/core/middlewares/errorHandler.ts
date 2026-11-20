@@ -20,7 +20,7 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
   const requestId = String(req.id ?? '');
   if (error instanceof AppError) {
     // Session refusée : les cookies devenus inutiles sont effacés
-    if (error instanceof SessionExpiredError) clearAuthCookies(res, error.audience);
+    if (error instanceof SessionExpiredError) clearAuthCookies(res, error.audience, req);
     if (error.status >= 500) req.log.error({ err: error }, error.message);
     return sendError(res, {
       status: error.status,
