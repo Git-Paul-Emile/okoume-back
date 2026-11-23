@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createResendEmailSender } from './resendEmailSender.js';
 
 const message = { to: 'awa@example.ga', subject: 'Votre code', text: 'Code : 123456' };
-const config = { apiKey: 're_test_cle_factice', from: 'Okoumé <no-reply@okoume.test>' };
+const config = { apiKey: 're_test_cle_factice', from: 'OKOZA <no-reply@okoza.test>' };
 
 /** Faux fetch qui répond selon une liste de réponses prévues et garde chaque requête. */
 const scriptedFetch = (responses: Array<Response | Error>) => {

@@ -5,7 +5,7 @@ import type { EmailMessage } from '../../infrastructure/email/emailSender.js';
 export const verificationEmail = (to: string, firstName: string, code: string): EmailMessage => ({
   to,
   sensitive: true,
-  subject: 'Votre code de confirmation Okoumé',
+  subject: 'Votre code de confirmation OKOZA',
   text: [
     `Bonjour ${firstName},`,
     '',
@@ -22,7 +22,7 @@ export const existingAccountEmail = (to: string, appUrl: string): EmailMessage =
   text: [
     'Bonjour,',
     '',
-    'Quelqu’un a voulu créer un compte Okoumé avec votre adresse e-mail, qui a déjà un compte.',
+    'Quelqu’un a voulu créer un compte OKOZA avec votre adresse e-mail, qui a déjà un compte.',
     `Si c’était vous, connectez-vous ou choisissez un nouveau mot de passe : ${appUrl}/mot-de-passe-oublie`,
     'Sinon, vous pouvez ignorer ce message.',
   ].join('\n'),
@@ -44,7 +44,7 @@ export const passwordResetEmail = (to: string, firstName: string, code: string):
 export const contactChangeEmail = (to: string, firstName: string, code: string, what: string): EmailMessage => ({
   to,
   sensitive: true,
-  subject: 'Votre code de modification Okoumé',
+  subject: 'Votre code de modification OKOZA',
   text: [
     `Bonjour ${firstName},`,
     '',
@@ -58,7 +58,7 @@ export const contactChangeEmail = (to: string, firstName: string, code: string, 
 /** Prévient l'adresse précédente : un changement non voulu se repère tout de suite. */
 export const contactChangedEmail = (to: string, firstName: string, what: string): EmailMessage => ({
   to,
-  subject: 'Vos coordonnées Okoumé ont changé',
+  subject: 'Vos coordonnées OKOZA ont changé',
   text: [
     `Bonjour ${firstName},`,
     '',

@@ -14,16 +14,16 @@ describe('signature des envois Cloudinary', () => {
 
   it('fixe le dossier de l’environnement, les formats d’image et une validité d’une heure', () => {
     const storage = createCloudinaryMediaStorage({
-      cloudName: 'okoume',
+      cloudName: 'okoza',
       apiKey: '123456',
       apiSecret: 'secret-de-test',
-      rootFolder: 'okoume/staging',
+      rootFolder: 'okoza/staging',
     });
     const upload = storage.signUpload('products', new Date('2026-11-04T10:00:00.500Z'));
-    expect(upload.uploadUrl).toBe('https://api.cloudinary.com/v1_1/okoume/image/upload');
+    expect(upload.uploadUrl).toBe('https://api.cloudinary.com/v1_1/okoza/image/upload');
     expect(upload.fields).toMatchObject({
       api_key: '123456',
-      asset_folder: 'okoume/staging/products',
+      asset_folder: 'okoza/staging/products',
       allowed_formats: 'jpg,jpeg,png,webp,avif',
       timestamp: String(Date.parse('2026-11-04T10:00:00Z') / 1000),
     });

@@ -86,13 +86,13 @@ export interface OrderRecord {
   items: OrderItemRecord[];
   events: OrderEventRecord[];
   cancellation: CancellationRecord | null;
-  /** Boutique du vendeur qui a reçu la commande (32.4) ; null pour la boutique Okoumé */
+  /** Boutique du vendeur qui a reçu la commande (32.4) ; null pour la boutique OKOZA */
   shopId: string | null;
   shop: { id: string; slug: string; name: string; city?: string; district?: string; phone?: string } | null;
   /** Passage en caisse commun aux commandes d'un même panier ; null si le panier ne venait que d'une boutique */
   checkoutNumber: string | null;
   /** Qui livre (32.5), figé à la commande */
-  fulfilledBy: 'okoume' | 'seller';
+  fulfilledBy: 'okoza' | 'seller';
   /** Confirmation de remise au livreur central pour cet arrêt de la tournée */
   collectionConfirmedAt: Date | null;
   collectionConfirmedBy: string | null;
@@ -160,7 +160,7 @@ export interface StaffOrderFilters {
   paymentStatus?: PaymentStatus | undefined;
   /** Numéro de commande, nom du destinataire ou téléphone */
   search?: string | undefined;
-  /** Identifiant d'une boutique de vendeur, ou « okoume » pour les commandes de la boutique Okoumé */
+  /** Identifiant d'une boutique de vendeur, ou « okoza » pour les commandes de la boutique OKOZA */
   shopId?: string | undefined;
   sort: { field: 'createdAt' | 'total'; direction: 'asc' | 'desc' };
   page: number;
@@ -450,7 +450,7 @@ export const ordersRepository: OrdersRepository = {
   async listForStaff({ status, review, paymentMethod, paymentStatus, search, shopId, sort, page, limit }) {
     const where: Prisma.OrderWhereInput = {
       ...(status ? { status } : {}),
-      ...(shopId ? { shopId: shopId === 'okoume' ? null : shopId } : {}),
+      ...(shopId ? { shopId: shopId === 'okoza' ? null : shopId } : {}),
       ...(review ? { reviewStatus: review } : {}),
       ...(paymentMethod ? { paymentMethod } : {}),
       ...(paymentStatus ? { paymentStatus } : {}),
@@ -494,8 +494,8 @@ export const ordersRepository: OrdersRepository = {
     try {
       const rows = await prisma.$transaction(async (tx) => {
         const where = order.checkoutNumber
-          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoume' as const, status: { not: 'cancelled' as const } }
-          : { id: order.id, fulfilledBy: 'okoume' as const, status: { not: 'cancelled' as const } };
+          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoza' as const, status: { not: 'cancelled' as const } }
+          : { id: order.id, fulfilledBy: 'okoza' as const, status: { not: 'cancelled' as const } };
         const route = (await tx.order.findMany({ where, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] })).map(
           toRecord,
         );
@@ -524,8 +524,8 @@ export const ordersRepository: OrdersRepository = {
     try {
       const rows = await prisma.$transaction(async (tx) => {
         const where = order.checkoutNumber
-          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoume' as const, status: { not: 'cancelled' as const } }
-          : { id: order.id, fulfilledBy: 'okoume' as const, status: { not: 'cancelled' as const } };
+          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoza' as const, status: { not: 'cancelled' as const } }
+          : { id: order.id, fulfilledBy: 'okoza' as const, status: { not: 'cancelled' as const } };
         const route = (await tx.order.findMany({ where, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] })).map(
           toRecord,
         );
@@ -707,7 +707,7 @@ async function applyInTransaction(tx: Tx, order: OrderRecord, change: AppliedTra
       ...(change.paymentStatus ? { paymentStatus: change.paymentStatus } : {}),
       ...(change.courier === null ? { courierId: null } : {}),
       ...(change.courier ? { courierId: change.courier.id, deliveryCost: change.courier.deliveryCost } : {}),
-      ...(change.to === 'courier_assigned' || (change.to === 'ready' && order.fulfilledBy === 'okoume')
+      ...(change.to === 'courier_assigned' || (change.to === 'ready' && order.fulfilledBy === 'okoza')
         ? { collectionConfirmedAt: null, collectionConfirmedBy: null }
         : {}),
     },

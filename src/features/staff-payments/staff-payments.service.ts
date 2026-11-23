@@ -50,7 +50,7 @@ export const createStaffPaymentsService = (
     const refunded = refundedAmount(list);
     const route = order.checkoutNumber
       ? (await orders.findByCheckout(order.checkoutNumber)).filter(
-          (stop) => stop.fulfilledBy === 'okoume' && stop.status !== 'cancelled',
+          (stop) => stop.fulfilledBy === 'okoza' && stop.status !== 'cancelled',
         )
       : [order];
     const checkout =
@@ -59,7 +59,7 @@ export const createStaffPaymentsService = (
             number: order.checkoutNumber,
             total: route.reduce((total, stop) => total + stop.totals.total, 0),
             orders: route.length,
-            shops: route.map((stop) => stop.shop?.name ?? 'OKOUMÉ'),
+            shops: route.map((stop) => stop.shop?.name ?? 'OKOZA'),
           }
         : null;
     return {
@@ -98,7 +98,7 @@ export const createStaffPaymentsService = (
       const order = await load(orderId);
       const route = order.checkoutNumber
         ? (await orders.findByCheckout(order.checkoutNumber)).filter(
-            (stop) => stop.fulfilledBy === 'okoume' && stop.status !== 'cancelled',
+            (stop) => stop.fulfilledBy === 'okoza' && stop.status !== 'cancelled',
           )
         : [order];
       if (route.length > 1) {

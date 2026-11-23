@@ -21,7 +21,7 @@ export const listProductsQuery = listQuery(['price', 'createdAt', 'discount'])
     inStock: flag,
     onSale: flag,
     attribute: z.union([attribute, z.array(attribute).max(20)]).optional(),
-    /** Adresse d'une boutique de vendeur, ou « okoume » pour la boutique Okoumé seule (32.1) */
+    /** Adresse d'une boutique de vendeur, ou « okoza » pour la boutique OKOZA seule (32.1) */
     shop: z
       .string()
       .trim()

@@ -4,7 +4,7 @@ import { buildShopServices, createClock } from '../../../tests/factories.js';
 
 const owner = { id: 's0', role: 'super_admin' as const, extraRoles: [], customPermissions: [] };
 
-/** Un panier avec un produit Okoumé et un produit d'une boutique de vendeur (32.4). */
+/** Un panier avec un produit OKOZA et un produit d'une boutique de vendeur (32.4). */
 async function setup() {
   const shop = buildShopServices(createClock());
   const { catalog } = shop;
@@ -35,7 +35,7 @@ async function setup() {
     handoverModes: ['pickup'],
     planId: plan.id,
   });
-  const okoumeProduct = catalog.addProduct({ slug: 'casque', name: 'Casque', categoryId: category.id }, [
+  const okozaProduct = catalog.addProduct({ slug: 'casque', name: 'Casque', categoryId: category.id }, [
     { price: 20_000, stock: 5 },
   ]);
   const sellerProduct = catalog.addProduct(
@@ -50,7 +50,7 @@ async function setup() {
   const order = (overrides: Record<string, unknown> = {}) => ({
     idempotencyKey: randomUUID(),
     lines: [
-      { variantId: okoumeProduct.variants[0]!.id, quantity: 1 },
+      { variantId: okozaProduct.variants[0]!.id, quantity: 1 },
       { variantId: sellerProduct.variants[0]!.id, quantity: 2 },
     ],
     delivery: {
@@ -63,7 +63,7 @@ async function setup() {
     paymentMethod: 'cash' as const,
     ...overrides,
   });
-  return { ...shop, zone, opened, seller, okoumeProduct, sellerProduct, order };
+  return { ...shop, zone, opened, seller, okozaProduct, sellerProduct, order };
 }
 
 describe('panier réparti par boutique', () => {
@@ -72,22 +72,22 @@ describe('panier réparti par boutique', () => {
     const placed = await orders.place(order(), null);
     expect(placed.created).toBe(true);
     expect(placed.orders).toHaveLength(2);
-    const [okoume, seller] = placed.orders;
-    expect(okoume).toMatchObject({ shop: null, fulfilledBy: 'okoume', totals: { subtotal: 20_000 } });
+    const [okoza, seller] = placed.orders;
+    expect(okoza).toMatchObject({ shop: null, fulfilledBy: 'okoza', totals: { subtotal: 20_000 } });
     expect(seller).toMatchObject({ shop: { name: expect.any(String) }, totals: { subtotal: 20_000 } });
-    expect(okoume!.checkoutNumber).toMatch(/^PAN-/);
-    expect(seller!.checkoutNumber).toBe(okoume!.checkoutNumber);
-    expect(okoume!.number).not.toBe(seller!.number);
-    // Chaque commande paie sa livraison, aux frais du quartier quand Okoumé livre
-    expect(okoume!.totals.deliveryFee).toBe(zone.fee);
+    expect(okoza!.checkoutNumber).toMatch(/^PAN-/);
+    expect(seller!.checkoutNumber).toBe(okoza!.checkoutNumber);
+    expect(okoza!.number).not.toBe(seller!.number);
+    // Chaque commande paie sa livraison, aux frais du quartier quand OKOZA livre
+    expect(okoza!.totals.deliveryFee).toBe(zone.fee);
     expect(seller!.totals.deliveryFee).toBe(zone.fee);
     expect(opened.id).toBeTruthy();
   });
 
   it('un panier d’une seule boutique reste une seule commande, sans passage en caisse', async () => {
-    const { orders, order, okoumeProduct } = await setup();
+    const { orders, order, okozaProduct } = await setup();
     const placed = await orders.place(
-      order({ lines: [{ variantId: okoumeProduct.variants[0]!.id, quantity: 1 }] }),
+      order({ lines: [{ variantId: okozaProduct.variants[0]!.id, quantity: 1 }] }),
       null,
     );
     expect(placed.orders).toHaveLength(1);
@@ -120,13 +120,13 @@ describe('panier réparti par boutique', () => {
     const { lines } = order();
     const quote = await orders.quote({ lines, zoneId: zone.id }, null);
     expect(quote.shipments).toHaveLength(2);
-    expect(quote.shipments[0]).toMatchObject({ shop: null, fulfilledBy: 'okoume', subtotal: 20_000 });
-    expect(quote.shipments[1]).toMatchObject({ fulfilledBy: 'okoume', subtotal: 20_000 });
+    expect(quote.shipments[0]).toMatchObject({ shop: null, fulfilledBy: 'okoza', subtotal: 20_000 });
+    expect(quote.shipments[1]).toMatchObject({ fulfilledBy: 'okoza', subtotal: 20_000 });
     expect(quote.totals.subtotal).toBe(40_000);
     expect(quote.totals.deliveryFee).toBe(zone.fee * 2);
   });
 
-  it('un code promo ne s’applique qu’aux produits vendus par Okoumé', async () => {
+  it('un code promo ne s’applique qu’aux produits vendus par OKOZA', async () => {
     const { orders, order, sellerProduct } = await setup();
     const sellerOnly = order({
       lines: [{ variantId: sellerProduct.variants[0]!.id, quantity: 1 }],
@@ -134,7 +134,7 @@ describe('panier réparti par boutique', () => {
     });
     await expect(orders.place(sellerOnly, null)).rejects.toMatchObject({
       status: 422,
-      message: 'Ce code s’applique aux produits vendus par Okoumé.',
+      message: 'Ce code s’applique aux produits vendus par OKOZA.',
     });
   });
 

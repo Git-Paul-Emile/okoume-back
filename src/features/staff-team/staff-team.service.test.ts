@@ -5,7 +5,7 @@ const owner = { id: 'owner', role: 'super_admin' as const, extraRoles: [], custo
 const manager = { id: 'm1', role: 'orders_manager' as const, extraRoles: [], customPermissions: [] };
 
 const invite = {
-  email: 'paul@okoume.ga',
+  email: 'paul@okoza.ga',
   firstName: 'Paul',
   lastName: 'Obame',
   refundLimit: null,
@@ -19,7 +19,7 @@ describe('équipe', () => {
     const { member, inviteLink } = await staffTeam.invite(invite, owner);
     expect(member.status).toBe('invited');
     expect(inviteLink).toMatch(/^http:\/\/localhost:5173\/admin\/invitation\/[\w-]{40,}$/);
-    expect(email.last('paul@okoume.ga')?.text).toContain(inviteLink);
+    expect(email.last('paul@okoza.ga')?.text).toContain(inviteLink);
     // Seule l'empreinte du jeton est gardée
     expect(staffTeamStore.members[0]?.inviteTokenHash).not.toContain(inviteLink.split('/').at(-1));
     await expect(staffTeam.invite(invite, owner)).rejects.toMatchObject({ status: 409 });
@@ -42,7 +42,7 @@ describe('équipe', () => {
     await expect(staffTeam.update(member.id, { status: 'suspended' }, owner)).rejects.toMatchObject({ status: 409 });
     await expect(staffTeam.list(manager)).resolves.toHaveLength(1);
     await expect(
-      staffTeam.invite({ ...invite, email: 'marie@okoume.ga' }, manager),
+      staffTeam.invite({ ...invite, email: 'marie@okoza.ga' }, manager),
     ).resolves.toMatchObject({ member: { role: 'super_admin' } });
   });
 });

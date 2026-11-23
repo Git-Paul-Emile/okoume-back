@@ -26,7 +26,7 @@ function memory(data: Record<string, string[]>) {
 
 describe('reprise des images chez l’hébergeur', () => {
   it('envoie chaque image une fois, réécrit toutes ses lignes et ignore celles déjà hébergées', async () => {
-    const publicDir = await mkdtemp(join(tmpdir(), 'okoume-public-'));
+    const publicDir = await mkdtemp(join(tmpdir(), 'okoza-public-'));
     await mkdir(join(publicDir, 'ads'));
     await writeFile(join(publicDir, 'ads', 'promo.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
     const data = {
@@ -45,7 +45,7 @@ describe('reprise des images chez l’hébergeur', () => {
   });
 
   it('ne lit jamais un fichier hors du dossier public', async () => {
-    const publicDir = await mkdtemp(join(tmpdir(), 'okoume-public-'));
+    const publicDir = await mkdtemp(join(tmpdir(), 'okoza-public-'));
     expect(await sourceOf('/../secret.png', publicDir)).toBeNull();
     expect(await sourceOf('http://cdn.example/a.jpg', publicDir)).toBeNull();
   });

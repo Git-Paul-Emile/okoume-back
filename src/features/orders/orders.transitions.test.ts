@@ -40,7 +40,7 @@ const order = (overrides: Partial<OrderRecord> = {}): OrderRecord => ({
   shopId: null,
   shop: null,
   checkoutNumber: null,
-  fulfilledBy: 'okoume',
+  fulfilledBy: 'okoza',
   collectionConfirmedAt: null,
   collectionConfirmedBy: null,
   paymentMethod: 'cash',

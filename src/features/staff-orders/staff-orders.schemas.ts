@@ -21,8 +21,8 @@ export const listStaffOrdersQuery = listQuery(['createdAt', 'total'])
     paymentStatus: z.enum(PAYMENT_STATUSES).optional(),
     /** pending : commandes signalées, en attente de vérification (19.3) */
     review: z.enum(['pending']).optional(),
-    /** Identifiant d'une boutique de vendeur, ou « okoume » pour la boutique Okoumé seule (32.4) */
-    shopId: z.union([z.literal('okoume'), z.uuid()]).optional(),
+    /** Identifiant d'une boutique de vendeur, ou « okoza » pour la boutique OKOZA seule (32.4) */
+    shopId: z.union([z.literal('okoza'), z.uuid()]).optional(),
   })
   .strict();
 

@@ -6,7 +6,7 @@ export interface SellerTerms {
   name: string;
   ownerId: string;
   /** Qui livre les commandes de la boutique */
-  deliveryMode: 'okoume' | 'seller';
+  deliveryMode: 'okoza' | 'seller';
   /** Frais du vendeur pour le quartier demandé, s'il livre lui-même ; null s'il ne livre pas ce quartier */
   zoneFee: number | null;
 }

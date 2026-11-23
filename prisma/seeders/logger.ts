@@ -3,6 +3,6 @@ import { seedConfig } from './config.js';
 
 export const logger = pino({
   level: seedConfig.LOG_LEVEL,
-  base: { service: 'okoume-api-seed', env: seedConfig.NODE_ENV },
+  base: { service: 'okoza-api-seed', env: seedConfig.NODE_ENV },
   redact: { paths: ['*.password', '*.token', '*.refreshToken', '*.code'], censor: '[redacted]' },
 });

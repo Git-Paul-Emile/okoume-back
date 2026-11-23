@@ -14,6 +14,6 @@ export const selectMediaStorage = (
         cloudName: config.CLOUDINARY_CLOUD_NAME,
         apiKey: config.CLOUDINARY_API_KEY,
         apiSecret: config.CLOUDINARY_API_SECRET,
-        rootFolder: `okoume/${config.NODE_ENV}`,
+        rootFolder: `okoza/${config.NODE_ENV}`,
       })
     : null;

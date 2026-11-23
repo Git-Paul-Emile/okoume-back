@@ -3,7 +3,7 @@ import { z } from 'zod';
 /** Qui livre les commandes de la boutique, et les frais du vendeur par quartier s'il livre lui-même (32.5). */
 export const sellerDeliveryBody = z
   .strictObject({
-    mode: z.enum(['okoume', 'seller'], 'Choisissez qui livre vos commandes.'),
+    mode: z.enum(['okoza', 'seller'], 'Choisissez qui livre vos commandes.'),
     fees: z
       .array(
         z.strictObject({

@@ -40,12 +40,12 @@ export interface OrderDto {
     decisionReason?: string;
   } | null;
   deliveryDispute: { reason: string; status: string; resolution: string | null; createdAt: string } | null;
-  /** Boutique qui vend (32.4) : null pour la boutique Okoumé */
+  /** Boutique qui vend (32.4) : null pour la boutique OKOZA */
   shop: { slug: string; name: string } | null;
   /** Passage en caisse commun aux commandes d'un même panier */
   checkoutNumber: string | null;
   /** Qui livre (32.5) */
-  fulfilledBy: 'okoume' | 'seller';
+  fulfilledBy: 'okoza' | 'seller';
   collectionConfirmedAt: string | null;
   collectionConfirmedBy: string | null;
   createdAt: string;
@@ -90,7 +90,7 @@ export const toOrderDto = (o: OrderRecord): OrderDto => ({
     ...(o.cancellation.decisionReason ? { decisionReason: o.cancellation.decisionReason } : {}),
   },
   deliveryDispute:
-    o.fulfilledBy === 'okoume' && o.dispute
+    o.fulfilledBy === 'okoza' && o.dispute
       ? {
           reason: o.dispute.reason,
           status: o.dispute.status,
@@ -186,7 +186,7 @@ export const toTrackingDto = (route: readonly OrderRecord[]): TrackingDto => {
     zoneName: first.zoneName,
     orders: route.map((order) => ({
       number: order.number,
-      shopName: order.shop?.name ?? 'OKOUMÉ',
+      shopName: order.shop?.name ?? 'OKOZA',
       status: order.status,
       paymentStatus: order.paymentStatus,
       fulfilledBy: order.fulfilledBy,

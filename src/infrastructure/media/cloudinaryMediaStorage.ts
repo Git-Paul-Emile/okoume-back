@@ -29,7 +29,7 @@ export interface CloudinaryConfig {
   cloudName: string;
   apiKey: string;
   apiSecret: string;
-  /** Dossier racine propre à l'environnement (okoume/staging, okoume/production) : un compte, plusieurs sites */
+  /** Dossier racine propre à l'environnement (okoza/staging, okoza/production) : un compte, plusieurs sites */
   rootFolder: string;
   /** Remplaçable dans les tests */
   fetch?: typeof globalThis.fetch;

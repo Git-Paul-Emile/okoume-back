@@ -1,7 +1,7 @@
 {
-  "name": "okoume-api",
+  "name": "okoza-api",
   "version": "0.1.0",
-  "description": "API de la boutique Okoumé",
+  "description": "API de la boutique OKOZA",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "dev:worker": "tsx watch src/worker.ts",

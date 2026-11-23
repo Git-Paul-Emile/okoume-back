@@ -132,11 +132,11 @@ export const createStaffOrdersService = ({
       if (!can(actor, REQUIRED[input.action])) throw new ForbiddenError();
       const order = await load(id);
       if (input.action === 'confirm_collection') {
-        if (order.shopId !== null || order.fulfilledBy !== 'okoume')
-          throw new UnprocessableError('Seule la boutique officielle Okoumé confirme cette collecte depuis cet écran.');
+        if (order.shopId !== null || order.fulfilledBy !== 'okoza')
+          throw new UnprocessableError('Seule la boutique officielle OKOZA confirme cette collecte depuis cet écran.');
         const result = await orders.confirmCentralCollection(
           order,
-          'Boutique officielle OKOUMÉ',
+          'Boutique officielle OKOZA',
           { type: 'staff', staffId: actor.id },
           now(),
         );
@@ -155,7 +155,7 @@ export const createStaffOrdersService = ({
       let plan: TransitionPlan;
       switch (input.action) {
         case 'advance':
-          if (order.fulfilledBy === 'okoume' && order.status === 'courier_assigned')
+          if (order.fulfilledBy === 'okoza' && order.status === 'courier_assigned')
             throw new ConflictError('Attendez les confirmations de collecte de toutes les boutiques de la tournée.');
           // Commande signalée : la préparation attend la vérification d'un membre de l'équipe (19.3)
           if (order.status === 'confirmed' && order.review?.status === 'pending')
@@ -163,12 +163,12 @@ export const createStaffOrdersService = ({
           plan = advancePlan(order, input.note);
           break;
         case 'assign_courier':
-          if (order.fulfilledBy !== 'okoume')
+          if (order.fulfilledBy !== 'okoza')
             throw new UnprocessableError('Cette commande utilise le livreur indépendant de la boutique.');
           assigned = await courierFor(order, input.courierId, input.deliveryCost);
           if (order.checkoutNumber) {
             const route = (await orders.findByCheckout(order.checkoutNumber)).filter(
-              (stop) => stop.fulfilledBy === 'okoume' && stop.status !== 'cancelled',
+              (stop) => stop.fulfilledBy === 'okoza' && stop.status !== 'cancelled',
             );
             if (
               route.some((stop) => stop.status !== 'ready' || stop.review?.status === 'pending')
@@ -191,7 +191,7 @@ export const createStaffOrdersService = ({
           break;
       }
       const routeTransition =
-        order.fulfilledBy === 'okoume' &&
+        order.fulfilledBy === 'okoza' &&
         (input.action === 'assign_courier' ||
           input.action === 'delivery_failed' ||
           (input.action === 'advance' && plan.to === 'delivered') ||

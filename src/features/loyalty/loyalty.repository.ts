@@ -66,7 +66,7 @@ export async function creditEarnedPoints(tx: Tx, orderId: string) {
            'earn', 'Commande ' || o.number || ' livrée et payée', o.id, CURRENT_TIMESTAMP
     FROM orders o
     WHERE o.id = ${orderId}::uuid AND o.customer_id IS NOT NULL AND o.status = 'delivered' AND o.payment_status = 'paid'
-      -- Les points récompensent les achats faits auprès de la boutique Okoumé (32.12)
+      -- Les points récompensent les achats faits auprès de la boutique OKOZA (32.12)
       AND o.shop_id IS NULL
       AND FLOOR(GREATEST(0, o.subtotal - o.code_discount - o.points_discount) / ${EARN_PER}) > 0
     ON CONFLICT (order_id) WHERE type = 'earn' DO NOTHING`;

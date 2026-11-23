@@ -7,7 +7,7 @@ import type { ShopsRepository } from '../src/features/shops/shops.repository.js'
  * livraison et les frais par quartier sont gardés à côté, comme des colonnes que ce dépôt ne lit pas.
  */
 export function createMemorySellerTerms(shops: ShopsRepository) {
-  const modes = new Map<string, 'okoume' | 'seller'>();
+  const modes = new Map<string, 'okoza' | 'seller'>();
   const fees = new Map<string, Map<string, number>>();
   const repository: SellerTermsRepository = {
     async forZone(shopIds, zoneId) {
@@ -19,7 +19,7 @@ export function createMemorySellerTerms(shops: ShopsRepository) {
           shopId: id,
           name: shop.name,
           ownerId: shop.ownerId,
-          deliveryMode: modes.get(id) ?? 'okoume',
+          deliveryMode: modes.get(id) ?? 'okoza',
           zoneFee: fees.get(id)?.get(zoneId) ?? null,
         });
       }
@@ -28,7 +28,7 @@ export function createMemorySellerTerms(shops: ShopsRepository) {
   };
   const delivery: SellerDeliveryRepository = {
     get: async (shopId) => ({
-      mode: modes.get(shopId) ?? 'okoume',
+      mode: modes.get(shopId) ?? 'okoza',
       fees: [...(fees.get(shopId) ?? new Map<string, number>())].map(([zoneId, fee]) => ({ zoneId, fee })),
     }),
     async save(shopId, { mode, fees: list }) {

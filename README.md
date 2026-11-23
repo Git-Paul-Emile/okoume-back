@@ -1,4 +1,4 @@
-# API Okoumé
+# API OKOZA
 
 API de la boutique : Node.js 22 ou plus récent, Express 5, TypeScript strict, Zod, Prisma 7 sur PostgreSQL.
 L'organisation suit `../rules/10-stack/structure-backend.md` et l'ordre des couches de `../rules/00-socle/architecture.md`.
@@ -19,7 +19,7 @@ npm run dev:worker      # traitements différés (e-mails), dans un second termi
 - Routes métier sous `/api/v1`.
 
 Sans Docker, une base PostgreSQL locale convient (PostgreSQL 18 installé avec pgAdmin, port 5432) : créer la base
-`okoume_dev`, indiquer sa chaîne dans `DATABASE_URL` (un espace du mot de passe s'écrit `%20`), puis :
+`okoza_dev`, indiquer sa chaîne dans `DATABASE_URL` (un espace du mot de passe s'écrit `%20`), puis :
 
 ```bash
 npx prisma migrate deploy   # applique toutes les migrations
@@ -153,12 +153,12 @@ Section 32.4 du cahier des charges. Seules les annonces publiées d'une boutique
 - Distance renvoyée arrondie au kilomètre, jamais moins de 1 km ; la position de la boutique n'est jamais renvoyée.
   Une boutique sans position est classée après les autres et n'apparaît pas dans une recherche avec rayon.
 - Calcul : formule de haversine en SQL paramétré, après un préfiltre par rectangle sur l'index `shops_position`.
-- Les produits de la boutique Okoumé ont leur propre recherche (`GET /products`) : le filtre « type de vendeur »
+- Les produits de la boutique OKOZA ont leur propre recherche (`GET /products`) : le filtre « type de vendeur »
   du cahier des charges consiste, côté front, à interroger l'une, l'autre ou les deux.
 
 ## Place de marché : demandes de commande (lot 9.4)
 
-Section 32.7 du cahier des charges. Okoumé suit le statut de la demande ; le paiement se fait directement entre
+Section 32.7 du cahier des charges. OKOZA suit le statut de la demande ; le paiement se fait directement entre
 l'acheteur et le vendeur, hors plateforme. Aucun statut ne présente une demande comme payée.
 
 | Route                                  | Qui             | Rôle                                                            |
@@ -222,14 +222,14 @@ Sections 32.8 et 32.9 du cahier des charges.
 
 - Visites : un compteur par annonce et par jour (heure de Libreville), sans aucune donnée sur le visiteur. Les
   consultations du vendeur sur sa propre annonce ne comptent pas. Les rechargements comptent chacun.
-- Partage manuel : le vendeur copie le lien ou ouvre le menu de partage ; Okoumé ne publie rien sur ses comptes.
+- Partage manuel : le vendeur copie le lien ou ouvre le menu de partage ; OKOZA ne publie rien sur ses comptes.
   Avec `API_PUBLIC_URL`, le lien partagé mène à la page d'aperçu (titre, photo, prix), qui redirige vers
   `APP_URL/annonces/:slug` ; sans elle, le lien mène directement au site, sans aperçu.
 
 ## Place de marché : mise en avant payante (lot 9.7)
 
 Section 32.10 du cahier des charges. Distincte des campagnes Facebook et Instagram : l'annonce est marquée
-« Sponsorisé » dans la recherche d'Okoumé, rien n'est publié ailleurs.
+« Sponsorisé » dans la recherche d'OKOZA, rien n'est publié ailleurs.
 
 | Route                              | Qui                 | Rôle                                                  |
 | ---------------------------------- | ------------------- | ----------------------------------------------------- |
@@ -269,7 +269,7 @@ pas par le serveur et le secret ne quitte jamais l'API.
 2. Le navigateur envoie un formulaire multipart vers `uploadUrl` : tous les `fields` plus `file`.
 3. Cloudinary répond avec `secure_url`, l'adresse à enregistrer sur le produit.
 
-- Signés et donc imposés : le dossier (`okoume/<NODE_ENV>/<dossier>`, un compte pour tous les environnements)
+- Signés et donc imposés : le dossier (`okoza/<NODE_ENV>/<dossier>`, un compte pour tous les environnements)
   et les formats (jpg, jpeg, png, webp, avif).
 - La taille maximale ne se signe pas : la régler dans la console Cloudinary et la vérifier dans le front.
 - Sans les trois variables `CLOUDINARY_*`, la route répond 503.
@@ -363,8 +363,8 @@ adresse ou du nouveau numéro. Pas encore dans l'API : produits récemment consu
 passée sans compte. Les demandes d'export, de correction ou de suppression des données ne sont pas proposées.
 
 **Cookie anti-CSRF entre sous-domaines.** Le cookie `ok_csrf` est posé par l'API ; le site doit pouvoir le lire
-pour le renvoyer. En production, `COOKIE_DOMAIN=.okoume.ga` attache les cookies au domaine commun
-(`okoume.ga` et `api.okoume.ga`). Les jetons de session restent HttpOnly. En local, laisser la variable vide.
+pour le renvoyer. En production, `COOKIE_DOMAIN=.okoza.ga` attache les cookies au domaine commun
+(`okoza.ga` et `api.okoza.ga`). Les jetons de session restent HttpOnly. En local, laisser la variable vide.
 
 Les droits de l'équipe sont relus en base à chaque requête (`requireStaff`, puis `requirePermission('domaine:action')`) :
 une suspension ou un changement de rôle s'applique immédiatement.
@@ -391,7 +391,7 @@ Routes publiques, sous `/api/v1` :
 | `GET /loyalty`, `GET /loyalty/movements` | Solde, niveau, avantages, progression et historique des points du client |
 | `GET /orders/:id/invoices` | Factures et avoirs d'une commande du client (fenêtre de 3 ans du compte) |
 | `PATCH /orders/:id/delivery-fee-change` | Réponse du client aux nouveaux frais de livraison (accord ou refus) |
-| `POST /orders/:id/delivery-disputes` | Réclamation d'une livraison marquée « Livrée » pour les commandes livrées par Okoumé |
+| `POST /orders/:id/delivery-disputes` | Réclamation d'une livraison marquée « Livrée » pour les commandes livrées par OKOZA |
 | `GET /loyalty/referral`, `GET /loyalty/codes`, `PUT /loyalty/preferences` | Code parrain et filleuls, codes personnels utilisables, date d'anniversaire et choix points ou code |
 | `GET /order-tracking` | Suivi sans compte par numéro de commande `CMD-…` ou panier `PAN-…` et code commun ; résumé de tous les arrêts, sans coordonnées du client |
 
@@ -401,11 +401,11 @@ Commandes vendeurs, sous `/api/v1/seller/orders` (compte propriétaire de la bou
 | --- | --- |
 | `GET /`, `GET /:id` | Sous-commandes de sa boutique uniquement |
 | `POST /:id/progress` | Préparation et progression de sa sous-commande |
-| `POST /:id/handover` | Confirmer la remise au livreur OKOUMÉ ; le panier part en livraison après la dernière collecte |
+| `POST /:id/handover` | Confirmer la remise au livreur OKOZA ; le panier part en livraison après la dernière collecte |
 | `POST /:id/cancellation` | Annuler sa sous-commande avant son départ, avec motif |
 | `POST /:id/collection` | Déclarer l'encaissement après livraison quand la boutique utilise son propre livreur |
 
-Pour un panier centralisé, l'équipe affecte un livreur à toutes les sous-commandes OKOUMÉ prêtes en une seule action.
+Pour un panier centralisé, l'équipe affecte un livreur à toutes les sous-commandes OKOZA prêtes en une seule action.
 Chaque boutique confirme ensuite sa collecte ; une seule notification de départ est envoyée après la dernière remise.
 Le livreur encaisse le total de cette tournée une fois. Les sous-commandes livrées par les vendeurs restent
 indépendantes. Les paiements reçus sur la tournée sont ventilés par sous-commande, avec la référence Mobile Money
@@ -426,7 +426,7 @@ enregistrée une seule fois.
 | `GET` / `POST /couriers`, `PATCH /couriers/:id`               | Répertoire des livreurs ; `commandes:consulter`, écriture `commandes:modifier`                                      |
 | `PUT /orders/:id/delivery-cost`                               | Coût réel de la course, distinct des frais facturés ; `commandes:modifier`                                          |
 | `POST /orders/:id/delivery-fee-changes`                       | Nouveaux frais proposés au client, appliqués avec son accord                                                        |
-| `PATCH /orders/:id/delivery-dispute`                          | Résolution d'une réclamation de livraison Okoumé ; aucune médiation pour les commandes livrées par le vendeur      |
+| `PATCH /orders/:id/delivery-dispute`                          | Résolution d'une réclamation de livraison OKOZA ; aucune médiation pour les commandes livrées par le vendeur      |
 | `GET /referral-rewards`, `PATCH /referral-rewards/:id`        | Parrainages suspects à vérifier ; `clients:valider`                                                                 |
 | `GET /invoices`, `GET /invoices/:id`                          | Factures et avoirs ; `paiements:consulter`                                                                          |
 | `GET /returns`, `GET /returns/:id`                            | Dossiers de retour ; `retours:consulter`                                                                            |
@@ -574,7 +574,7 @@ Hébergement : API et worker sur Render (`render.yaml` à la racine du dépôt),
 
 **Domaine : obligatoire avant d'ouvrir la connexion.** Les cookies de session sont en `SameSite=Lax` : entre
 `*.vercel.app` et `*.onrender.com`, deux sites différents, le navigateur ne les envoie pas. Front et API doivent
-partager un domaine, par exemple `okoume.ga` (Vercel) et `api.okoume.ga` (Render).
+partager un domaine, par exemple `okoza.ga` (Vercel) et `api.okoza.ga` (Render).
 
 | Service     | À créer                                                                                      | Variables                                                    |
 | ----------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -583,7 +583,7 @@ partager un domaine, par exemple `okoume.ga` (Vercel) et `api.okoume.ga` (Render
 | Cloudinary  | Un compte ; taille maximale des envois dans la console                                       | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `..._SECRET`  |
 | Gemini      | Clé dans Google AI Studio > API keys (une par environnement)                                 | `GEMINI_API_KEY`, `GEMINI_MODEL`                             |
 | Web Push    | `npx web-push generate-vapid-keys`, une paire par environnement                              | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`     |
-| Render      | « New > Blueprint » sur le dépôt : crée `okoume-api` et `okoume-worker`, demande les valeurs | les mêmes, plus `APP_URL`, `CORS_ORIGINS` et `COOKIE_DOMAIN` |
+| Render      | « New > Blueprint » sur le dépôt : crée `okoza-api` et `okoza-worker`, demande les valeurs | les mêmes, plus `APP_URL`, `CORS_ORIGINS` et `COOKIE_DOMAIN` |
 | Vercel      | Projet sur le dépôt, dossier racine `front`                                                  | `VITE_BACKEND_URL` (voir le front)                           |
 | Sentry      | Deux projets : Node.js (API et worker) et navigateur (front)                                 | `SENTRY_DSN` (Render), `VITE_SENTRY_DSN` (Vercel)            |
 | UptimeRobot | Moniteurs HTTP(S) ci-dessous                                                                 | aucune                                                       |
@@ -613,7 +613,7 @@ lancer en local : `npm run lint`, `npm test`, `npm run build` (et `npm run test:
 - **Sauvegarde continue** : Neon conserve l'historique de la base et permet une restauration à un instant donné
   (durée de conservation selon l'offre, à vérifier dans la console Neon > Settings).
 - **Copie avant une opération risquée** (migration délicate, import massif), depuis un poste avec `pg_dump` :
-  `pg_dump --format=custom --no-owner --file backups/okoume-AAAA-MM-JJ.dump "$DIRECT_DATABASE_URL"`. Le dossier
+  `pg_dump --format=custom --no-owner --file backups/okoza-AAAA-MM-JJ.dump "$DIRECT_DATABASE_URL"`. Le dossier
   `backups/` est ignoré par git ; la copie contient des données personnelles, à supprimer une fois inutile.
 - **Restauration** : dans Neon, restaurer à l'instant voulu (de préférence dans une nouvelle branche, contrôlée avant
   bascule), ou `pg_restore --clean --no-owner --dbname "$DIRECT_DATABASE_URL" backups/<fichier>.dump`.

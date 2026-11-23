@@ -2,7 +2,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
 
 /**
- * Reversement dû à un vendeur pour une commande qu'un livreur Okoumé a encaissée (cahier des charges 1.2, 32.6).
+ * Reversement dû à un vendeur pour une commande qu'un livreur OKOZA a encaissée (cahier des charges 1.2, 32.6).
  * Montants figés à la création, dans la même transaction que l'encaissement (payments.repository.ts).
  */
 export interface PayoutRecord {

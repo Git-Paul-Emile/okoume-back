@@ -43,7 +43,7 @@ export const courierRouteAssignmentEmail = (
         const shop = order.shop;
         const location = shop
           ? `${shop.name}, ${shop.district ?? ''}, ${shop.city ?? ''}, ${shop.phone ?? ''}`
-          : 'Boutique officielle OKOUMÉ : contacter l’équipe pour le point de collecte';
+          : 'Boutique officielle OKOZA : contacter l’équipe pour le point de collecte';
         return `${index + 1}. ${location} - commande ${order.number} - ${order.items.reduce((sum, item) => sum + item.quantity, 0)} article(s)`;
       }),
       '',

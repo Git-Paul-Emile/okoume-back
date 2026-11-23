@@ -11,13 +11,13 @@ export interface SellerDeliveryDeps {
 }
 
 /**
- * Livraison des commandes d'une boutique (cahier des charges 1.2, 32.5) : par les livreurs Okoumé, aux frais
+ * Livraison des commandes d'une boutique (cahier des charges 1.2, 32.5) : par les livreurs OKOZA, aux frais
  * de chaque quartier, ou par le vendeur, à ses propres frais. Les quartiers sont communs à toute la plateforme.
  */
 export const createSellerDeliveryService = ({ delivery, shops, zones }: SellerDeliveryDeps) => {
   async function myShop(customerId: string) {
     const shop = await shops.findByOwner(customerId);
-    if (!shop) throw new ForbiddenError('Ouvrez d’abord votre boutique pour vendre sur Okoumé.');
+    if (!shop) throw new ForbiddenError('Ouvrez d’abord votre boutique pour vendre sur OKOZA.');
     return shop;
   }
 
@@ -34,7 +34,7 @@ export const createSellerDeliveryService = ({ delivery, shops, zones }: SellerDe
       const known = new Set((await zones.findAvailable()).map((z) => z.id));
       if (input.fees.some((f) => !known.has(f.zoneId)))
         throw new UnprocessableError('Un des quartiers choisis n’est plus desservi : rechargez la liste.');
-      // Avec les livreurs Okoumé, les frais du vendeur ne servent pas : ils sont retirés
+      // Avec les livreurs OKOZA, les frais du vendeur ne servent pas : ils sont retirés
       return delivery.save(shop.id, { mode: input.mode, fees: input.mode === 'seller' ? input.fees : [] });
     },
   };

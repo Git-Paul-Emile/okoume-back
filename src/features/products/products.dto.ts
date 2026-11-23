@@ -40,7 +40,7 @@ export interface ProductDto {
   featured: boolean;
   isNew: boolean;
   tags: string[];
-  /** Boutique qui vend (32.1) : null pour la boutique Okoumé */
+  /** Boutique qui vend (32.1) : null pour la boutique OKOZA */
   seller: { slug: string; name: string } | null;
   condition: 'new' | 'like_new' | 'good' | 'used' | null;
   createdAt: string;

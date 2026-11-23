@@ -8,7 +8,7 @@ import { prisma } from '../lib/prisma.js';
 
 /**
  * Premier administrateur principal d'une base sans compte de l'équipe (production : le seed n'en crée aucun).
- * npm run staff:create-owner -- --email awa@okoume.ga --first-name Awa --last-name Ndong
+ * npm run staff:create-owner -- --email awa@okoza.ga --first-name Awa --last-name Ndong
  *
  * Le compte est créé « invité » : le lien affiché mène au parcours d'invitation habituel, où le titulaire
  * choisit son mot de passe et active la double vérification. Refusé si un administrateur principal actif existe :

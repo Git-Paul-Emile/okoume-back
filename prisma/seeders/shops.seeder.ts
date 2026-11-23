@@ -26,7 +26,7 @@ const schema = z.array(
     suspendedAt: isoDate.optional(),
     acceptedPaymentMethods: z.array(z.enum(['cash', 'airtel', 'moov'])).min(1),
     handoverModes: z.array(z.enum(['pickup', 'seller_delivery'])).min(1),
-    deliveryMode: z.enum(['okoume', 'seller']),
+    deliveryMode: z.enum(['okoza', 'seller']),
     createdAt: isoDate,
     zoneFees: z.array(z.object({ zoneId: z.string(), fee: z.number().int().min(0) })),
   }),

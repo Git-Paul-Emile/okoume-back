@@ -24,13 +24,13 @@ const STALE = 'La commande vient de changer : rechargez-la.';
 
 /**
  * Commandes reçues par la boutique du vendeur (cahier des charges 1.2, 32.4 à 32.6). Le vendeur prépare ses
- * commandes ; s'il livre lui-même, il les livre et déclare l'encaissement, sinon un livreur Okoumé les récupère.
- * Une boutique ne voit que ses commandes (IDOR) et une commande signalée attend la vérification d'Okoumé.
+ * commandes ; s'il livre lui-même, il les livre et déclare l'encaissement, sinon un livreur OKOZA les récupère.
+ * Une boutique ne voit que ses commandes (IDOR) et une commande signalée attend la vérification d'OKOZA.
  */
 export const createSellerOrdersService = ({ orders, shops, payments, notifier, appUrl, now }: SellerOrdersDeps) => {
   async function myShop(customerId: string) {
     const shop = await shops.findByOwner(customerId);
-    if (!shop) throw new ForbiddenError('Ouvrez d’abord votre boutique pour vendre sur Okoumé.');
+    if (!shop) throw new ForbiddenError('Ouvrez d’abord votre boutique pour vendre sur OKOZA.');
     return shop;
   }
 
@@ -50,10 +50,10 @@ export const createSellerOrdersService = ({ orders, shops, payments, notifier, a
   /** Étape suivante permise au vendeur, selon qui livre. */
   function nextPlan(order: OrderRecord, note: string | undefined): TransitionPlan {
     if (order.review?.status === 'pending')
-      throw new ConflictError('Commande en cours de vérification par l’équipe Okoumé : attendez sa validation.');
+      throw new ConflictError('Commande en cours de vérification par l’équipe OKOZA : attendez sa validation.');
     if (order.status === 'confirmed' || order.status === 'preparing') return advancePlan(order, note);
-    if (order.fulfilledBy === 'okoume')
-      throw new UnprocessableError('Un livreur Okoumé récupère la commande prête et la livre au client.');
+    if (order.fulfilledBy === 'okoza')
+      throw new UnprocessableError('Un livreur OKOZA récupère la commande prête et la livre au client.');
     if (order.status === 'ready') return { from: 'ready', to: 'shipping', ...(note ? { note } : {}), stock: null };
     if (order.status === 'shipping') return advancePlan(order, note);
     throw new ConflictError('Cette commande ne peut plus avancer.');
@@ -78,8 +78,8 @@ export const createSellerOrdersService = ({ orders, shops, payments, notifier, a
     async advance(customerId: string, id: string, note: string | undefined) {
       const order = await mine(customerId, id);
       const updated = await apply(order, nextPlan(order, note));
-      // Prête et livrée par Okoumé : l'équipe affecte un livreur pour la récupérer chez le vendeur
-      if (updated.status === 'ready' && updated.fulfilledBy === 'okoume')
+      // Prête et livrée par OKOZA : l'équipe affecte un livreur pour la récupérer chez le vendeur
+      if (updated.status === 'ready' && updated.fulfilledBy === 'okoza')
         await notifier.notifyStaff('commandes:consulter', {
           title: 'Commande de vendeur prête',
           body: `${updated.number} : à récupérer chez ${updated.shop?.name ?? 'le vendeur'}`,
@@ -92,10 +92,10 @@ export const createSellerOrdersService = ({ orders, shops, payments, notifier, a
     /** Remise confirmée par la boutique ; la livraison démarre après la dernière collecte de la tournée. */
     async handover(customerId: string, id: string) {
       const order = await mine(customerId, id);
-      if (order.fulfilledBy !== 'okoume')
+      if (order.fulfilledBy !== 'okoza')
         throw new UnprocessableError('Cette commande est remise à votre propre livreur.');
       if (order.status !== 'courier_assigned')
-        throw new ConflictError('La commande doit être affectée à un livreur Okoumé avant la collecte.');
+        throw new ConflictError('La commande doit être affectée à un livreur OKOZA avant la collecte.');
       if (order.collectionConfirmedAt)
         throw new ConflictError('La remise au livreur est déjà confirmée.');
       const shop = await myShop(customerId);
@@ -125,7 +125,7 @@ export const createSellerOrdersService = ({ orders, shops, payments, notifier, a
     async collect(customerId: string, id: string, input: CollectSellerOrderInput) {
       const order = await mine(customerId, id);
       if (order.fulfilledBy !== 'seller')
-        throw new UnprocessableError('Le livreur Okoumé encaisse cette commande : l’équipe enregistre le paiement.');
+        throw new UnprocessableError('Le livreur OKOZA encaisse cette commande : l’équipe enregistre le paiement.');
       if (order.status !== 'delivered')
         throw new ConflictError('L’encaissement se déclare une fois la commande livrée.');
       if (order.paymentStatus !== 'awaiting_payment' && order.paymentStatus !== 'awaiting_verification')

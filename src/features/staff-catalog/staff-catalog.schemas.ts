@@ -142,8 +142,8 @@ export const listStaffProductsQuery = listQuery(['updatedAt'])
   .extend({
     status: z.enum(['draft', 'published', 'archived']).optional(),
     categoryId: z.uuid().optional(),
-    /** Identifiant d'une boutique de vendeur, ou « okoume » pour la boutique Okoumé seule */
-    shopId: z.union([z.literal('okoume'), z.uuid()]).optional(),
+    /** Identifiant d'une boutique de vendeur, ou « okoza » pour la boutique OKOZA seule */
+    shopId: z.union([z.literal('okoza'), z.uuid()]).optional(),
     moderation: z.enum(['in_review', 'changes_requested', 'pending_moderation', 'approved', 'rejected']).optional(),
   })
   .strict();

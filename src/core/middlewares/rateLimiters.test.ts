@@ -53,14 +53,14 @@ describe('limite des connexions', () => {
 
   it('bloque les essais répétés sur un même compte', async () => {
     const app = loginApp();
-    for (let i = 0; i < 10; i++) await attempt(app, 'awa@okoume.ga').expect(204);
-    expect((await attempt(app, 'AWA@okoume.ga')).status).toBe(429);
+    for (let i = 0; i < 10; i++) await attempt(app, 'awa@okoza.ga').expect(204);
+    expect((await attempt(app, 'AWA@okoza.ga')).status).toBe(429);
   });
 
   it('laisse se connecter les autres membres derrière la même connexion', async () => {
     const app = loginApp();
-    for (let i = 0; i < 10; i++) await attempt(app, 'awa@okoume.ga');
-    for (const email of ['paul@okoume.ga', 'nadia@okoume.ga', 'grace@okoume.ga'])
+    for (let i = 0; i < 10; i++) await attempt(app, 'awa@okoza.ga');
+    for (const email of ['paul@okoza.ga', 'nadia@okoza.ga', 'grace@okoza.ga'])
       expect((await attempt(app, email)).status).toBe(204);
   });
 });

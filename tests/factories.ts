@@ -263,7 +263,7 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
       categories: categoriesRepository,
       reviewer: reviewer.reviewer,
       notifier,
-      appUrl: 'https://okoume.test',
+      appUrl: 'https://okoza.test',
     }),
     staffCategories: createStaffCategoriesService(staffStore.categories),
     staffZones: createStaffZonesService(staffStore.zones),

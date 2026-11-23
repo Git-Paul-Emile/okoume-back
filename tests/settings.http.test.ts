@@ -7,7 +7,7 @@ const account = {
   method: 'airtel' as const,
   label: 'Airtel Money',
   number: '+241 07 00 00 00',
-  beneficiary: 'OKOUME SARL',
+  beneficiary: 'OKOZA SARL',
   instructions: 'Composez *150#.',
 };
 
@@ -19,14 +19,14 @@ describe('réglages publics', () => {
         method: 'airtel',
         label: 'Airtel Money',
         number: '+241 07 00 00 00',
-        beneficiary: 'OKOUME SARL',
+        beneficiary: 'OKOZA SARL',
         instructions: '',
       },
     ];
     const res = await request(app).get('/api/v1/settings').expect(200);
     expect(res.body.data).toMatchObject({
       currency: 'XAF',
-      mobileMoney: [{ method: 'airtel', beneficiary: 'OKOUME SARL' }],
+      mobileMoney: [{ method: 'airtel', beneficiary: 'OKOZA SARL' }],
       mobileMoneyExpiryHours: 24,
       returnWindowDays: 14,
       maxAddresses: 5,

@@ -30,7 +30,7 @@ function setup() {
     dealOfTheDay: false,
     tags: [],
     promotion: null,
-    images: ['https://images.okoume.test/pagne.jpg'],
+    images: ['https://images.okoza.test/pagne.jpg'],
     optionName: 'Longueur',
     variants: [
       { label: '6 yards', price: 15_000, cost: 9_000, stock: 4, lowStockThreshold: 3, image: null, weightGrams: null },

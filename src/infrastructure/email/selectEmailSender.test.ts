@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { devEmailSender } from './devEmailSender.js';
 import { selectEmailSender } from './selectEmailSender.js';
 
-const from = 'Okoumé <no-reply@okoume.test>';
+const from = 'OKOZA <no-reply@okoza.test>';
 
 describe('choix du service d’envoi', () => {
   it('écrit les e-mails dans les logs en développement sans clé', () => {

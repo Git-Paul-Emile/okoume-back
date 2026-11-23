@@ -11,7 +11,7 @@ const toDto = (p: PayoutRecord) => ({
 });
 
 /**
- * Reversements aux vendeurs (cahier des charges 1.2, 32.6) : ce qu'un livreur Okoumé a encaissé pour une boutique,
+ * Reversements aux vendeurs (cahier des charges 1.2, 32.6) : ce qu'un livreur OKOZA a encaissé pour une boutique,
  * moins la livraison et la commission, à lui rendre. L'équipe les fait et les trace.
  */
 export const createPayoutsService = (payouts: PayoutsRepository, now: () => Date) => ({

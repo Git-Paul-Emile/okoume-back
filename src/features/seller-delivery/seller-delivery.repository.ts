@@ -2,7 +2,7 @@ import { prisma } from '../../lib/prisma.js';
 
 /** Mode de livraison d'une boutique et frais par quartier quand le vendeur livre lui-même (32.5). */
 export interface ShopDeliveryRecord {
-  mode: 'okoume' | 'seller';
+  mode: 'okoza' | 'seller';
   fees: Array<{ zoneId: string; fee: number }>;
 }
 

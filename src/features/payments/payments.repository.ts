@@ -86,7 +86,7 @@ const isUniqueViolation = (error: unknown) =>
 class StalePayment extends Error {}
 
 /**
- * Reversement dû au vendeur (32.6) : encaissé moins la livraison (gardée par Okoumé, qui a livré) et la commission
+ * Reversement dû au vendeur (32.6) : encaissé moins la livraison (gardée par OKOZA, qui a livré) et la commission
  * en vigueur, arrondie au franc inférieur en faveur du vendeur. Un seul par commande (contrainte unique).
  */
 async function createPayout(tx: Prisma.TransactionClient, order: OrderRecord, collected: number) {
@@ -128,7 +128,7 @@ async function recordInTransaction(
     select: { id: true },
   });
   if (order.shopId === null) await issueInvoice(tx, order, issuedAt);
-  if (order.shopId && order.fulfilledBy === 'okoume') await createPayout(tx, order, payment.amount);
+  if (order.shopId && order.fulfilledBy === 'okoza') await createPayout(tx, order, payment.amount);
 }
 
 export const paymentsRepository: PaymentsRepository = {
@@ -187,11 +187,11 @@ export const paymentsRepository: PaymentsRepository = {
           select: { id: true },
         });
         // Facture après confirmation du paiement ; avoir pour tout remboursement d'une commande facturée (25.4).
-        // Les ventes des vendeurs ne sont pas facturées par Okoumé tant que leur facturation n'est pas validée (32.7)
+        // Les ventes des vendeurs ne sont pas facturées par OKOZA tant que leur facturation n'est pas validée (32.7)
         if (payment.kind === 'payment' && nextStatus === 'paid' && !order.shopId)
           await issueInvoice(tx, order, issuedAt);
-        // Encaissé par un livreur Okoumé pour un vendeur : le reversement à lui faire est créé avec le paiement (32.6)
-        if (payment.kind === 'payment' && nextStatus === 'paid' && order.shopId && order.fulfilledBy === 'okoume')
+        // Encaissé par un livreur OKOZA pour un vendeur : le reversement à lui faire est créé avec le paiement (32.6)
+        if (payment.kind === 'payment' && nextStatus === 'paid' && order.shopId && order.fulfilledBy === 'okoza')
           await createPayout(tx, order, payment.amount);
         if (payment.kind === 'refund' && !order.shopId)
           await issueCreditNote(tx, order.id, payment.amount, note, issuedAt);

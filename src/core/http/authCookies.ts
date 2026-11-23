@@ -18,7 +18,7 @@ export const CSRF_COOKIE = 'ok_csrf';
 export const CSRF_HEADER = 'x-csrf-token';
 
 /**
- * Avec COOKIE_DOMAIN (.okoume.ga), les cookies valent pour le site et l'API : le site peut lire ok_csrf.
+ * Avec COOKIE_DOMAIN (.okoza.ga), les cookies valent pour le site et l'API : le site peut lire ok_csrf.
  * Les jetons de session restent HttpOnly, donc illisibles par le JavaScript des deux sites.
  */
 const base: CookieOptions = {
@@ -29,7 +29,7 @@ const base: CookieOptions = {
 
 /**
  * Un cookie Domain ne peut viser que le site qui l'héberge. Les requêtes proxifiées par Vercel peuvent
- * présenter une origine .vercel.app alors que l'API conserve COOKIE_DOMAIN=.okoume.ga : dans ce cas,
+ * présenter une origine .vercel.app alors que l'API conserve COOKIE_DOMAIN=.okoza.ga : dans ce cas,
  * on émet un cookie host-only, que Vercel transmet au navigateur sous l'origine du frontend.
  */
 function optionsForRequest(req?: Request): CookieOptions {

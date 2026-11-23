@@ -129,7 +129,7 @@ const DEAD_LETTER: QueueSettings = { retryLimit: 0, deleteAfterSeconds: 7 * DAY,
 export function createPgBoss(connectionString: string, role: 'api' | 'worker') {
   const boss = new PgBoss({
     connectionString,
-    application_name: `okoume-${role}`,
+    application_name: `okoza-${role}`,
     // Seul le worker surveille les files et déclenche les tâches planifiées
     supervise: role === 'worker',
     schedule: role === 'worker',
@@ -181,7 +181,7 @@ const QUEUE_SETUP_LOCK = 4_207_311;
  * déjà »). Un verrou PostgreSQL les fait passer l'un après l'autre ; le second trouve tout en place.
  */
 export async function startQueue(boss: PgBoss, connectionString: string) {
-  const lock = new pg.Client({ connectionString, application_name: 'okoume-queue-setup' });
+  const lock = new pg.Client({ connectionString, application_name: 'okoza-queue-setup' });
   await lock.connect();
   try {
     await lock.query('SELECT pg_advisory_lock($1)', [QUEUE_SETUP_LOCK]);

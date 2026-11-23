@@ -35,9 +35,9 @@ export interface ProductRecord {
   promotion: { type: 'percent' | 'fixed'; value: number; startsAt: Date; endsAt: Date } | null;
   images: string[];
   variants: VariantRecord[];
-  /** Boutique du vendeur (32.1) ; null pour la boutique Okoumé */
+  /** Boutique du vendeur (32.1) ; null pour la boutique OKOZA */
   seller: { id: string; slug: string; name: string } | null;
-  /** État annoncé par le vendeur ; null pour la boutique Okoumé (produits neufs) */
+  /** État annoncé par le vendeur ; null pour la boutique OKOZA (produits neufs) */
   condition: 'new' | 'like_new' | 'good' | 'used' | null;
   createdAt: Date;
 }
@@ -54,7 +54,7 @@ export interface ProductSearch {
   /** Valeurs acceptées par attribut : { Taille: ['M', 'L'] }. ET entre attributs, OU entre valeurs. */
   attributes: Record<string, string[]>;
   sort: ProductSort;
-  /** Boutique : adresse d'un vendeur, ou « okoume » pour la boutique Okoumé seule */
+  /** Boutique : adresse d'un vendeur, ou « okoza » pour la boutique OKOZA seule */
   shop?: string | undefined;
   page: number;
   limit: number;
@@ -72,7 +72,7 @@ export interface SellableVariant {
   image: string;
   vatRate: number;
   promotion: ProductRecord['promotion'];
-  /** Boutique du vendeur qui reçoit la commande (32.4) ; null pour la boutique Okoumé */
+  /** Boutique du vendeur qui reçoit la commande (32.4) ; null pour la boutique OKOZA */
   shopId: string | null;
 }
 
@@ -91,7 +91,7 @@ export const productInclude = {
 } as const satisfies Prisma.ProductInclude;
 
 /**
- * Produit visible : boutique Okoumé, ou boutique de vendeur active dont l'accès court encore (délai de grâce
+ * Produit visible : boutique OKOZA, ou boutique de vendeur active dont l'accès court encore (délai de grâce
  * compris, 32.2). En SQL pour la recherche, en filtre Prisma pour les lectures unitaires.
  */
 const visibleShopSql = (now: Date) => Prisma.sql`(p.shop_id IS NULL OR EXISTS (
@@ -186,7 +186,7 @@ function searchQuery(c: ProductSearch, now: Date) {
     ELSE v.price END`;
 
   const where: Prisma.Sql[] = [Prisma.sql`p.status = 'published'`, visibleShopSql(now)];
-  if (c.shop === 'okoume') where.push(Prisma.sql`p.shop_id IS NULL`);
+  if (c.shop === 'okoza') where.push(Prisma.sql`p.shop_id IS NULL`);
   else if (c.shop) where.push(Prisma.sql`p.shop_id = (SELECT id FROM shops WHERE slug = ${c.shop})`);
   if (c.categorySlug) where.push(Prisma.sql`p.category_id IN (SELECT id FROM tree)`);
   if (c.search) {

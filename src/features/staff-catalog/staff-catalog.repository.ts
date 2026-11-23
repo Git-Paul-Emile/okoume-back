@@ -17,7 +17,7 @@ export type ProductCondition = 'new' | 'like_new' | 'good' | 'used';
 
 export interface StaffProductRecord extends Omit<ProductRecord, 'variants'> {
   variants: StaffVariantRecord[];
-  /** Boutique du vendeur (32.3) ; null pour la boutique Okoumé */
+  /** Boutique du vendeur (32.3) ; null pour la boutique OKOZA */
   shopId: string | null;
   moderation: ProductModeration | null;
   moderationIssues: string[];
@@ -66,7 +66,7 @@ export interface ProductFields {
 }
 
 export interface NewProduct extends ProductFields {
-  /** Boutique du vendeur ; absent ou null pour la boutique Okoumé */
+  /** Boutique du vendeur ; absent ou null pour la boutique OKOZA */
   shopId?: string | null;
   moderation?: ProductModeration | null;
   slug: string;
@@ -106,7 +106,7 @@ export interface StaffProductFilters {
   search?: string | undefined;
   status?: 'draft' | 'published' | 'archived' | undefined;
   categoryId?: string | undefined;
-  /** Identifiant d'une boutique de vendeur, ou « okoume » pour la boutique Okoumé seule */
+  /** Identifiant d'une boutique de vendeur, ou « okoza » pour la boutique OKOZA seule */
   shopId?: string | undefined;
   moderation?: ProductModeration | undefined;
   page: number;
@@ -193,7 +193,7 @@ export const staffCatalogRepository: StaffCatalogRepository = {
   async list({ search, status, categoryId, shopId, moderation, page, limit }) {
     const where: Prisma.ProductWhereInput = {
       ...(status ? { status } : {}),
-      ...(shopId ? { shopId: shopId === 'okoume' ? null : shopId } : {}),
+      ...(shopId ? { shopId: shopId === 'okoza' ? null : shopId } : {}),
       ...(moderation ? { moderation } : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(search

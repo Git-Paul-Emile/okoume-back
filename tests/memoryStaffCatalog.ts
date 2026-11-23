@@ -61,7 +61,7 @@ export function createMemoryStaffCatalog(store: {
       const matching = store.products.filter(
         (p) =>
           (!status || p.status === status) &&
-          (!shopId || reviewOf(p.id).shopId === (shopId === 'okoume' ? null : shopId)) &&
+          (!shopId || reviewOf(p.id).shopId === (shopId === 'okoza' ? null : shopId)) &&
           (!moderation || reviewOf(p.id).moderation === moderation) &&
           (!categoryId || p.categoryId === categoryId) &&
           (!search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.includes(search)),

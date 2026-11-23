@@ -5,7 +5,7 @@
 
 services:
   - type: web
-    name: okoume-api
+    name: okoza-back
     runtime: node
     region: frankfurt
     rootDir: api
@@ -58,7 +58,7 @@ services:
         sync: false
 
   - type: worker
-    name: okoume-worker
+    name: okoza-worker
     runtime: node
     region: frankfurt
     rootDir: api

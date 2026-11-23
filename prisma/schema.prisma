@@ -288,11 +288,11 @@ model Product {
   promotionValue    Decimal?           @map("promotion_value") @db.Decimal(12, 0)
   promotionStartsAt DateTime?          @map("promotion_starts_at")
   promotionEndsAt   DateTime?          @map("promotion_ends_at")
-  /// Boutique du vendeur (32.3) ; vide pour un produit de la boutique Okoumé
+  /// Boutique du vendeur (32.3) ; vide pour un produit de la boutique OKOZA
   shopId            String?            @map("shop_id") @db.Uuid
-  /// État d'un produit de vendeur (32.3) ; neuf pour la boutique Okoumé, renseigné par le vendeur sinon
+  /// État d'un produit de vendeur (32.3) ; neuf pour la boutique OKOZA, renseigné par le vendeur sinon
   condition         ListingCondition?
-  /// Vérification d'un produit de vendeur avant publication (32.3) ; vide pour la boutique Okoumé
+  /// Vérification d'un produit de vendeur avant publication (32.3) ; vide pour la boutique OKOZA
   moderation        ProductModeration?
   moderationIssues  String[]           @default([]) @map("moderation_issues")
   moderationNote    String?            @map("moderation_note")
@@ -508,12 +508,12 @@ model Order {
   paymentReference  String?       @map("payment_reference")
   paymentDeclaredAt DateTime?     @map("payment_declared_at")
   status            OrderStatus   @default(confirmed)
-  /// Boutique du vendeur qui reçoit la commande (32.4) ; vide pour la boutique Okoumé
+  /// Boutique du vendeur qui reçoit la commande (32.4) ; vide pour la boutique OKOZA
   shopId            String?       @map("shop_id") @db.Uuid
   /// Passage en caisse commun aux commandes issues d'un même panier (une commande par boutique)
   checkoutNumber    String?       @map("checkout_number")
-  /// Qui livre, figé à la commande (32.5) : les livreurs Okoumé ou ceux du vendeur
-  fulfilledBy       Fulfillment   @default(okoume) @map("fulfilled_by")
+  /// Qui livre, figé à la commande (32.5) : les livreurs OKOZA ou ceux du vendeur
+  fulfilledBy       Fulfillment   @default(okoza) @map("fulfilled_by")
   /// Confirmation de remise de ce lot au livreur central.
   collectionConfirmedAt DateTime? @map("collection_confirmed_at")
   collectionConfirmedBy String?  @map("collection_confirmed_by")
@@ -1183,7 +1183,7 @@ model Shop {
   /// Modes de remise proposés : retrait sur place ou livraison par le vendeur lui-même
   handoverModes          HandoverMode[]  @default([pickup]) @map("handover_modes")
   /// Qui livre les commandes de la boutique (32.5)
-  deliveryMode           Fulfillment     @default(okoume) @map("delivery_mode")
+  deliveryMode           Fulfillment     @default(okoza) @map("delivery_mode")
   createdAt              DateTime        @default(now()) @map("created_at")
   updatedAt              DateTime        @updatedAt @map("updated_at")
 
@@ -1206,9 +1206,9 @@ model Shop {
   @@map("shops")
 }
 
-/// Qui livre une commande : les livreurs Okoumé ou ceux du vendeur (32.5)
+/// Qui livre une commande : les livreurs OKOZA ou ceux du vendeur (32.5)
 enum Fulfillment {
-  okoume
+  okoza
   seller
 }
 
@@ -1245,7 +1245,7 @@ enum PayoutStatus {
   cancelled
 }
 
-/// Reversement au vendeur de ce qu'un livreur Okoumé a encaissé pour lui (32.6) : un par commande.
+/// Reversement au vendeur de ce qu'un livreur OKOZA a encaissé pour lui (32.6) : un par commande.
 /// Montants figés à la création : encaissé = sous-total + livraison ; reversé = encaissé - livraison - commission.
 model SellerPayout {
   id             String         @id @default(uuid()) @db.Uuid
@@ -1318,7 +1318,7 @@ model MarketplaceSettings {
   agreementValidityHours Int      @default(48) @map("agreement_validity_hours")
   /// Plafond mensuel de réponses du négociateur IA (16.6) ; au-delà, le vendeur répond lui-même
   aiChatMonthlyLimit     Int      @default(5000) @map("ai_chat_monthly_limit")
-  /// Commission d'Okoumé sur les ventes des vendeurs, en pourcentage du sous-total (32.6)
+  /// Commission d'OKOZA sur les ventes des vendeurs, en pourcentage du sous-total (32.6)
   commissionRate         Decimal  @default(0) @map("commission_rate") @db.Decimal(5, 2)
   updatedAt              DateTime @updatedAt @map("updated_at")
 
@@ -1555,7 +1555,7 @@ enum ConversationStatus {
   closed
 }
 
-/// Tchat Okoumé sur une annonce (32.5) : un par acheteur et par annonce, rouvert si l'acheteur écrit de nouveau.
+/// Tchat OKOZA sur une annonce (32.5) : un par acheteur et par annonce, rouvert si l'acheteur écrit de nouveau.
 model Conversation {
   id                 String             @id @default(uuid()) @db.Uuid
   listingId          String             @map("listing_id") @db.Uuid
@@ -1621,7 +1621,7 @@ model ListingView {
   @@map("listing_views")
 }
 
-/// Offre de mise en avant d'une annonce dans Okoumé (32.10), configurée par l'administration. Désactivée, jamais supprimée.
+/// Offre de mise en avant d'une annonce dans OKOZA (32.10), configurée par l'administration. Désactivée, jamais supprimée.
 model BoostPlan {
   id           String   @id @default(uuid()) @db.Uuid
   name         String   @unique

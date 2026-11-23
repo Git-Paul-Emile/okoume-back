@@ -36,7 +36,7 @@ export interface SellerProductsDeps {
 
 const CREATE_ATTEMPTS = 3;
 
-/** Vue du vendeur : son produit, sans le coût d'achat qui ne concerne que la boutique Okoumé. */
+/** Vue du vendeur : son produit, sans le coût d'achat qui ne concerne que la boutique OKOZA. */
 export const toSellerProductDto = (p: StaffProductRecord) => {
   const staff = toStaffProductDto(p);
   return {
@@ -78,14 +78,14 @@ const sellerSku = () => `VD-${randomUUID().slice(0, 8).toUpperCase()}`;
 const variantSku = (productSku: string, label: string) => `${productSku}-${slugify(label).toUpperCase() || 'STD'}`;
 
 /**
- * Produits des vendeurs (cahier des charges 1.2, 32.3) : mêmes produits que la boutique Okoumé, rattachés à la
+ * Produits des vendeurs (cahier des charges 1.2, 32.3) : mêmes produits que la boutique OKOZA, rattachés à la
  * boutique du compte connecté. Une boutique ne voit et ne modifie que ses produits (IDOR) ; un produit n'est en
  * vente qu'après une vérification favorable, et toute modification de son contenu repasse cette vérification.
  */
 export const createSellerProductsService = ({ catalog, shops, stock, queue, media, now }: SellerProductsDeps) => {
   async function myShop(customerId: string) {
     const shop = await shops.findByOwner(customerId);
-    if (!shop) throw new ForbiddenError('Ouvrez d’abord votre boutique pour vendre sur Okoumé.');
+    if (!shop) throw new ForbiddenError('Ouvrez d’abord votre boutique pour vendre sur OKOZA.');
     return shop;
   }
 
@@ -153,7 +153,7 @@ export const createSellerProductsService = ({ catalog, shops, stock, queue, medi
             slug: freeSlug(base, await catalog.slugsLike(base)),
             sku,
             status: 'draft',
-            // Prix du vendeur toutes taxes comprises : aucune TVA calculée par Okoumé sur ses ventes
+            // Prix du vendeur toutes taxes comprises : aucune TVA calculée par OKOZA sur ses ventes
             vatRate: 0,
             hsCode: null,
             featured: false,

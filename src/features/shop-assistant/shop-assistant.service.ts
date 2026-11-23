@@ -45,7 +45,7 @@ function describeProduct(p: ProductDto, categoryName: (id: string) => string) {
   const promo = p.promotion && from < Math.min(...base) ? ` (au lieu de ${fcfa(Math.min(...base))})` : '';
   const stock = p.variants.some((v) => v.availability !== 'out_of_stock') ? 'disponible' : 'épuisé';
   const variants = p.variants.length > 1 ? ` ; variantes : ${p.variants.map((v) => v.label).join(', ')}` : '';
-  const seller = p.seller ? `, vendu par la boutique ${p.seller.name}` : ', vendu par Okoumé';
+  const seller = p.seller ? `, vendu par la boutique ${p.seller.name}` : ', vendu par OKOZA';
   return `- ${p.name} [${p.slug}] : ${prices.length > 1 ? 'dès ' : ''}${fcfa(from)}${promo}, ${stock}, catégorie ${categoryName(p.categoryId)}${p.brand ? `, marque ${p.brand}` : ''}${seller}${variants}. ${p.shortDescription}`;
 }
 
@@ -70,12 +70,12 @@ export const createShopAssistantService = (deps: ShopAssistantDeps) => {
     const s = settings.support;
     return [
       'BOUTIQUE',
-      `Okoumé, boutique en ligne. Contact : ${s.email}, téléphone ${s.phone}, WhatsApp ${s.whatsapp}, ${s.hours}. Adresse : ${s.address}.`,
+      `OKOZA, boutique en ligne. Contact : ${s.email}, téléphone ${s.phone}, WhatsApp ${s.whatsapp}, ${s.hours}. Adresse : ${s.address}.`,
       '',
       'PAIEMENT',
       'Tous les paiements se font à la livraison, au livreur : espèces, Airtel Money ou Moov Money. Rien à payer avant.',
       'Pour le Mobile Money, le client envoie le montant depuis son téléphone à la réception, avec son numéro de commande en référence.',
-      'Des vendeurs inscrits vendent aussi sur Okoumé : un panier de plusieurs boutiques donne une commande par boutique, chacune livrée et payée à part.',
+      'Des vendeurs inscrits vendent aussi sur OKOZA : un panier de plusieurs boutiques donne une commande par boutique, chacune livrée et payée à part.',
       '',
       'LIVRAISON (quartiers desservis, frais fixes par quartier, quel que soit le nombre d’articles)',
       ...zones.map((z) => `- ${z.name} (${z.city}) : ${fcfa(z.fee)}, délai ${z.eta}, ${z.days}`),

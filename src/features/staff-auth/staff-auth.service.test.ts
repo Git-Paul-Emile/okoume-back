@@ -10,7 +10,7 @@ const codeIn = (text: string | undefined) => /\b(\d{6})\b/.exec(text ?? '')?.[1]
 
 async function withActiveMember() {
   const services = buildAuthServices();
-  const member = services.staffStore.add({ email: 'awa@okoume.ga', passwordHash: await hashPassword(PASSWORD) });
+  const member = services.staffStore.add({ email: 'awa@okoza.ga', passwordHash: await hashPassword(PASSWORD) });
   return { ...services, member };
 }
 
@@ -25,7 +25,7 @@ describe('connexion de l’équipe', () => {
 
   it('donne la même erreur pour un compte inconnu et un mauvais mot de passe', async () => {
     const { staffAuth, member } = await withActiveMember();
-    const unknown = await staffAuth.startLogin('personne@okoume.ga', PASSWORD).catch((e: Error) => e);
+    const unknown = await staffAuth.startLogin('personne@okoza.ga', PASSWORD).catch((e: Error) => e);
     const wrong = await staffAuth.startLogin(member.email, 'mauvais-mot-de-passe').catch((e: Error) => e);
     expect(unknown).toMatchObject({ status: 401 });
     expect(wrong).toMatchObject({ status: 401, message: (unknown as Error).message });
@@ -71,7 +71,7 @@ describe('invitations de l’équipe', () => {
     const { staffAuth, staffStore, email, clock } = buildAuthServices();
     const token = 'jeton-invitation-de-test';
     staffStore.add({
-      email: 'neo@okoume.ga',
+      email: 'neo@okoza.ga',
       status: 'invited',
       inviteTokenHash: sha256(token),
       inviteExpiresAt: new Date(clock.now().getTime() + 60 * 60_000),
@@ -79,7 +79,7 @@ describe('invitations de l’équipe', () => {
     await staffAuth.startInvitation(token);
     const { backupCodes } = await staffAuth.acceptInvitation(
       token,
-      codeIn(email.last('neo@okoume.ga')?.text),
+      codeIn(email.last('neo@okoza.ga')?.text),
       PASSWORD,
     );
     expect(backupCodes).toHaveLength(BACKUP_CODE_COUNT);
@@ -90,7 +90,7 @@ describe('invitations de l’équipe', () => {
   it('refuse une invitation expirée', async () => {
     const { staffAuth, staffStore, clock } = buildAuthServices();
     staffStore.add({
-      email: 'neo@okoume.ga',
+      email: 'neo@okoza.ga',
       status: 'invited',
       inviteTokenHash: sha256('jeton'),
       inviteExpiresAt: new Date(clock.now().getTime() - 1),
@@ -133,7 +133,7 @@ describe('mot de passe oublié de l’équipe', () => {
   it('ne révèle pas une adresse inconnue et n’envoie rien', async () => {
     const { staffAuth, email } = await withActiveMember();
     const sent = email.sent.length;
-    await expect(staffAuth.requestPasswordReset('personne@okoume.ga')).resolves.toBeUndefined();
+    await expect(staffAuth.requestPasswordReset('personne@okoza.ga')).resolves.toBeUndefined();
     expect(email.sent).toHaveLength(sent);
   });
 });

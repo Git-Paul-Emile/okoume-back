@@ -19,7 +19,7 @@ describe('schémas des nouvelles démarches de compte', () => {
   });
 
   it('exige code, code de secours et mot de passe solide pour l’équipe', () => {
-    const valid = { email: 'awa@okoume.ga', code: '123456', backupCode: 'ABCD-EFGH', password: 'motdepasse-2026' };
+    const valid = { email: 'awa@okoza.ga', code: '123456', backupCode: 'ABCD-EFGH', password: 'motdepasse-2026' };
     expect(staffPasswordResetConfirmBody.safeParse(valid).success).toBe(true);
     expect(staffPasswordResetConfirmBody.safeParse({ ...valid, code: 'dddddd' }).success).toBe(false);
     expect(staffPasswordResetConfirmBody.safeParse({ ...valid, password: 'court1' }).success).toBe(false);

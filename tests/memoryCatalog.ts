@@ -378,7 +378,7 @@ export function createMemoryCatalog(now: () => Date) {
         .filter(
           (o) =>
             (!status || o.status === status) &&
-            (!shopId || o.shopId === (shopId === 'okoume' ? null : shopId)) &&
+            (!shopId || o.shopId === (shopId === 'okoza' ? null : shopId)) &&
             (!search || o.number.includes(search) || o.recipient.includes(search)),
         )
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -393,7 +393,7 @@ export function createMemoryCatalog(now: () => Date) {
     async applyCentralRouteTransition(order, change, actor) {
       const route = orders.filter(
         (candidate) =>
-          candidate.fulfilledBy === 'okoume' &&
+          candidate.fulfilledBy === 'okoza' &&
           candidate.status !== 'cancelled' &&
           (order.checkoutNumber ? candidate.checkoutNumber === order.checkoutNumber : candidate.id === order.id),
       );
@@ -413,7 +413,7 @@ export function createMemoryCatalog(now: () => Date) {
     async confirmCentralCollection(order, by, actor, at) {
       const route = orders.filter(
         (candidate) =>
-          candidate.fulfilledBy === 'okoume' &&
+          candidate.fulfilledBy === 'okoza' &&
           candidate.status !== 'cancelled' &&
           (order.checkoutNumber ? candidate.checkoutNumber === order.checkoutNumber : candidate.id === order.id),
       );
@@ -562,7 +562,7 @@ export function createMemoryCatalog(now: () => Date) {
       creditEarned(stored);
       rewardFirstOrderInMemory(stored);
       if (payment.kind === 'payment' && nextStatus === 'paid' && !stored.shopId) issueInvoiceInMemory(stored, issuedAt);
-      if (payment.kind === 'payment' && nextStatus === 'paid' && stored.shopId && stored.fulfilledBy === 'okoume') {
+      if (payment.kind === 'payment' && nextStatus === 'paid' && stored.shopId && stored.fulfilledBy === 'okoza') {
         const t = stored.totals;
         const deliveryFee = Math.min(payment.amount, Math.max(0, t.deliveryFee - t.deliveryDiscount));
         const commission = Math.floor(((payment.amount - deliveryFee) * marketplace.commissionRate) / 100);
@@ -1045,7 +1045,7 @@ export function createMemoryCatalog(now: () => Date) {
       isNew: false,
       tags: [],
       promotion: null,
-      images: ['https://images.okoume.test/produit.jpg'],
+      images: ['https://images.okoza.test/produit.jpg'],
       createdAt: now(),
       ...product,
       seller: product.seller ?? null,

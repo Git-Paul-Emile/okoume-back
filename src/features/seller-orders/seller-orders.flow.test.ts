@@ -96,7 +96,7 @@ describe('commandes reçues par un vendeur', () => {
     expect(paid.paymentStatus).toBe('paid');
   });
 
-  it('une commande livrée par Okoumé s’arrête chez le vendeur une fois prête', async () => {
+  it('une commande livrée par OKOZA s’arrête chez le vendeur une fois prête', async () => {
     const { place, sellerOrders, seller, staffPushes } = await setup().then((s) => ({
       ...s,
       staffPushes: () => s.pushQueue.jobs.filter((j) => j.name === 'push.send'),
@@ -123,7 +123,7 @@ describe('commandes reçues par un vendeur', () => {
       { page: 1, limit: 20, shopId: shop.opened.id },
       owner,
     );
-    // 22 000 encaissés, 2 000 de livraison gardés par Okoumé, 10 % de commission sur 20 000
+    // 22 000 encaissés, 2 000 de livraison gardés par OKOZA, 10 % de commission sur 20 000
     expect(items[0]).toMatchObject({ collected: 22_000, deliveryFee: 2_000, commission: 2_000, amount: 18_000 });
     expect(due).toBe(18_000);
 

@@ -109,7 +109,7 @@ export const createOrdersService = ({
 
   type Line = Awaited<ReturnType<typeof priceLines>>[number];
 
-  /** Panier réparti par boutique (32.4) : la boutique Okoumé d'abord, puis chaque vendeur. */
+  /** Panier réparti par boutique (32.4) : la boutique OKOZA d'abord, puis chaque vendeur. */
   function byShop(items: Line[]) {
     const groups = new Map<string | null, Line[]>();
     for (const item of items) groups.set(item.shopId, [...(groups.get(item.shopId) ?? []), item]);
@@ -117,16 +117,16 @@ export const createOrdersService = ({
   }
 
   /**
-   * Qui livre chaque commande et à quel prix (32.5) : les livreurs Okoumé aux frais du quartier, ou le vendeur à
+   * Qui livre chaque commande et à quel prix (32.5) : les livreurs OKOZA aux frais du quartier, ou le vendeur à
    * ses propres frais. Un vendeur qui ne livre pas ce quartier bloque la commande, avec un message clair.
    */
   async function deliveryFor(shopIds: string[], zone: DeliveryZoneRecord | null) {
     const terms = zone ? await sellers.forZone(shopIds, zone.id) : new Map<string, SellerTerms>();
     return (shopId: string | null) => {
-      if (!shopId || !zone) return { fulfilledBy: 'okoume' as const, fee: zone?.fee ?? 0, terms: null };
+      if (!shopId || !zone) return { fulfilledBy: 'okoza' as const, fee: zone?.fee ?? 0, terms: null };
       const shop = terms.get(shopId);
       if (!shop) throw new UnprocessableError('Une boutique de votre panier n’est plus disponible.');
-      if (shop.deliveryMode === 'okoume') return { fulfilledBy: 'okoume' as const, fee: zone.fee, terms: shop };
+      if (shop.deliveryMode === 'okoza') return { fulfilledBy: 'okoza' as const, fee: zone.fee, terms: shop };
       if (shop.zoneFee === null)
         throw new UnprocessableError(
           `La boutique ${shop.name} ne livre pas à ${zone.name} : retirez ses articles ou choisissez un autre quartier.`,
@@ -138,7 +138,7 @@ export const createOrdersService = ({
   /**
    * Devis du panier : prix de la base, promotion en vigueur, code et frais de livraison.
    * Une commande par boutique (32.4), chacune avec ses frais ; le code promo ne porte que sur les
-   * produits de la boutique Okoumé. Sans zone (panier, avant le choix du quartier), la livraison n'est pas comptée.
+   * produits de la boutique OKOZA. Sans zone (panier, avant le choix du quartier), la livraison n'est pas comptée.
    * Un code inconnu est signalé comme une erreur de code, sans révéler l'existence d'autres codes.
    */
   async function quoteFor(
@@ -148,18 +148,18 @@ export const createOrdersService = ({
   ) {
     const items = await priceLines(input, at);
     const groups = byShop(items);
-    const hasOkoume = groups.some(([shopId]) => shopId === null);
-    const promo = input.promoCode && hasOkoume ? await promoCodes.findByCode(input.promoCode) : null;
+    const hasOkoza = groups.some(([shopId]) => shopId === null);
+    const promo = input.promoCode && hasOkoza ? await promoCodes.findByCode(input.promoCode) : null;
     const delivery = await deliveryFor(
         groups.flatMap(([shopId]) => (shopId ? [shopId] : [])),
         zone,
       );
     const shipments = groups.map(([shopId, lines]) => {
       const { fee, fulfilledBy, terms } = delivery(shopId);
-      const okoume = shopId === null;
+      const okoza = shopId === null;
       const priced = priceOrder(lines, {
         deliveryFee: fee,
-        promo: okoume ? promo : null,
+        promo: okoza ? promo : null,
         pointsRequested: 0,
         customer: null,
         maxDiscountRate: 1,
@@ -170,8 +170,8 @@ export const createOrdersService = ({
     const main = shipments.find((s) => s.shopId === null)?.priced;
     const codeError = !input.promoCode
       ? null
-      : !hasOkoume
-        ? 'Ce code s’applique aux produits vendus par Okoumé.'
+      : !hasOkoza
+        ? 'Ce code s’applique aux produits vendus par OKOZA.'
         : !promo
           ? 'Ce code n’existe pas.'
           : (main?.codeError ?? null);
@@ -196,7 +196,7 @@ export const createOrdersService = ({
   }
 
   async function notify(order: OrderRecord, ownerId: string | null) {
-    // Chaque boutique reçoit ses commandes (32.4) : l'équipe Okoumé pour les siennes, le vendeur pour les autres
+    // Chaque boutique reçoit ses commandes (32.4) : l'équipe OKOZA pour les siennes, le vendeur pour les autres
     if (ownerId) await notifier.notifyCustomer(ownerId, 'orders', sellerOrderMessage(order, appUrl));
     else await notifier.notifyStaff('commandes:consulter', newOrderMessage(order, appUrl), true);
   }

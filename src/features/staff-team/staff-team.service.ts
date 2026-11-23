@@ -50,7 +50,7 @@ export const createStaffTeamService = (deps: StaffTeamDependencies) => {
         to: m.email,
         // Lien d'accès : jamais conservé dans le suivi des envois
         sensitive: true,
-        subject: 'Votre accès au back-office Okoumé',
+        subject: 'Votre accès au back-office OKOZA',
         text: [
           `Bonjour ${m.firstName},`,
           '',

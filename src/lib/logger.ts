@@ -19,7 +19,7 @@ function requestIdOf(bindings: Record<string, unknown>): string | undefined {
  */
 export const logger = pino({
   level: env.LOG_LEVEL,
-  base: { service: 'okoume-api', env: env.NODE_ENV },
+  base: { service: 'okoza-api', env: env.NODE_ENV },
   timestamp: pino.stdTimeFunctions.isoTime,
   redact: {
     paths: [

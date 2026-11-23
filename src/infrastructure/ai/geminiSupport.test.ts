@@ -2,7 +2,7 @@ import { ApiError } from '@google/genai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isTransientGeminiError, parseJson, photoParts } from './geminiSupport.js';
 
-const PREFIX = 'https://res.cloudinary.com/okoume/image/upload/';
+const PREFIX = 'https://res.cloudinary.com/okoza/image/upload/';
 
 afterEach(() => {
   vi.unstubAllGlobals();

@@ -15,7 +15,7 @@
     "verified": true,
     "acceptedPaymentMethods": ["cash", "airtel", "moov"],
     "handoverModes": ["pickup", "seller_delivery"],
-    "deliveryMode": "okoume",
+    "deliveryMode": "okoza",
     "createdAt": "2026-09-12T10:00:00.000Z",
     "zoneFees": [
       { "zoneId": "1", "fee": 2000 },
@@ -61,7 +61,7 @@
     "suspendedAt": "2026-10-02T09:00:00.000Z",
     "acceptedPaymentMethods": ["cash"],
     "handoverModes": ["pickup"],
-    "deliveryMode": "okoume",
+    "deliveryMode": "okoza",
     "createdAt": "2026-09-20T10:00:00.000Z",
     "zoneFees": []
   }

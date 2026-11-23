@@ -85,7 +85,7 @@ describe('changement d’e-mail ou de téléphone', () => {
     await expect(auth.confirmContactChange(id, wrongCode(code))).rejects.toMatchObject({ status: 422 });
     const updated = await auth.confirmContactChange(id, code);
     expect(updated.email).toBe('awa.ndong@example.ga');
-    expect(email.last(input.email)?.subject).toBe('Vos coordonnées Okoumé ont changé');
+    expect(email.last(input.email)?.subject).toBe('Vos coordonnées OKOZA ont changé');
   });
 
   it('n’envoie aucun code pour une adresse déjà prise, sans le révéler', async () => {

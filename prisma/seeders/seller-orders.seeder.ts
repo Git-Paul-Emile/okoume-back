@@ -35,7 +35,7 @@ const schema = z.array(
     paymentMethod: z.enum(['cash', 'airtel', 'moov']),
     paymentStatus: z.enum(['awaiting_payment', 'awaiting_verification', 'paid', 'refund_due', 'refunded']),
     status: orderStatus,
-    fulfilledBy: z.enum(['okoume', 'seller']),
+    fulfilledBy: z.enum(['okoza', 'seller']),
     payoutStatus: z.enum(['pending', 'paid', 'cancelled']).optional(),
     createdAt: isoDate,
     history: z.array(z.object({ status: orderStatus, at: isoDate, note: z.string().optional() })).min(1),

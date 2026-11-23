@@ -20,19 +20,19 @@ const schema = z
     JWT_ACCESS_SECRET: z.string().min(32),
     // Adresse du site, pour les liens envoyés par e-mail (invitation, réinitialisation)
     APP_URL: z.url(),
-    // Adresse publique de l'API (https://api.okoume.ga) : liens de partage avec aperçu sur les réseaux (32.9).
+    // Adresse publique de l'API (https://api.okoza.ga) : liens de partage avec aperçu sur les réseaux (32.9).
     // Facultative : sans elle, les liens partagés mènent directement au site, sans aperçu.
     API_PUBLIC_URL: z.preprocess((v) => (v === '' ? undefined : v), z.url().optional()),
-    // Domaine commun au site et à l'API (.okoume.ga) : le site lit alors le cookie anti-CSRF posé par l'API.
+    // Domaine commun au site et à l'API (.okoza.ga) : le site lit alors le cookie anti-CSRF posé par l'API.
     // Facultatif : sans lui, les cookies restent attachés au seul domaine de l'API (développement local).
     COOKIE_DOMAIN: z.preprocess(
       (v) => (v === '' ? undefined : v),
       z
         .string()
-        .regex(/^.?[a-z0-9-]+(.[a-z0-9-]+)+$/i, 'domaine attendu, par exemple .okoume.ga')
+        .regex(/^.?[a-z0-9-]+(.[a-z0-9-]+)+$/i, 'domaine attendu, par exemple .okoza.ga')
         .optional(),
     ),
-    // Adresse d'expédition, sur un domaine vérifié chez Resend : « Okoumé <no-reply@okoume.ga> »
+    // Adresse d'expédition, sur un domaine vérifié chez Resend : « OKOZA <no-reply@okoza.ga> »
     EMAIL_FROM: z.string().min(3),
     // Clé d'API Resend (envoi seul suffit). Obligatoire hors développement et test.
     RESEND_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().startsWith('re_').optional()),

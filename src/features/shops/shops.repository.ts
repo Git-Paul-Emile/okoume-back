@@ -99,7 +99,7 @@ export interface MarketplaceSettingsRecord {
   agreementValidityHours: number;
   /** Réponses du négociateur IA par mois (16.6) ; au-delà, le vendeur répond lui-même */
   aiChatMonthlyLimit: number;
-  /** Commission d'Okoumé sur les ventes des vendeurs, en pourcentage (32.6) */
+  /** Commission d'OKOZA sur les ventes des vendeurs, en pourcentage (32.6) */
   commissionRate: number;
 }
 

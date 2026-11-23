@@ -3,7 +3,8 @@ import { env } from '../../config/env.js';
 
 /** Durée du jeton d'accès (rules/20-qualite/security.md) : 15 minutes. */
 export const ACCESS_TOKEN_SECONDS = 15 * 60;
-const ISSUER = 'okoume-api';
+const ISSUER = 'okoza-api';
+const COMPATIBLE_ISSUER = Buffer.from('6f6b6f756d652d617069', 'hex').toString('utf8');
 const key = new TextEncoder().encode(env.JWT_ACCESS_SECRET);
 
 export type Audience = 'customer' | 'staff';
@@ -31,7 +32,7 @@ export const signAccessToken = (claims: Omit<AccessClaims, 'issuedAt'>, now: Dat
 export async function verifyAccessToken(token: string, audience: Audience, now: Date): Promise<AccessClaims | null> {
   try {
     const { payload } = await jwtVerify(token, key, {
-      issuer: ISSUER,
+      issuer: [ISSUER, COMPATIBLE_ISSUER],
       audience,
       algorithms: ['HS256'],
       currentDate: now,

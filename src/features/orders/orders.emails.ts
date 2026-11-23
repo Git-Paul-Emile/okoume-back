@@ -32,7 +32,7 @@ export const orderConfirmationEmail = (order: OrderRecord, appUrl: string): Emai
 export const checkoutConfirmationEmail = (orders: readonly OrderRecord[], appUrl: string): EmailMessage => {
   const first = orders[0];
   if (!first) throw new Error('Un panier confirmé doit contenir au moins une commande.');
-  const central = orders.filter((order) => order.fulfilledBy === 'okoume');
+  const central = orders.filter((order) => order.fulfilledBy === 'okoza');
   const independent = orders.filter((order) => order.fulfilledBy === 'seller');
   const checkoutNumber = first.checkoutNumber ?? first.number;
   const centralTotal = central.reduce((sum, order) => sum + order.totals.total, 0);
@@ -45,10 +45,10 @@ export const checkoutConfirmationEmail = (orders: readonly OrderRecord[], appUrl
       `Votre panier ${checkoutNumber} est confirmé.`,
       ...orders.flatMap((order) => [
         '',
-        `${order.shop?.name ?? 'Boutique officielle OKOUMÉ'} - sous-commande ${order.number}`,
+        `${order.shop?.name ?? 'Boutique officielle OKOZA'} - sous-commande ${order.number}`,
         ...order.items.map((item) => `${item.quantity} x ${item.name} (${item.variantLabel}) : ${fcfa(item.unitPrice * item.quantity)}`),
         `Total de la sous-commande : ${fcfa(order.totals.total)}`,
-        order.fulfilledBy === 'okoume' ? 'Collecte et livraison par le livreur OKOUMÉ.' : 'Livraison organisée par la boutique.',
+        order.fulfilledBy === 'okoza' ? 'Collecte et livraison par le livreur OKOZA.' : 'Livraison organisée par la boutique.',
       ]),
       '',
       ...(central.length
