@@ -5,13 +5,18 @@ import type { VerificationPurpose, VerificationRecord, VerificationRepository } 
 export const CODE_LIFETIME_MS = 10 * 60_000;
 export const MAX_CODE_ATTEMPTS = 5;
 
-export const createVerificationService = (repository: VerificationRepository, now: () => Date) => {
-  async function check(record: VerificationRecord | null, code: string) {
+export const createVerificationService = (
+  repository: VerificationRepository,
+  now: () => Date,
+  simulateCodes = false,
+) => {
+  async function check(record: VerificationRecord | null, code: string, simulated = false) {
     const at = now();
     if (!record || record.consumedAt || record.expiresAt <= at)
       throw new UnprocessableError('Code expiré : demandez-en un nouveau.');
-    if (record.attempts >= MAX_CODE_ATTEMPTS) throw new UnprocessableError('Trop d’essais : demandez un nouveau code.');
-    if (!safeEqual(record.codeHash, sha256(code.trim()))) {
+    if (!simulated && record.attempts >= MAX_CODE_ATTEMPTS)
+      throw new UnprocessableError('Trop d’essais : demandez un nouveau code.');
+    if (!simulated && !safeEqual(record.codeHash, sha256(code.trim()))) {
       const { attempts } = await repository.incrementAttempts(record.id);
       const left = MAX_CODE_ATTEMPTS - attempts;
       throw new UnprocessableError(
@@ -38,7 +43,7 @@ export const createVerificationService = (repository: VerificationRepository, no
 
     /** Vérifie le dernier code émis pour ce compte et cet usage. */
     verifyLatest: async (subjectId: string, purpose: VerificationPurpose, code: string) =>
-      check(await repository.findActive(subjectId, purpose), code),
+      check(await repository.findActive(subjectId, purpose), code, simulateCodes),
 
     /**
      * Défi encore ouvert (non consommé, non expiré, essais restants), pour le valider autrement
@@ -58,7 +63,7 @@ export const createVerificationService = (repository: VerificationRepository, no
 
     /** Vérifie un code désigné par son identifiant de défi (connexion de l'équipe). */
     verifyChallenge: async (challengeId: string, purpose: VerificationPurpose, code: string) =>
-      check(await repository.findById(challengeId, purpose), code),
+      check(await repository.findById(challengeId, purpose), code, simulateCodes),
   };
 };
 

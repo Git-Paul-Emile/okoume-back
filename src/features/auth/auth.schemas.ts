@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { simulateConfirmations } from '../../config/env.js';
 
 const MAX_PASSWORD_LENGTH = 128;
 
@@ -24,10 +25,9 @@ export const customerPassword = z
   .max(MAX_PASSWORD_LENGTH)
   .refine((v) => /[a-z]/i.test(v) && /\d/.test(v), 'Utilisez au moins une lettre et un chiffre.');
 
-const code = z
-  .string()
-  .trim()
-  .regex(/^\d{6}$/, 'Le code contient 6 chiffres.');
+const code = simulateConfirmations
+  ? z.string().trim().min(1).max(100)
+  : z.string().trim().regex(/^\d{6}$/, 'Le code contient 6 chiffres.');
 const identifier = z.string().trim().min(3).max(254);
 
 export const registerBody = z.strictObject({
@@ -60,8 +60,5 @@ export const contactChangeBody = z.discriminatedUnion('type', [
 export type ContactChangeInput = z.infer<typeof contactChangeBody>;
 
 export const contactChangeConfirmationBody = z.strictObject({
-  code: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/, 'Le code contient 6 chiffres.'),
+  code,
 });

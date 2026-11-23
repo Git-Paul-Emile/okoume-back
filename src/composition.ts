@@ -1,5 +1,5 @@
 import type { AppDependencies } from './app.js';
-import { env } from './config/env.js';
+import { env, simulateConfirmations } from './config/env.js';
 import { accountRepository } from './features/account/account.repository.js';
 import { informationRepository } from './features/settings/settings.repository.js';
 import { createSettingsService } from './features/settings/settings.service.js';
@@ -96,7 +96,7 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
   const notifier = createNotifier(queue);
   const media = selectMediaStorage(env);
   const sessions = createSessionsService(sessionsRepository, now);
-  const verification = createVerificationService(verificationRepository, now);
+  const verification = createVerificationService(verificationRepository, now, simulateConfirmations);
   const categories = createCategoriesService(categoriesRepository);
   const products = createProductsService(productsRepository, categories, now);
   const deliveryZones = createDeliveryZonesService(deliveryZonesRepository);
