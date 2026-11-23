@@ -42,31 +42,15 @@ const offers = z.array(
   }),
 );
 
-const articles = z.array(
-  z.object({
-    id: z.string(),
-    slug: z.string().min(1),
-    title: z.string().min(1),
-    category: z.string().min(1),
-    excerpt: z.string().min(1),
-    cover: z.string().min(1),
-    content: z.array(z.object({ type: z.enum(['p', 'h2']), text: z.string() })),
-    publishedAt: isoDate,
-    readingTime: z.number().int().positive(),
-    status: z.enum(['draft', 'published']),
-  }),
-);
-
-/** Contenu validé de data/banners.json, ads.json, offers.json et articles.json */
+/** Contenu validé de data/banners.json, ads.json et offers.json */
 export const loadContent = () => ({
   banners: readData('banners.json', banners),
   ads: readData('ads.json', ads),
   offers: readData('offers.json', offers),
-  articles: readData('articles.json', articles),
 });
 
 /**
- * Bannières, espaces publicitaires, offres exclusives et articles de la boutique. Données de démonstration :
+ * Bannières, espaces publicitaires et offres exclusives de la boutique. Données de démonstration :
  * les offres et les liens visent le catalogue fictif.
  */
 export const contentSeeder: Seeder = {
@@ -91,10 +75,6 @@ export const contentSeeder: Seeder = {
       })),
       skipDuplicates: true,
     });
-    const article = await prisma.article.createMany({
-      data: data.articles.map(({ id, ...a }) => ({ id: legacyUuid('article', id), ...a })),
-      skipDuplicates: true,
-    });
-    return banner.count + ad.count + offer.count + article.count;
+    return banner.count + ad.count + offer.count;
   },
 };

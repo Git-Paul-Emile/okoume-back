@@ -1,11 +1,10 @@
 import { prisma } from '../../lib/prisma.js';
-import type { StaffRoleName } from '../../core/security/permissions.js';
 
 export interface ActivityRecord {
   id: string;
   staffId: string | null;
   staffName: string;
-  role: StaffRoleName;
+  role: string;
   area: string;
   action: string;
   method: string;
@@ -30,11 +29,16 @@ export const staffActivityRepository: StaffActivityRepository = {
   async record(entry, at) {
     const member = await prisma.staffMember.findUnique({
       where: { id: entry.staffId },
-      select: { firstName: true, lastName: true, role: true },
+      select: { firstName: true, lastName: true },
     });
     if (!member) return;
     await prisma.staffActivity.create({
-      data: { ...entry, staffName: `${member.firstName} ${member.lastName}`, role: member.role, createdAt: at },
+      data: {
+        ...entry,
+        staffName: `${member.firstName} ${member.lastName}`,
+        role: 'super_admin',
+        createdAt: at,
+      },
     });
   },
 

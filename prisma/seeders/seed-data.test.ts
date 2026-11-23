@@ -4,7 +4,6 @@ import { loadAccessPlans } from './access-plans.seeder.js';
 import { loadCategories } from './categories.seeder.js';
 import { loadContent } from './content.seeder.js';
 import { loadCouriers } from './couriers.seeder.js';
-import { loadCustomRoles } from './custom-roles.seeder.js';
 import { loadCustomers } from './customers.seeder.js';
 import { loadZones } from './delivery-zones.seeder.js';
 import { loadLoyaltyMovements } from './loyalty-movements.seeder.js';
@@ -32,7 +31,6 @@ describe('données du seed', () => {
   it('chaque fichier respecte son schéma', () => {
     for (const load of [
       loadSettings,
-      loadCustomRoles,
       loadAccessPlans,
       loadStaff,
       loadCouriers,
@@ -115,9 +113,7 @@ describe('contenus du seed', () => {
     expect(content.offers.filter((o) => !ids.has(o.productId))).toEqual([]);
   });
 
-  it('tient les contraintes des articles et des espaces publicitaires', () => {
-    expect(duplicates(content.articles.map((a) => a.slug))).toEqual([]);
-    expect(content.articles.filter((a) => a.readingTime > 120)).toEqual([]);
+  it('tient les contraintes des espaces publicitaires', () => {
     expect(content.ads.filter((a) => a.startsAt && a.endsAt && a.endsAt <= a.startsAt)).toEqual([]);
   });
 });

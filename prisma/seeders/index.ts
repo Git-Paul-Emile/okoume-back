@@ -7,7 +7,6 @@ import { accessPlansSeeder } from './access-plans.seeder.js';
 import { categoriesSeeder } from './categories.seeder.js';
 import { contentSeeder } from './content.seeder.js';
 import { couriersSeeder } from './couriers.seeder.js';
-import { customRolesSeeder } from './custom-roles.seeder.js';
 import { customersSeeder } from './customers.seeder.js';
 import { deliveryZonesSeeder } from './delivery-zones.seeder.js';
 import { loyaltyMovementsSeeder } from './loyalty-movements.seeder.js';
@@ -18,8 +17,6 @@ import { settingsSeeder } from './settings.seeder.js';
 import { staffSeeder } from './staff.seeder.js';
 import { zoneRequestsSeeder } from './zone-requests.seeder.js';
 import { reviewsSeeder } from './reviews.seeder.js';
-import { ticketsSeeder } from './tickets.seeder.js';
-import { privacySeeder } from './privacy.seeder.js';
 import { assistantSeeder } from './assistant.seeder.js';
 import { shopsSeeder } from './shops.seeder.js';
 import { sellerOrdersSeeder } from './seller-orders.seeder.js';
@@ -37,7 +34,6 @@ const SEEDERS: Seeder[] = [
   settingsSeeder,
   deliveryZonesSeeder,
   zoneRequestsSeeder,
-  customRolesSeeder,
   accessPlansSeeder,
   staffSeeder,
   customersSeeder,
@@ -52,8 +48,6 @@ const SEEDERS: Seeder[] = [
   sellerOrdersSeeder,
   loyaltyMovementsSeeder,
   reviewsSeeder,
-  ticketsSeeder,
-  privacySeeder,
   assistantSeeder,
 ];
 

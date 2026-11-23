@@ -12,7 +12,6 @@ import type { CouriersRepository } from '../staff-couriers/staff-couriers.reposi
 import {
   courierAssignmentEmail,
   courierRouteAssignmentEmail,
-  feeChangeEmail,
   routeShippingEmail,
   shippingEmail,
 } from './staff-orders.emails.js';
@@ -27,7 +26,6 @@ import {
 import { toStaffOrderDto } from './staff-orders.dto.js';
 import type {
   CancellationDecisionInput,
-  FeeChangeInput,
   ListStaffOrdersQuery,
   TransitionInput,
 } from './staff-orders.schemas.js';
@@ -173,7 +171,7 @@ export const createStaffOrdersService = ({
               (stop) => stop.fulfilledBy === 'okoume' && stop.status !== 'cancelled',
             );
             if (
-              route.some((stop) => stop.status !== 'ready' || stop.review?.status === 'pending' || stop.feeChange?.status === 'pending')
+              route.some((stop) => stop.status !== 'ready' || stop.review?.status === 'pending')
             )
               throw new ConflictError('Tous les vendeurs de la tournée doivent avoir une commande prête et validée.');
           }
@@ -233,28 +231,11 @@ export const createStaffOrdersService = ({
       return toStaffOrderDto(updated);
     },
 
-    /**
-     * Nouveaux frais facturés (9.5) : proposés au client, appliqués seulement avec son accord. Possible tant que
-     * rien n'est encaissé et que la commande n'est pas en route ; la livraison attend la réponse.
-     */
-    async proposeFeeChange(id: string, input: FeeChangeInput, actor: StaffActor) {
-      if (!can(actor, 'commandes:modifier')) throw new ForbiddenError();
-      const order = await load(id);
-      if (['shipping', 'delivered', 'cancelled', 'claim'].includes(order.status))
-        throw new ConflictError('Les frais ne peuvent plus être modifiés à ce stade.');
-      if (order.paymentStatus !== 'awaiting_payment')
-        throw new ConflictError('Commande déjà encaissée : les frais facturés ne peuvent plus changer.');
-      if (input.toFee === order.totals.deliveryFee - order.totals.deliveryDiscount)
-        throw new UnprocessableError('Le montant proposé est identique aux frais actuels.');
-      if (!(await orders.proposeFeeChange(order, { ...input, staffId: actor.id })))
-        throw new ConflictError('Une demande de changement des frais attend déjà la réponse du client.');
-      await notify(feeChangeEmail(order, input.toFee, input.reason, appUrl), order.id);
-      return toStaffOrderDto(await load(id));
-    },
-
     async resolveDispute(id: string, resolution: string, actor: StaffActor) {
       if (!can(actor, 'commandes:modifier')) throw new ForbiddenError();
-      await load(id);
+      const order = await load(id);
+      if (order.fulfilledBy === 'seller')
+        throw new UnprocessableError('La plateforme ne traite pas les différends concernant une livraison organisée par le vendeur.');
       if (!(await orders.resolveDispute(id, resolution, actor.id, now())))
         throw new ConflictError('Aucune contestation ouverte sur cette commande.');
       return toStaffOrderDto(await load(id));

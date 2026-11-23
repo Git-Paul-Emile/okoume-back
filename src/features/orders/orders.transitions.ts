@@ -39,16 +39,8 @@ export const nextStatus = (status: OrderStatus): OrderStatus | null => {
 export const preparationStarted = (order: Pick<OrderRecord, 'events'>) =>
   order.events.some((e) => e.status === 'preparing');
 
-/** Nouveaux frais en attente de l'accord du client : la livraison ne continue pas (9.5). */
-const feeChangeBlocks = (order: OrderRecord) =>
-  order.feeChange?.status === 'pending' && (order.status === 'ready' || order.status === 'courier_assigned');
-
 export function advancePlan(order: OrderRecord, note?: string): TransitionPlan {
   if (order.status === 'ready') throw new UnprocessableError('Affectez un livreur pour poursuivre la livraison.');
-  if (feeChangeBlocks(order))
-    throw new ConflictError(
-      'Nouveaux frais de livraison en attente de l’accord du client : la livraison ne peut pas continuer.',
-    );
   const to = nextStatus(order.status);
   // Espèces comme Mobile Money : préparation et livraison possibles avant encaissement (8.4, 8.5)
   if (!to) throw new ConflictError('Cette commande ne peut plus avancer.');
@@ -75,10 +67,6 @@ export function assignCourierPlan(
   courier: { id: string; deliveryCost: number | null },
 ): TransitionPlan {
   if (order.status !== 'ready') throw new ConflictError('Un livreur s’affecte à une commande prête à livrer.');
-  if (feeChangeBlocks(order))
-    throw new ConflictError(
-      'Nouveaux frais de livraison en attente de l’accord du client : la livraison ne peut pas continuer.',
-    );
   return { from: 'ready', to: 'courier_assigned', stock: null, courier };
 }
 

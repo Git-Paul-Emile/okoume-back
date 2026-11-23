@@ -12,16 +12,16 @@ const text = (min: number, max: number) => z.string().trim().min(min).max(max);
 const spec = z.strictObject({ label: text(1, 60), value: text(1, 200) });
 
 /**
- * Promotion du produit (cahier des charges, 4.4) : pourcentage jusqu'à 90 % ou remise fixe, sur une période.
- * null retire la promotion.
+ * Remise produit immédiate : pourcentage jusqu'à 90 % ou montant fixe, avec une date de fin. null la retire.
  */
 const promotion = z
   .strictObject({
     type: z.enum(['percent', 'fixed']),
     value: amount,
-    startsAt: z.coerce.date(),
+    startsAt: z.coerce.date().optional(),
     endsAt: z.coerce.date(),
   })
+  .transform((p) => ({ ...p, startsAt: new Date() }))
   .refine((p) => p.startsAt < p.endsAt, { message: 'La fin doit suivre le début.', path: ['endsAt'] })
   .refine((p) => p.type !== 'percent' || p.value <= 90, { message: '90 % au plus.', path: ['value'] })
   .nullable();

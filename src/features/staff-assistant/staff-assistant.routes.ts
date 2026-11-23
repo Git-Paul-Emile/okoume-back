@@ -4,7 +4,7 @@ import { requireStaff, type StaffAuthenticator } from '../../core/middlewares/au
 import { validate } from '../../core/middlewares/validate.js';
 import { idParam } from '../../core/validation/common.schemas.js';
 import { createStaffAssistantController } from './staff-assistant.controller.js';
-import { actionBody, decisionBody, questionBody, rulesBody } from './staff-assistant.schemas.js';
+import { actionBody, decisionBody, questionBody } from './staff-assistant.schemas.js';
 import type { StaffAssistantService } from './staff-assistant.service.js';
 
 /** Mémoire de l'assistant d'administration, sous /api/v1/staff/assistant. */
@@ -20,7 +20,6 @@ export const createStaffAssistantRoutes = (
   router.post('/decisions', validate({ body: decisionBody }), asyncHandler(c.decide));
   router.post('/actions', validate({ body: actionBody }), asyncHandler(c.recordAction));
   router.post('/actions/:id/reversions', validate({ params: idParam }), asyncHandler(c.revertAction));
-  router.post('/rules', validate({ body: rulesBody }), asyncHandler(c.saveRules));
   router.get('/questions', asyncHandler(c.questions));
   router.post('/questions', validate({ body: questionBody }), asyncHandler(c.logQuestion));
   return router;

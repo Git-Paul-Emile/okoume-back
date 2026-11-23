@@ -134,7 +134,7 @@ export const createStaffAuthService = ({ staff, sessions, verification, email, n
 
     /**
      * Contrôle de chaque requête de l'équipe : compte actif, jeton émis après la dernière révocation.
-     * Les droits sont relus en base à chaque fois : un changement de rôle s'applique immédiatement.
+     * Le membre est relu en base à chaque fois pour appliquer immédiatement une suspension ou une révocation.
      */
     async authenticate(claims: AccessClaims) {
       const member = await staff.findById(claims.subject);

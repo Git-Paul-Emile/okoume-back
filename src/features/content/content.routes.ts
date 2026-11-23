@@ -5,12 +5,10 @@ import { validate } from '../../core/middlewares/validate.js';
 import { idParam } from '../../core/validation/common.schemas.js';
 import { createContentController } from './content.controller.js';
 import {
-  articleBody,
   createAdBody,
   legalPageBody,
   legalSlugParam,
   listAdsQuery,
-  slugParam,
   updateAdBody,
   updateBannerBody,
 } from './content.schemas.js';
@@ -23,8 +21,6 @@ export const createContentRoutes = (service: ContentService) => {
   router.get('/banners', asyncHandler(c.banners));
   router.get('/ads', validate({ query: listAdsQuery }), asyncHandler(c.ads));
   router.get('/offers', asyncHandler(c.offers));
-  router.get('/articles', asyncHandler(c.articles));
-  router.get('/articles/:slug', validate({ params: slugParam }), asyncHandler(c.article));
   router.get('/legal-pages', asyncHandler(c.legalPages));
   return router;
 };
@@ -43,9 +39,6 @@ export const createStaffContentRoutes = (
   router.get('/ads', asyncHandler(c.staffAds));
   router.post('/ads', validate({ body: createAdBody }), asyncHandler(c.createAd));
   router.patch('/ads/:id', validate({ params: idParam, body: updateAdBody }), asyncHandler(c.updateAd));
-  router.get('/articles', asyncHandler(c.staffArticles));
-  router.post('/articles', validate({ body: articleBody }), asyncHandler(c.createArticle));
-  router.put('/articles/:id', validate({ params: idParam, body: articleBody }), asyncHandler(c.updateArticle));
   router.get('/legal-pages', asyncHandler(c.staffLegalPages));
   router.put(
     '/legal-pages/:slug',

@@ -88,17 +88,3 @@ export const shippingEmail = (order: OrderRecord, courier: CourierRecord): Email
       : `Montant à régler à la réception : ${fcfa(order.totals.total)}.`,
   ].join('\n'),
 });
-
-/** E-mail au client quand les frais de livraison doivent changer (9.5) : rien ne change sans son accord. */
-export const feeChangeEmail = (order: OrderRecord, toFee: number, reason: string, appUrl: string): EmailMessage => ({
-  to: order.email,
-  subject: `Commande ${order.number} : nouveaux frais de livraison à valider`,
-  text: [
-    `Bonjour ${order.recipient},`,
-    '',
-    `Les frais de livraison de votre commande ${order.number} doivent passer à ${fcfa(toFee)}.`,
-    `Motif : ${reason}`,
-    'La livraison reprendra dès votre réponse, depuis votre compte :',
-    `${appUrl}/compte/commandes/${encodeURIComponent(order.number)}`,
-  ].join('\n'),
-});

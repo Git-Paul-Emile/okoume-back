@@ -22,19 +22,6 @@ export function detect(c: AlertCounts, cashHours: number): DetectedAlert[] {
       { key: 'payments', level: 'critical', title: 'Paiements Mobile Money à vérifier', to: '/admin/paiements' },
     ],
     [c.outOfStock, { key: 'out', level: 'critical', title: 'Variantes en rupture de stock', to: '/admin/stock' }],
-    [
-      c.lateSupport,
-      { key: 'late-support', level: 'critical', title: 'Demandes d’assistance en retard', to: '/admin/assistance' },
-    ],
-    [
-      c.privacyOverdue,
-      {
-        key: 'privacy-late',
-        level: 'critical',
-        title: 'Demandes sur les données personnelles en retard',
-        to: '/admin/donnees-personnelles',
-      },
-    ],
     [c.lowStock, { key: 'low', level: 'warning', title: 'Variantes en stock faible', to: '/admin/stock' }],
     [
       c.cancellationsPending,
@@ -101,7 +88,6 @@ export const createStaffAlertsService = (deps: StaffAlertsDependencies) => {
       const info = await information.get();
       const counts = await alerts.counts({
         now: at,
-        supportSla: { high: info.supportSlaHigh, normal: info.supportSlaNormal },
         cashPreparationHours: info.cashPreparationAlertHours,
       });
       const existing = await alerts.list();

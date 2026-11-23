@@ -9,7 +9,6 @@ import { suspicionReasons } from './orders.risk.js';
 import { logger } from '../../lib/logger.js';
 import { ancestry, type CategoriesService } from '../categories/categories.service.js';
 import type { DeliveryZoneRecord, DeliveryZonesRepository } from '../delivery-zones/delivery-zones.repository.js';
-import type { LoyaltyRepository } from '../loyalty/loyalty.repository.js';
 import type { PromoCodesRepository } from '../promo-codes/promo-codes.repository.js';
 import { salePrice } from '../products/products.pricing.js';
 import type { ProductsRepository } from '../products/products.repository.js';
@@ -17,7 +16,7 @@ import { toOrderDto, toTrackingDto } from './orders.dto.js';
 import { checkoutConfirmationEmail } from './orders.emails.js';
 import type { NewOrder, OrderRecord, OrdersRepository } from './orders.repository.js';
 import type { CreateOrderInput, ListOrdersQuery, QuoteInput } from './orders.schemas.js';
-import { priceOrder, tierFor, type PricedTotals, type PromoRule } from './orders.pricing.js';
+import { priceOrder, type PricedTotals } from './orders.pricing.js';
 import type { SellerTerms, SellerTermsRepository } from './orders.sellers.repository.js';
 import { cancelPlan } from './orders.transitions.js';
 
@@ -41,7 +40,6 @@ export interface OrdersDependencies {
   zones: DeliveryZonesRepository;
   categories: CategoriesService;
   promoCodes: PromoCodesRepository;
-  loyalty: LoyaltyRepository;
   /** Conditions de livraison des boutiques de vendeurs (32.5) */
   sellers: SellerTermsRepository;
   email: EmailSender;
@@ -58,7 +56,6 @@ export const createOrdersService = ({
   zones,
   categories,
   promoCodes,
-  loyalty,
   sellers,
   email,
   notifier,
@@ -104,20 +101,6 @@ export const createOrdersService = ({
     });
   }
 
-  /** Ce que le calcul doit savoir du client connecté : nouveau client, niveau, usages du code, solde de points. */
-  async function customerContext(customerId: string | null, promo: PromoRule | null) {
-    if (!customerId) return null;
-    const [isNew, spend, settings, codeUses, pointsBalance] = await Promise.all([
-      loyalty.isNewCustomer(customerId),
-      loyalty.qualifyingSpend(customerId),
-      loyalty.settings(),
-      promo ? promoCodes.customerUses(promo.id, customerId) : Promise.resolve(0),
-      loyalty.balance(customerId),
-    ]);
-    const tier = tierFor(spend, { silver: settings.silverThreshold, gold: settings.goldThreshold });
-    return { id: customerId, isNew, tier, codeUses, pointsBalance };
-  }
-
   async function availableZone(zoneId: string) {
     const zone = await zones.findById(zoneId);
     if (!zone?.available) throw new UnprocessableError('Cette zone n’est plus desservie : choisissez-en une autre.');
@@ -153,38 +136,33 @@ export const createOrdersService = ({
   }
 
   /**
-   * Devis du panier : prix de la base, promotion en vigueur, code, points et frais de livraison (11, 12.2).
-   * Une commande par boutique (32.4), chacune avec ses frais ; le code promo et les points ne portent que sur les
+   * Devis du panier : prix de la base, promotion en vigueur, code et frais de livraison.
+   * Une commande par boutique (32.4), chacune avec ses frais ; le code promo ne porte que sur les
    * produits de la boutique Okoumé. Sans zone (panier, avant le choix du quartier), la livraison n'est pas comptée.
    * Un code inconnu est signalé comme une erreur de code, sans révéler l'existence d'autres codes.
    */
   async function quoteFor(
     input: Omit<QuoteInput, 'zoneId'>,
     zone: DeliveryZoneRecord | null,
-    customerId: string | null,
     at: Date,
   ) {
     const items = await priceLines(input, at);
     const groups = byShop(items);
     const hasOkoume = groups.some(([shopId]) => shopId === null);
     const promo = input.promoCode && hasOkoume ? await promoCodes.findByCode(input.promoCode) : null;
-    const [customer, settings, delivery] = await Promise.all([
-      customerContext(customerId, promo),
-      loyalty.settings(),
-      deliveryFor(
+    const delivery = await deliveryFor(
         groups.flatMap(([shopId]) => (shopId ? [shopId] : [])),
         zone,
-      ),
-    ]);
+      );
     const shipments = groups.map(([shopId, lines]) => {
       const { fee, fulfilledBy, terms } = delivery(shopId);
       const okoume = shopId === null;
       const priced = priceOrder(lines, {
         deliveryFee: fee,
         promo: okoume ? promo : null,
-        pointsRequested: okoume ? (input.points ?? 0) : 0,
-        customer,
-        maxDiscountRate: settings.maxDiscountRate,
+        pointsRequested: 0,
+        customer: null,
+        maxDiscountRate: 1,
         now: at,
       });
       return { shopId, shopName: terms?.name ?? null, ownerId: terms?.ownerId ?? null, fulfilledBy, lines, priced };
@@ -197,10 +175,7 @@ export const createOrdersService = ({
         : !promo
           ? 'Ce code n’existe pas.'
           : (main?.codeError ?? null);
-    const pointsError =
-      (input.points ?? 0) > 0 && !hasOkoume
-        ? 'Les points s’utilisent sur les produits vendus par Okoumé.'
-        : (main?.pointsError ?? null);
+    const pointsError: string | null = null;
     const sum = (key: Exclude<keyof PricedTotals, 'codeError' | 'pointsError'>) =>
       shipments.reduce((total, s) => total + s.priced[key], 0);
     const totals = {
@@ -247,14 +222,12 @@ export const createOrdersService = ({
       const at = now();
       const zone = await availableZone(input.delivery.zoneId);
       const { shipments, promo, totals } = await quoteFor(
-        { lines: input.lines, promoCode: input.promoCode, points: input.points },
+        { lines: input.lines, promoCode: input.promoCode },
         zone,
-        customerId,
         at,
       );
-      // La commande ne passe qu'au prix annoncé : un code ou des points refusés bloquent la commande
+      // La commande ne passe qu'au prix annoncé : un code refusé bloque la commande.
       if (totals.codeError) throw new AppError(totals.codeError, 422, 'PROMO_CODE_REJECTED');
-      if (totals.pointsError) throw new AppError(totals.pointsError, 422, 'POINTS_REJECTED');
       // Signaux anti-fraude (19.3) : la commande passe, mais attend une vérification avant la préparation
       const key = phoneKey(input.delivery.phone);
       const [history, reviewAmount] = await Promise.all([
@@ -332,8 +305,6 @@ export const createOrdersService = ({
         }
         if (result.outcome === 'promo_unavailable')
           throw new AppError('Ce code vient d’atteindre sa limite d’utilisation.', 409, 'PROMO_CODE_REJECTED');
-        if (result.outcome === 'points_unavailable')
-          throw new AppError('Votre solde de points a changé : vérifiez-le puis réessayez.', 409, 'POINTS_REJECTED');
         if (result.outcome === 'duplicate_request') {
           // Même clé envoyée deux fois au même instant : la première a gagné
           const winner = await orders.findByIdempotencyKey(input.idempotencyKey);
@@ -347,9 +318,9 @@ export const createOrdersService = ({
     /**
      * Devis du panier avant commande : totaux du panier, et détail par boutique (qui vend, qui livre, frais).
      */
-    async quote(input: QuoteInput, customerId: string | null) {
+      async quote(input: QuoteInput, _customerId: string | null) {
       const zone = input.zoneId ? await availableZone(input.zoneId) : null;
-      const { shipments, totals } = await quoteFor(input, zone, customerId, now());
+        const { shipments, totals } = await quoteFor(input, zone, now());
       return {
         zone: zone && { id: zone.id, name: zone.name },
         totals,
@@ -395,22 +366,16 @@ export const createOrdersService = ({
       return { order: toOrderDto((await orders.findById(order.id)) ?? order), direct: false };
     },
 
-    /** Réponse du client aux nouveaux frais de livraison (9.5) : rien ne change sans son accord. */
-    async decideFeeChange(customerId: string, orderId: string, accept: boolean) {
-      const order = await ownOrder(customerId, orderId);
-      if (order.feeChange?.status !== 'pending')
-        throw new ConflictError('Aucun changement de frais n’attend votre réponse.');
-      const result = await orders.decideFeeChange(order, accept, now());
-      if (result.outcome === 'stale') throw new ConflictError('La commande a changé entre-temps : rechargez la page.');
-      return toOrderDto(result.order);
-    },
-
     /**
      * Contestation d'une livraison marquée « Livrée » (9.6) : la réclamation est ouverte sans effacer ce statut ;
      * l'enquête et sa résolution sont suivies à part.
      */
     async disputeDelivery(customerId: string, orderId: string, reason: string) {
       const order = await ownOrder(customerId, orderId);
+      if (order.fulfilledBy === 'seller')
+        throw new UnprocessableError(
+          'La plateforme ne traite pas les différends concernant une livraison organisée par le vendeur. Contactez directement la boutique.',
+        );
       if (order.status !== 'delivered')
         throw new ConflictError('Seule une commande marquée livrée peut être contestée.');
       if (!(await orders.openDispute(order.id, reason)))

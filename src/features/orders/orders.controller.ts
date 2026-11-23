@@ -39,12 +39,6 @@ export const createOrdersController = (service: OrdersService) => ({
     );
   },
 
-  async decideFeeChange(req: Request, res: Response) {
-    const accepted = req.body.status === 'accepted';
-    const order = await service.decideFeeChange(req.customer!.id, String(req.params.id), accepted);
-    return sendSuccess(res, order, 200, accepted ? 'Nouveaux frais acceptés.' : 'Nouveaux frais refusés.');
-  },
-
   async disputeDelivery(req: Request, res: Response) {
     const order = await service.disputeDelivery(req.customer!.id, String(req.params.id), req.body.reason);
     return sendSuccess(res, order, 201, 'Réclamation ouverte : la boutique vous recontacte rapidement.');

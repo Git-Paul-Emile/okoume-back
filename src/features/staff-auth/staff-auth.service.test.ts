@@ -19,7 +19,7 @@ describe('connexion de l’équipe', () => {
     const { staffAuth, email, member } = await withActiveMember();
     const { challengeId } = await staffAuth.startLogin(member.email, PASSWORD);
     const result = await staffAuth.completeLogin(challengeId, { code: codeIn(email.last(member.email)?.text) });
-    expect(result.member).toMatchObject({ email: member.email, role: 'orders_manager', owner: false });
+    expect(result.member).toMatchObject({ email: member.email, role: 'super_admin', roles: ['super_admin'], owner: true });
     expect(result.tokens.accessToken).toBeTruthy();
   });
 
@@ -50,15 +50,15 @@ describe('connexion de l’équipe', () => {
     });
   });
 
-  it('rejette un jeton émis avant la révocation des sessions, et relit les droits à chaque requête', async () => {
+  it('rejette un jeton émis avant la révocation des sessions et garde le rôle unique admin', async () => {
     const { staffAuth, email, member, staffStore, clock } = await withActiveMember();
     const { challengeId } = await staffAuth.startLogin(member.email, PASSWORD);
     const { tokens } = await staffAuth.completeLogin(challengeId, { code: codeIn(email.last(member.email)?.text) });
     const claims = await verifyAccessToken(tokens.accessToken, 'staff', clock.now());
     expect(claims).not.toBeNull();
 
-    Object.assign(staffStore.members[0]!, { extraRoles: ['stock_manager'] });
-    await expect(staffAuth.authenticate(claims!)).resolves.toMatchObject({ extraRoles: ['stock_manager'] });
+    Object.assign(staffStore.members[0]!, { role: 'orders_manager' });
+    await expect(staffAuth.authenticate(claims!)).resolves.toMatchObject({ role: 'super_admin' });
 
     clock.advance(1_000);
     Object.assign(staffStore.members[0]!, { sessionsRevokedAt: clock.now() });

@@ -13,10 +13,10 @@ export interface StaffMeDto {
   owner: boolean;
 }
 
-export const toGrantee = (staff: StaffRecord): Grantee => ({
-  role: staff.role,
-  extraRoles: staff.extraRoles,
-  customPermissions: staff.customPermissions,
+export const toGrantee = (_staff: StaffRecord): Grantee => ({
+  role: 'super_admin',
+  extraRoles: [],
+  customPermissions: [],
 });
 
 export const toStaffMeDto = (staff: StaffRecord): StaffMeDto => {
@@ -27,7 +27,7 @@ export const toStaffMeDto = (staff: StaffRecord): StaffMeDto => {
     email: staff.email,
     firstName: staff.firstName,
     lastName: staff.lastName,
-    role: staff.role,
+    role: 'super_admin',
     roles,
     permissions: [...permissionsOf(grantee)].sort(),
     owner: roles.includes('super_admin'),

@@ -17,16 +17,14 @@ export const toReturnDto = (r: ReturnRecord) => ({
   createdAt: r.createdAt.toISOString(),
 });
 
-/** Vue de l'équipe : tout le dossier, inspection, justificatifs et auteur de chaque étape. */
+/** Vue de l'équipe : dossier et justificatifs, sans les champs historiques d'inspection du MVP précédent. */
 export const toStaffReturnDto = (r: ReturnRecord) => ({
   ...toReturnDto(r),
   customerId: r.customerId,
   evidenceUrls: r.evidenceUrls,
   shippingReason: r.shippingReason,
-  inspectionNote: r.inspectionNote,
-  restockStatus: r.restockStatus,
   reopenRequestedAt: r.reopenRequestedAt?.toISOString() ?? null,
-  items: r.items,
+  items: r.items.map(({ variantId, quantity }) => ({ variantId, quantity })),
   history: r.events.map((e) => ({
     status: e.status,
     note: e.note,

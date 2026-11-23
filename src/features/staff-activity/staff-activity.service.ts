@@ -20,13 +20,9 @@ const AREAS: Record<string, string> = {
   'promo-codes': 'Promotions',
   invoices: 'Factures',
   customers: 'Clients',
-  'referral-rewards': 'Parrainages',
-  support: 'Assistance',
-  'privacy-requests': 'Données personnelles',
   reviews: 'Avis',
   content: 'Contenus',
   team: 'Équipe',
-  'custom-roles': 'Rôles',
   settings: 'Paramètres',
   listings: 'Place de marché',
   'listing-reports': 'Place de marché',
@@ -63,7 +59,7 @@ export const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
  * Journal d'activité (17.7, 19.4) : tenu par l'API à chaque écriture réussie d'un membre de l'équipe, lu par
- * l'administrateur principal seulement. Le libellé vient de la route : l'interface ne peut ni l'écrire ni l'enjoliver.
+ * aux administrateurs. Le libellé vient de la route : l'interface ne peut ni l'écrire ni l'enjoliver.
  */
 export const createStaffActivityService = (deps: { activity: StaffActivityRepository; now: () => Date }) => {
   const { activity, now } = deps;

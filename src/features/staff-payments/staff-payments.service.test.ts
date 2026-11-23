@@ -196,20 +196,3 @@ describe('remboursements', () => {
     ).rejects.toMatchObject({ status: 409 });
   });
 });
-
-describe('changement de moyen de paiement par le client', () => {
-  it('change le moyen tant que rien n’est encaissé, et le trace', async () => {
-    const { payments, order } = await setup('airtel');
-    const changed = await payments.changeMethod('client-a', order.id, 'cash');
-    expect(changed.paymentMethod).toBe('cash');
-    expect(changed.history.at(-1)?.note).toContain('Airtel Money remplacé par Espèces');
-    await expect(payments.changeMethod('client-a', order.id, 'cash')).rejects.toMatchObject({ status: 422 });
-  });
-
-  it('refuse après encaissement ou pour la commande d’un autre client', async () => {
-    const { payments, staffPayments, order, receivedAt } = await setup('cash');
-    await expect(payments.changeMethod('client-b', order.id, 'moov')).rejects.toMatchObject({ status: 404 });
-    await staffPayments.record(order.id, { amount: 12_000, receivedAt, reference: null }, cashier);
-    await expect(payments.changeMethod('client-a', order.id, 'moov')).rejects.toMatchObject({ status: 409 });
-  });
-});

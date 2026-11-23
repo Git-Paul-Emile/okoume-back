@@ -15,25 +15,23 @@ function setup() {
     email: 'awa@example.ga',
     phone: '+241 77 12 34 56',
     status: 'active',
-    referralCode: 'AWA2026',
     createdAt: new Date('2026-01-01T08:00:00.000Z'),
     lastLoginAt: null,
-    points: 120,
-    qualifyingSpend: 10_000_000,
     orderCount: 3,
     totalSpent: 10_500_000,
     addresses: [{ id: 'a1', label: 'Maison', zoneName: 'Louis', landmark: 'Derrière la pharmacie' }],
     orders: [],
-    movements: [],
   });
   return services;
 }
 
 describe('fichier clients de l’équipe', () => {
-  it('calcule le niveau avec les seuils de la boutique', async () => {
+  it('retourne les indicateurs commerciaux sans récompenses ni parrainage', async () => {
     const { staffCustomers } = setup();
     const page = await staffCustomers.list({ page: 1, limit: 20 }, owner);
-    expect(page.items[0]).toMatchObject({ tier: 'or', points: 120, email: 'awa@example.ga' });
+    expect(page.items[0]).toMatchObject({ orderCount: 3, totalSpent: 10_500_000, email: 'awa@example.ga' });
+    expect(page.items[0]).not.toHaveProperty('points');
+    expect(page.items[0]).not.toHaveProperty('referralCode');
   });
 
   it('masque coordonnées et repères sans le droit sur les données sensibles', async () => {

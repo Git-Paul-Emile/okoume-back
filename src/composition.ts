@@ -3,10 +3,6 @@ import { env } from './config/env.js';
 import { accountRepository } from './features/account/account.repository.js';
 import { informationRepository } from './features/settings/settings.repository.js';
 import { createSettingsService } from './features/settings/settings.service.js';
-import { supportRepository } from './features/support/support.repository.js';
-import { createSupportService } from './features/support/support.service.js';
-import { privacyRepository } from './features/privacy/privacy.repository.js';
-import { createPrivacyService } from './features/privacy/privacy.service.js';
 import { reviewsRepository } from './features/reviews/reviews.repository.js';
 import { createReviewsService } from './features/reviews/reviews.service.js';
 import { contentRepository } from './features/content/content.repository.js';
@@ -41,7 +37,6 @@ import { ordersRepository } from './features/orders/orders.repository.js';
 import { createOrdersService } from './features/orders/orders.service.js';
 import { productsRepository } from './features/products/products.repository.js';
 import { paymentsRepository } from './features/payments/payments.repository.js';
-import { createPaymentsService } from './features/payments/payments.service.js';
 import { createStaffPaymentsService } from './features/staff-payments/staff-payments.service.js';
 import { returnsRepository } from './features/returns/returns.repository.js';
 import { createReturnsService } from './features/returns/returns.service.js';
@@ -51,10 +46,6 @@ import { promoCodesRepository } from './features/promo-codes/promo-codes.reposit
 import { createPublicPromoCodesService } from './features/promo-codes/promo-codes.service.js';
 import { invoicesRepository } from './features/invoices/invoices.repository.js';
 import { createInvoicesService } from './features/invoices/invoices.service.js';
-import { loyaltyRewardsRepository } from './features/loyalty-rewards/loyalty-rewards.repository.js';
-import { createLoyaltyRewardsService } from './features/loyalty-rewards/loyalty-rewards.service.js';
-import { createLoyaltyService } from './features/loyalty/loyalty.service.js';
-import { createStaffLoyaltyService } from './features/staff-loyalty/staff-loyalty.service.js';
 import { createStaffPromoCodesService } from './features/staff-promo-codes/staff-promo-codes.service.js';
 import { createProductsService } from './features/products/products.service.js';
 import { createHealthService } from './features/health/health.service.js';
@@ -140,7 +131,6 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
       zones: deliveryZonesRepository,
       categories,
       promoCodes: promoCodesRepository,
-      loyalty: loyaltyRepository,
       sellers: sellerTermsRepository,
       email,
       notifier,
@@ -157,12 +147,10 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
       now,
     }),
     staffCouriers: createStaffCouriersService(couriersRepository),
-    payments: createPaymentsService(ordersRepository, paymentsRepository),
     staffPayments: createStaffPaymentsService(
       ordersRepository,
       paymentsRepository,
       returnsRepository,
-      loyaltyRepository,
       now,
     ),
     returns: createReturnsService({
@@ -176,17 +164,14 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
       appUrl: env.APP_URL,
       now,
     }),
-    staffReturns: createStaffReturnsService(returnsRepository, ordersRepository, now),
-    loyalty: createLoyaltyService(loyaltyRepository),
+    staffReturns: createStaffReturnsService(returnsRepository, ordersRepository),
     publicPromoCodes,
     settings,
-    loyaltyRewards: createLoyaltyRewardsService(loyaltyRewardsRepository, loyaltyRepository, promoCodesRepository, now),
     invoices: createInvoicesService(invoicesRepository, ordersRepository, now),
-    staffLoyalty: createStaffLoyaltyService(loyaltyRepository),
-    staffPromoCodes: createStaffPromoCodesService(promoCodesRepository),
+    staffPromoCodes: createStaffPromoCodesService(promoCodesRepository, now),
     staffStock: createStaffStockService(stockRepository),
     staffCatalog: createStaffCatalogService(staffCatalogRepository),
-    payouts: createPayoutsService(payoutsRepository, shopsRepository, now),
+    payouts: createPayoutsService(payoutsRepository, now),
     sellerDelivery: createSellerDeliveryService({
       delivery: sellerDeliveryRepository,
       shops: shopsRepository,
@@ -213,18 +198,7 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
     // Seule la clé publique sert à l'API : la clé privée n'est lue que par le worker, qui envoie
     notifications: createNotificationsService(notificationsRepository, env.VAPID_PUBLIC_KEY ?? null),
     staffMedia: createStaffMediaService(media, now),
-    support: createSupportService({
-      support: supportRepository,
-      information: informationRepository,
-      media,
-      email,
-      notifier,
-      appUrl: env.APP_URL,
-      reopenDays: env.RETURN_REOPEN_DAYS,
-      now,
-    }),
-    privacy: createPrivacyService({ privacy: privacyRepository, customers: customersRepository, now }),
-    content: createContentService({ content: contentRepository, now }),
+    content: createContentService({ content: contentRepository }),
     staffActivity: createStaffActivityService({ activity: staffActivityRepository, now }),
     analytics,
     shopAssistant: createShopAssistantService({
@@ -247,7 +221,7 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
     }),
     zoneRequests: createZoneRequestsService({ requests: zoneRequestsRepository, notifier, appUrl: env.APP_URL }),
     staffTeam: createStaffTeamService({ team: staffTeamRepository, email, appUrl: env.APP_URL, now }),
-    staffCustomers: createStaffCustomersService({ customers: staffCustomersRepository, loyalty: loyaltyRepository }),
+    staffCustomers: createStaffCustomersService({ customers: staffCustomersRepository }),
     reviews: createReviewsService({ reviews: reviewsRepository, customers: customersRepository, media, now }),
     shops: createShopsService({
       shops: shopsRepository,
@@ -260,7 +234,6 @@ export const createDependencies = (queue: JobQueue): AppDependencies => {
     sellerDashboard: createSellerDashboardService({
       dashboard: sellerDashboardRepository,
       shops: shopsRepository,
-      payouts: payoutsRepository,
       now,
     }),
   };

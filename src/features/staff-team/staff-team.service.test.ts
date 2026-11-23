@@ -8,9 +8,6 @@ const invite = {
   email: 'paul@okoume.ga',
   firstName: 'Paul',
   lastName: 'Obame',
-  role: 'orders_manager' as const,
-  extraRoles: [],
-  customRoleIds: [],
   refundLimit: null,
 };
 
@@ -28,46 +25,24 @@ describe('équipe', () => {
     await expect(staffTeam.invite(invite, owner)).rejects.toMatchObject({ status: 409 });
   });
 
-  it('ferme les sessions quand les droits changent, pas pour un plafond de remboursement', async () => {
+  it('ferme les sessions à la suspension, pas pour un plafond de remboursement', async () => {
     const { staffTeam, staffTeamStore } = setup();
     const { member } = await staffTeam.invite(invite, owner);
     await staffTeam.update(member.id, { refundLimit: 50_000 }, owner);
     expect(staffTeamStore.members[0]?.sessionsRevokedAt).toBeNull();
-    await staffTeam.update(member.id, { role: 'catalog_manager' }, owner);
+    staffTeamStore.members[0]!.status = 'active';
+    await staffTeam.update(member.id, { status: 'suspended' }, owner);
     expect(staffTeamStore.members[0]?.sessionsRevokedAt).toBeInstanceOf(Date);
   });
 
-  it('garde toujours un administrateur principal actif et réserve l’équipe à lui', async () => {
+  it('garde toujours un administrateur actif et donne les mêmes droits aux membres', async () => {
     const { staffTeam, staffTeamStore } = setup();
-    const { member } = await staffTeam.invite({ ...invite, role: 'super_admin' }, owner);
+    const { member } = await staffTeam.invite(invite, owner);
     staffTeamStore.members[0]!.status = 'active';
     await expect(staffTeam.update(member.id, { status: 'suspended' }, owner)).rejects.toMatchObject({ status: 409 });
-    await expect(staffTeam.update(owner.id, { role: 'stock_manager' }, owner)).rejects.toMatchObject({ status: 422 });
-    await expect(staffTeam.list(manager)).rejects.toMatchObject({ status: 403 });
-  });
-
-  it('refuse un rôle personnalisé au nom déjà pris ou avec un rôle inconnu', async () => {
-    const { staffTeam } = setup();
-    await staffTeam.saveCustomRole(undefined, { name: 'Caisse', permissions: ['paiements:valider'] }, owner);
+    await expect(staffTeam.list(manager)).resolves.toHaveLength(1);
     await expect(
-      staffTeam.saveCustomRole(undefined, { name: 'Caisse', permissions: ['paiements:consulter'] }, owner),
-    ).rejects.toMatchObject({ status: 409 });
-    await expect(
-      staffTeam.invite({ ...invite, customRoleIds: ['00000000-0000-4000-8000-000000000000'] }, owner),
-    ).rejects.toMatchObject({ status: 422 });
-  });
-});
-
-describe('annuaire de l’équipe', () => {
-  it('donne le nom des membres actifs seulement, sans e-mail ni rôle', async () => {
-    const { staffTeam, staffTeamStore } = setup();
-    await staffTeam.invite(invite, owner);
-    const invited = staffTeamStore.members[0]!;
-    expect(await staffTeam.directory()).toEqual([]);
-
-    invited.status = 'active';
-    const directory = await staffTeam.directory();
-    expect(directory).toEqual([{ id: invited.id, firstName: 'Paul', lastName: 'Obame' }]);
-    expect(Object.keys(directory[0]!)).toEqual(['id', 'firstName', 'lastName']);
+      staffTeam.invite({ ...invite, email: 'marie@okoume.ga' }, manager),
+    ).resolves.toMatchObject({ member: { role: 'super_admin' } });
   });
 });

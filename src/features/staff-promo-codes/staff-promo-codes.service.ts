@@ -17,7 +17,7 @@ const toDto = (p: PromoCodeRecord) => ({
 });
 
 /** Codes promotionnels côté équipe (page Promotions) : lecture catalogue:consulter, écriture catalogue:modifier. */
-export const createStaffPromoCodesService = (promoCodes: PromoCodesRepository) => {
+export const createStaffPromoCodesService = (promoCodes: PromoCodesRepository, now: () => Date = () => new Date()) => {
   function require(actor: Grantee, write: boolean) {
     if (!can(actor, write ? 'catalogue:modifier' : 'catalogue:consulter')) throw new ForbiddenError();
   }
@@ -38,7 +38,15 @@ export const createStaffPromoCodesService = (promoCodes: PromoCodesRepository) =
 
     async create(input: CreatePromoCodeInput, actor: Grantee) {
       require(actor, true);
-      const created = await promoCodes.create({ ...input, code: normalizeCode(input.code) });
+      const created = await promoCodes.create({
+        ...input,
+        code: normalizeCode(input.code),
+        startsAt: now(),
+        newCustomersOnly: false,
+        tiers: [],
+        perCustomer: null,
+        customerId: null,
+      });
       if (!created) throw new ConflictError(CODE_TAKEN);
       return toDto(created);
     },

@@ -1,6 +1,5 @@
 import { env } from './config/env.js';
 import { selectEmailSender } from './infrastructure/email/selectEmailSender.js';
-import { selectPushSender } from './infrastructure/push/selectPushSender.js';
 import {
   createPgBoss,
   createPgBossJobQueue,
@@ -10,16 +9,9 @@ import {
   registerHandler,
   scheduleDaily,
 } from './infrastructure/queue/pgBossQueue.js';
-import { loyaltyRepository } from './features/loyalty/loyalty.repository.js';
-import { promoCodesRepository } from './features/promo-codes/promo-codes.repository.js';
-import { loyaltyRewardsRepository } from './features/loyalty-rewards/loyalty-rewards.repository.js';
-import { createLoyaltyRewardsService } from './features/loyalty-rewards/loyalty-rewards.service.js';
-import { createBirthdaysHandler, createDeadJobHandler } from './jobs/loyalty.jobs.js';
 import { createDeadEmailHandler, createSendEmailHandler } from './jobs/email.jobs.js';
+import { createDeadJobHandler } from './jobs/dead.jobs.js';
 import { emailDeliveriesRepository } from './features/email-deliveries/email-deliveries.repository.js';
-import { createDeadPushHandler, createSendPushHandler } from './jobs/push.jobs.js';
-import { notificationsRepository } from './features/notifications/notifications.repository.js';
-import { createPushDelivery } from './features/notifications/notifications.service.js';
 import { logger } from './lib/logger.js';
 import { shopsRepository } from './features/shops/shops.repository.js';
 import { createShopsService } from './features/shops/shops.service.js';
@@ -31,7 +23,6 @@ import { createProductReviewWorker } from './features/seller-products/seller-pro
 import { createDeadProductReviewHandler, createProductReviewHandler } from './jobs/products.jobs.js';
 import { staffCatalogRepository } from './features/staff-catalog/staff-catalog.repository.js';
 import { categoriesRepository } from './features/categories/categories.repository.js';
-import { customersRepository } from './features/auth/auth.repository.js';
 import { privacyRepository } from './features/privacy/privacy.repository.js';
 import { createPrivacyService } from './features/privacy/privacy.service.js';
 import { createInactiveAccountsHandler } from './jobs/privacy.jobs.js';
@@ -51,7 +42,6 @@ setErrorReporter(selectErrorReporter(env, 'worker'));
 /** Délai laissé aux jobs en cours pour finir avant l'arrêt : au-delà du délai d'un envoi (60 s). */
 const SHUTDOWN_TIMEOUT_MS = 75_000;
 const EMAIL_CONCURRENCY = 2;
-const PUSH_CONCURRENCY = 2;
 // Appels au modèle en parallèle : limite le débit vers le fournisseur et le coût d'une rafale
 const REVIEW_CONCURRENCY = 2;
 
@@ -71,25 +61,6 @@ try {
     EMAIL_CONCURRENCY,
   );
   await registerHandler(boss, deadLetterOf('email.send'), createDeadEmailHandler(emailDeliveriesRepository));
-  const push = selectPushSender(env);
-  if (push) {
-    const deliver = createPushDelivery(notificationsRepository, push, () => new Date());
-    await registerHandler(boss, 'push.send', createSendPushHandler(deliver), PUSH_CONCURRENCY);
-    await registerHandler(boss, deadLetterOf('push.send'), createDeadPushHandler());
-  } else {
-    // Sans clés VAPID, les notifications déposées restent une heure dans la file puis sont supprimées
-    logger.warn('Notifications push désactivées : clés VAPID absentes');
-  }
-  const rewards = createLoyaltyRewardsService(
-    loyaltyRewardsRepository,
-    loyaltyRepository,
-    promoCodesRepository,
-    () => new Date(),
-  );
-  await registerHandler(boss, 'loyalty.birthdays', createBirthdaysHandler(rewards));
-  await registerHandler(boss, deadLetterOf('loyalty.birthdays'), createDeadJobHandler('loyalty.birthdays'));
-  // Chaque matin à 7 h (heure de Libreville)
-  await scheduleDaily(boss, 'loyalty.birthdays', '0 7 * * *', {});
   // Rappels aux vendeurs : e-mails et notifications passent par la file, avec ses reprises
   const queue = createPgBossJobQueue(boss);
   const shops = createShopsService({
@@ -106,7 +77,6 @@ try {
   // Durées de conservation (19.5) : comptes sans connexion ni commande depuis 3 ans anonymisés
   const privacy = createPrivacyService({
     privacy: privacyRepository,
-    customers: customersRepository,
     now: () => new Date(),
   });
   await registerHandler(boss, 'privacy.inactive-accounts', createInactiveAccountsHandler(privacy));
@@ -117,7 +87,7 @@ try {
   );
   // Chaque nuit à 3 h (heure de Libreville), hors des heures d'achat
   await scheduleDaily(boss, 'privacy.inactive-accounts', '0 3 * * *', {});
-  // Alertes de l'équipe (17.6) : détection toutes les 15 minutes, push des alertes critiques et relances
+  // Alertes de l'équipe : détection périodique et relances
   const alerts = createStaffAlertsService({
     alerts: staffAlertsRepository,
     information: informationRepository,

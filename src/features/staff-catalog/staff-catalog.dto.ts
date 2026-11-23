@@ -36,7 +36,6 @@ export const toStaffProductDto = (p: StaffProductRecord) => ({
     stock: v.stock,
     reserved: v.reserved,
     available: Math.max(0, v.stock - v.reserved),
-    unsellable: v.unsellable,
     lowStockThreshold: v.lowStockThreshold,
     image: v.image,
   })),

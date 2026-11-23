@@ -33,11 +33,6 @@ export const createStaffOrdersController = (service: StaffOrdersService) => ({
     return sendSuccess(res, await service.setDeliveryCost(String(req.params.id), req.body.amount, req.staff!));
   },
 
-  async proposeFeeChange(req: Request, res: Response) {
-    const order = await service.proposeFeeChange(String(req.params.id), req.body, req.staff!);
-    return sendSuccess(res, order, 201, 'Nouveaux frais proposés au client.');
-  },
-
   async resolveDispute(req: Request, res: Response) {
     return sendSuccess(res, await service.resolveDispute(String(req.params.id), req.body.resolution, req.staff!));
   },

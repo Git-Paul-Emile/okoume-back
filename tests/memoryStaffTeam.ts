@@ -1,16 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import type {
-  CustomRoleRecord,
-  StaffTeamRepository,
-  TeamMemberRecord,
-} from '../src/features/staff-team/staff-team.repository.js';
+import type { StaffTeamRepository, TeamMemberRecord } from '../src/features/staff-team/staff-team.repository.js';
 
 type StoredMember = TeamMemberRecord & { inviteTokenHash: string | null; sessionsRevokedAt: Date | null };
 
-/** Équipe en mémoire : adresse unique, nom de rôle unique, invitation renouvelable tant qu'elle est en attente. */
+/** Équipe d'administrateurs en mémoire : adresse unique et invitation renouvelable. */
 export function createMemoryStaffTeam(now: () => Date) {
   const members: StoredMember[] = [];
-  const roles: CustomRoleRecord[] = [];
   const view = (m: StoredMember): TeamMemberRecord => {
     const { inviteTokenHash, sessionsRevokedAt, ...rest } = structuredClone(m);
     void inviteTokenHash;
@@ -56,19 +51,7 @@ export function createMemoryStaffTeam(now: () => Date) {
       Object.assign(m, { backupCodesLeft: 0, sessionsRevokedAt: at });
       return true;
     },
-    countActiveOwners: async () => members.filter((m) => m.role === 'super_admin' && m.status === 'active').length,
-    customRoles: async () => structuredClone(roles),
-    customRolesExist: async (ids) => ids.every((id) => roles.some((r) => r.id === id)),
-    async saveCustomRole(role, at) {
-      if (roles.some((r) => r.name === role.name && r.id !== role.id)) return null;
-      const existing = role.id ? roles.find((r) => r.id === role.id) : undefined;
-      const saved = existing
-        ? Object.assign(existing, { name: role.name, permissions: role.permissions })
-        : { id: randomUUID(), name: role.name, permissions: role.permissions };
-      if (!existing) roles.push(saved);
-      for (const m of members.filter((x) => x.customRoleIds.includes(saved.id))) m.sessionsRevokedAt = at;
-      return structuredClone(saved);
-    },
+    countActiveStaff: async () => members.filter((m) => m.status === 'active').length,
   };
-  return { repository, members, roles };
+  return { repository, members };
 }

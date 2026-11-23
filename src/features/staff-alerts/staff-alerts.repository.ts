@@ -8,11 +8,9 @@ export interface AlertCounts {
   paymentsToVerify: number;
   outOfStock: number;
   lowStock: number;
-  lateSupport: number;
   cancellationsPending: number;
   returnsPending: number;
   cashWaiting: number;
-  privacyOverdue: number;
   /** Produits de vendeurs transmis à l'équipe par la vérification (32.3) */
   listingsToModerate: number;
   emailsFailed: number;
@@ -20,8 +18,6 @@ export interface AlertCounts {
 
 export interface CountRules {
   now: Date;
-  /** Délais de première réponse de l'assistance, en heures */
-  supportSla: { high: number; normal: number };
   cashPreparationHours: number;
 }
 
@@ -80,7 +76,7 @@ export const staffAlertsRepository: StaffAlertsRepository = {
     return result.count ? staffAlertsRepository.find(id) : null;
   },
 
-  async counts({ now, supportSla, cashPreparationHours }) {
+  async counts({ now, cashPreparationHours }) {
     const [variants, ...rest] = await Promise.all([
       // Disponible = stock moins réservations ; seules les variantes des produits publiés comptent
       prisma.$queryRaw<Array<{ out: bigint; low: bigint }>>`
@@ -89,15 +85,6 @@ export const staffAlertsRepository: StaffAlertsRepository = {
         FROM variants v JOIN products p ON p.id = v.product_id
         WHERE p.status = 'published'`,
       prisma.order.count({ where: { paymentStatus: 'awaiting_verification', status: { not: 'cancelled' } } }),
-      prisma.supportTicket.count({
-        where: {
-          status: 'open',
-          OR: [
-            { priority: 'high', createdAt: { lt: new Date(now.getTime() - supportSla.high * HOUR) } },
-            { priority: 'normal', createdAt: { lt: new Date(now.getTime() - supportSla.normal * HOUR) } },
-          ],
-        },
-      }),
       prisma.cancellationRequest.count({ where: { status: 'pending' } }),
       prisma.returnRequest.count({ where: { status: 'pending' } }),
       prisma.order.count({
@@ -107,20 +94,17 @@ export const staffAlertsRepository: StaffAlertsRepository = {
           createdAt: { lt: new Date(now.getTime() - cashPreparationHours * HOUR) },
         },
       }),
-      prisma.privacyRequest.count({ where: { status: { in: ['received', 'in_progress'] }, dueAt: { lt: now } } }),
       prisma.product.count({ where: { moderation: 'pending_moderation' } }),
       prisma.emailDelivery.count({ where: { status: 'failed' } }),
     ]);
-    const [payments, lateSupport, cancellations, returns, cash, privacy, listings, emails] = rest;
+    const [payments, cancellations, returns, cash, listings, emails] = rest;
     return {
       paymentsToVerify: payments,
       outOfStock: Number(variants[0]?.out ?? 0),
       lowStock: Number(variants[0]?.low ?? 0),
-      lateSupport,
       cancellationsPending: cancellations,
       returnsPending: returns,
       cashWaiting: cash,
-      privacyOverdue: privacy,
       listingsToModerate: listings,
       emailsFailed: emails,
     };

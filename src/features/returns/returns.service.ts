@@ -79,7 +79,7 @@ export const createReturnsService = ({
         );
       const created = await returns.create(order.id, { ...input, items });
       if (!created) throw new ConflictError('Une demande de retour existe déjà pour cette commande.');
-      // Vente d'un vendeur : il est prévenu ; l'équipe Okoumé instruit et arbitre le dossier (32.7)
+      // Vente d'un vendeur : la boutique est prévenue du retour, traité selon le parcours simple de retours.
       const shop = order.shopId ? await shops.findById(order.shopId) : null;
       if (shop)
         await notifier.notifyCustomer(shop.ownerId, 'orders', {

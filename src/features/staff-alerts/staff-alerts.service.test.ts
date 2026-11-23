@@ -6,7 +6,7 @@ const HOUR = 3_600_000;
 
 function setup() {
   const { services } = buildApp();
-  services.supportStaff.push({ id: 's0', firstName: 'Inès', lastName: 'Moussavou' });
+  services.teamDirectory.push({ id: 's0', firstName: 'Inès', lastName: 'Moussavou' });
   return services;
 }
 
@@ -58,7 +58,7 @@ describe('alertes de l’équipe', () => {
 
   it('relance une alerte critique restée nouvelle après le délai d’escalade, une fois par délai', async () => {
     const { staffAlerts, staffAlertsStore, clock } = setup();
-    staffAlertsStore.counts.lateSupport = 1;
+    staffAlertsStore.counts.paymentsToVerify = 1;
     await staffAlerts.runDetection();
     clock.advance(4 * HOUR + 60_000);
     expect((await staffAlerts.runDetection()).reminded).toBe(1);

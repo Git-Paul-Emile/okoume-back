@@ -39,7 +39,6 @@ export interface OrderDto {
     createdAt: string;
     decisionReason?: string;
   } | null;
-  deliveryFeeChange: { fromFee: number; toFee: number; reason: string; status: string; createdAt: string } | null;
   deliveryDispute: { reason: string; status: string; resolution: string | null; createdAt: string } | null;
   /** Boutique qui vend (32.4) : null pour la boutique Okoumé */
   shop: { slug: string; name: string } | null;
@@ -90,19 +89,15 @@ export const toOrderDto = (o: OrderRecord): OrderDto => ({
     createdAt: o.cancellation.createdAt.toISOString(),
     ...(o.cancellation.decisionReason ? { decisionReason: o.cancellation.decisionReason } : {}),
   },
-  deliveryFeeChange: o.feeChange && {
-    fromFee: o.feeChange.fromFee,
-    toFee: o.feeChange.toFee,
-    reason: o.feeChange.reason,
-    status: o.feeChange.status,
-    createdAt: o.feeChange.createdAt.toISOString(),
-  },
-  deliveryDispute: o.dispute && {
-    reason: o.dispute.reason,
-    status: o.dispute.status,
-    resolution: o.dispute.resolution,
-    createdAt: o.dispute.createdAt.toISOString(),
-  },
+  deliveryDispute:
+    o.fulfilledBy === 'okoume' && o.dispute
+      ? {
+          reason: o.dispute.reason,
+          status: o.dispute.status,
+          resolution: o.dispute.resolution,
+          createdAt: o.dispute.createdAt.toISOString(),
+        }
+      : null,
   createdAt: o.createdAt.toISOString(),
 });
 

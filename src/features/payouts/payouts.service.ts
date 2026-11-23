@@ -1,7 +1,6 @@
 import { ConflictError, ForbiddenError, NotFoundError, UnprocessableError } from '../../core/errors/AppError.js';
 import { paginate } from '../../core/http/apiResponse.js';
 import { can, type Grantee } from '../../core/security/permissions.js';
-import type { ShopsRepository } from '../shops/shops.repository.js';
 import type { PayoutRecord, PayoutsRepository } from './payouts.repository.js';
 import type { ListPayoutsQuery, MarkPayoutPaidInput } from './payouts.schemas.js';
 
@@ -13,9 +12,9 @@ const toDto = (p: PayoutRecord) => ({
 
 /**
  * Reversements aux vendeurs (cahier des charges 1.2, 32.6) : ce qu'un livreur Okoumé a encaissé pour une boutique,
- * moins la livraison et la commission, à lui rendre. L'équipe les fait et les trace ; le vendeur suit les siens.
+ * moins la livraison et la commission, à lui rendre. L'équipe les fait et les trace.
  */
-export const createPayoutsService = (payouts: PayoutsRepository, shops: ShopsRepository, now: () => Date) => ({
+export const createPayoutsService = (payouts: PayoutsRepository, now: () => Date) => ({
   async listForStaff(query: ListPayoutsQuery, actor: Grantee) {
     if (!can(actor, 'paiements:consulter')) throw new ForbiddenError();
     const { items, total, due } = await payouts.list(query);
@@ -31,22 +30,6 @@ export const createPayoutsService = (payouts: PayoutsRepository, shops: ShopsRep
     const paid = await payouts.markPaid(id, { ...input, staffId: actor.id, at: now() });
     if (!paid) throw new ConflictError('Ce reversement est déjà enregistré.');
     return toDto(paid);
-  },
-
-  /** Reversements de la boutique du compte connecté, et ce qui lui reste dû. */
-  async listForSeller(customerId: string, query: Omit<ListPayoutsQuery, 'shopId'>) {
-    const shop = await shops.findByOwner(customerId);
-    if (!shop) throw new ForbiddenError('Ouvrez d’abord votre boutique pour vendre sur Okoumé.');
-    const { items, total, due } = await payouts.list({ ...query, shopId: shop.id });
-    return {
-      ...paginate(
-        items.map((p) => toDto({ ...p, paidBy: null })),
-        total,
-        query.page,
-        query.limit,
-      ),
-      due,
-    };
   },
 });
 

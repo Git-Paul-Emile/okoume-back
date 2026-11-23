@@ -62,8 +62,6 @@ export interface PricedTotals {
   pointsError: string | null;
 }
 
-const TIER_NAME: Record<Tier, string> = { bronze: 'Bronze', argent: 'Argent', or: 'Or' };
-
 /** Articles éligibles au code : hors promotion produit (pas de cumul, 28.5) et dans son périmètre. */
 export const eligibleLines = (promo: PromoRule, lines: readonly PricedLine[]) =>
   lines.filter(
@@ -75,21 +73,8 @@ export const eligibleLines = (promo: PromoRule, lines: readonly PricedLine[]) =>
 
 /** Raison pour laquelle le code ne s'applique pas à ce panier, ou null (11.2). */
 export function promoCodeError(promo: PromoRule, lines: readonly PricedLine[], subtotal: number, ctx: PricingContext) {
-  const customer = ctx.customer;
   if (!promo.active || ctx.now < promo.startsAt || ctx.now > promo.endsAt) return 'Ce code n’est plus valide.';
   if (promo.maxUses !== null && promo.uses >= promo.maxUses) return 'Ce code a atteint sa limite d’utilisation.';
-  // Conditions liées au client : il faut savoir qui commande
-  const personal = promo.customerId || promo.newCustomersOnly || promo.perCustomer !== null || promo.tiers.length;
-  if (personal && !customer) return 'Connectez-vous pour utiliser ce code.';
-  if (promo.customerId && promo.customerId !== customer?.id)
-    return 'Ce code est personnel : il est réservé au compte qui l’a reçu.';
-  if (promo.newCustomersOnly && !customer?.isNew) return 'Ce code est réservé à une première commande.';
-  if (promo.perCustomer !== null && (customer?.codeUses ?? 0) >= promo.perCustomer)
-    return promo.perCustomer === 1
-      ? 'Vous avez déjà utilisé ce code.'
-      : `Vous avez déjà utilisé ce code ${promo.perCustomer} fois, le maximum autorisé.`;
-  if (promo.tiers.length && (!customer || !promo.tiers.includes(customer.tier)))
-    return `Ce code est réservé aux membres ${promo.tiers.map((t) => TIER_NAME[t]).join(' et ')}.`;
   if (subtotal < promo.minAmount) return `Ce code s’applique à partir de ${fcfa(promo.minAmount)} d’achats.`;
   if (!promo.freeDelivery && !eligibleLines(promo, lines).length)
     return 'Aucun article de votre panier n’est éligible à ce code (les articles déjà en promotion sont exclus).';
@@ -121,26 +106,11 @@ export function priceOrder(lines: readonly PricedLine[], ctx: PricingContext): P
   }
   codeDiscount = Math.max(0, Math.min(codeDiscount, cap - productDiscount));
 
-  let pointsUsed = 0;
-  let pointsError: string | null = null;
-  if (ctx.pointsRequested > 0) {
-    const balance = ctx.customer?.pointsBalance ?? 0;
-    if (!ctx.customer) pointsError = 'Connectez-vous pour utiliser vos points.';
-    else if (balance < 0)
-      pointsError = 'Votre solde de points est négatif : l’utilisation est bloquée jusqu’à régularisation.';
-    else if (ctx.pointsRequested < MIN_REDEEM) pointsError = `Utilisez au moins ${MIN_REDEEM} points.`;
-    else if (ctx.pointsRequested > balance) pointsError = `Votre solde est de ${balance} points.`;
-    else {
-      const room = Math.max(0, Math.min(subtotal - codeDiscount, cap - productDiscount - codeDiscount));
-      pointsUsed = Math.min(ctx.pointsRequested, Math.floor(room / POINT_VALUE));
-      if (pointsUsed < MIN_REDEEM) {
-        pointsUsed = 0;
-        pointsError = 'Le plafond de réduction de ce panier est atteint : les points ne peuvent pas être utilisés.';
-      }
-    }
-  }
-  const pointsDiscount = pointsUsed * POINT_VALUE;
-  const productsTotal = Math.max(0, subtotal - codeDiscount - pointsDiscount);
+  // Le programme de fidélité est retiré du MVP : aucun point n'est consommé ni gagné.
+  const pointsUsed = 0;
+  const pointsDiscount = 0;
+  const pointsError: string | null = null;
+  const productsTotal = Math.max(0, subtotal - codeDiscount);
 
   return {
     baseSubtotal,
@@ -152,7 +122,7 @@ export function priceOrder(lines: readonly PricedLine[], ctx: PricingContext): P
     deliveryFee: ctx.deliveryFee,
     deliveryDiscount,
     total: productsTotal + ctx.deliveryFee - deliveryDiscount,
-    pointsEarned: Math.floor(productsTotal / EARN_PER),
+    pointsEarned: 0,
     codeError,
     pointsError,
   };

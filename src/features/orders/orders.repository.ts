@@ -1,7 +1,5 @@
 import { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
-import { creditEarnedPoints, earnedForOrder, reversePoints } from '../loyalty/loyalty.repository.js';
-import { rewardFirstOrder } from '../loyalty-rewards/loyalty-rewards.repository.js';
 import { DAY_MS, HISTORY_DAYS, type RiskHistory } from './orders.risk.js';
 
 export type OrderStatus =
@@ -38,16 +36,6 @@ export interface OrderEventRecord {
   actor: 'customer' | 'staff' | 'system' | 'seller';
   /** Prénom et nom du membre de l'équipe auteur de l'étape */
   by: string | null;
-  createdAt: Date;
-}
-
-/** Demande de changement des frais facturés, en attente de l'accord du client (9.5). */
-export interface FeeChangeRecord {
-  id: string;
-  fromFee: number;
-  toFee: number;
-  reason: string;
-  status: 'pending' | 'accepted' | 'refused';
   createdAt: Date;
 }
 
@@ -89,8 +77,6 @@ export interface OrderRecord {
   courierId: string | null;
   /** Coût réel de la course pour la boutique ; null tant qu'il n'est pas renseigné */
   deliveryCost: number | null;
-  /** Dernière demande de changement des frais, et dernière contestation */
-  feeChange: FeeChangeRecord | null;
   dispute: DisputeRecord | null;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
@@ -130,7 +116,6 @@ export type NewOrder = Omit<
   | 'status'
   | 'courierId'
   | 'deliveryCost'
-  | 'feeChange'
   | 'dispute'
   | 'review'
   | 'shop'
@@ -188,10 +173,8 @@ export type CreateOrderResult =
   | { outcome: 'out_of_stock'; shortages: Array<{ variantId: string; available: number }> }
   | { outcome: 'duplicate_request' }
   | { outcome: 'number_taken' }
-  /** Code épuisé ou limite par client atteinte entre le calcul et l'écriture */
+  /** Code épuisé entre le calcul et l'écriture */
   | { outcome: 'promo_unavailable' }
-  /** Solde de points devenu insuffisant entre le calcul et l'écriture */
-  | { outcome: 'points_unavailable' };
 
 /** Issue de la création des commandes d'un même panier : toutes, ou aucune. */
 export type CreateCheckoutResult =
@@ -228,17 +211,8 @@ export interface OrdersRepository {
   ): Promise<RouteUpdateResult>;
   /** Enregistre la demande d'annulation du client ; false si la commande en a déjà une. */
   requestCancellation(orderId: string, request: { reason: string; comment: string }): Promise<boolean>;
-  /**
-   * Décision de l'équipe sur une demande en attente. Acceptée : la transition d'annulation est appliquée
-   * dans la même transaction. false si la demande n'est plus en attente.
-   */
+  /** Enregistre le coût réel de livraison pour les calculs de marge. */
   setDeliveryCost(orderId: string, cost: number): Promise<OrderRecord | null>;
-  /** false : une demande est déjà en attente. */
-  proposeFeeChange(order: OrderRecord, change: { toFee: number; reason: string; staffId: string }): Promise<boolean>;
-  /** Décision du client : acceptée, les frais et le total changent dans la même transaction. */
-  decideFeeChange(order: OrderRecord, accept: boolean, at: Date): Promise<TransitionResult>;
-  /** Met à jour le moyen de paiement commun aux commandes de la tournée centralisée. */
-  changeCheckoutPaymentMethod(orders: readonly OrderRecord[], to: PaymentMethod, note: string): Promise<boolean>;
   /** false : une contestation est déjà ouverte. */
   openDispute(orderId: string, reason: string): Promise<boolean>;
   /** Historique d'un numéro de téléphone avant une nouvelle commande (signaux anti-fraude) */
@@ -263,7 +237,6 @@ const include = {
   items: true,
   events: { orderBy: { createdAt: 'asc' }, include: { staff: { select: { firstName: true, lastName: true } } } },
   cancellation: true,
-  feeChanges: { orderBy: { createdAt: 'desc' }, take: 1 },
   disputes: { orderBy: { createdAt: 'desc' }, take: 1 },
   shop: { select: { id: true, slug: true, name: true, city: true, district: true, phone: true } },
 } as const satisfies Prisma.OrderInclude;
@@ -303,16 +276,6 @@ const toRecord = (row: OrderRow): OrderRecord => ({
   pointsUsed: row.pointsUsed,
   courierId: row.courierId,
   deliveryCost: row.deliveryCost?.toNumber() ?? null,
-  feeChange: row.feeChanges[0]
-    ? {
-        id: row.feeChanges[0].id,
-        fromFee: row.feeChanges[0].fromFee.toNumber(),
-        toFee: row.feeChanges[0].toFee.toNumber(),
-        reason: row.feeChanges[0].reason,
-        status: row.feeChanges[0].status,
-        createdAt: row.feeChanges[0].createdAt,
-      }
-    : null,
   dispute: row.disputes[0]
     ? {
         id: row.disputes[0].id,
@@ -366,9 +329,6 @@ const toRecord = (row: OrderRow): OrderRecord => ({
 /** Code épuisé ou limite par client atteinte : la transaction est annulée. */
 class PromoUnavailable extends Error {}
 
-/** Solde de points insuffisant au moment d'écrire : la transaction est annulée. */
-class PointsUnavailable extends Error {}
-
 /** Un panier appartient déjà à un compte ou a été rattaché en parallèle. */
 class StaleClaim extends Error {}
 
@@ -398,21 +358,10 @@ export const ordersRepository: OrdersRepository = {
     for (const item of newOrders.flatMap((o) => o.items))
       quantities.set(item.variantId, (quantities.get(item.variantId) ?? 0) + item.quantity);
     const variantIds = [...quantities.keys()].sort();
-    const customerId = newOrders[0]?.customerId ?? null;
-
     try {
       const created = await prisma.$transaction(async (tx) => {
-        // Les commandes d'un même client passent l'une après l'autre : limite par client et solde de points exacts
-        if (customerId) await tx.$queryRaw`SELECT id FROM customers WHERE id = ${customerId}::uuid FOR UPDATE`;
         for (const order of newOrders) {
-          if (order.promoCodeId) await usePromoCode(tx, order.promoCodeId, order.customerId);
-          if (order.pointsUsed > 0) {
-            const balance = await tx.loyaltyMovement.aggregate({
-              where: { customerId: order.customerId ?? '' },
-              _sum: { points: true },
-            });
-            if ((balance._sum.points ?? 0) < order.pointsUsed) throw new PointsUnavailable();
-          }
+          if (order.promoCodeId) await usePromoCode(tx, order.promoCodeId);
         }
 
         const locked = await tx.$queryRaw<Array<{ id: string; available: number }>>`
@@ -440,17 +389,6 @@ export const ordersRepository: OrdersRepository = {
             },
             include,
           });
-          if (order.pointsUsed > 0 && order.customerId)
-            await tx.loyaltyMovement.create({
-              data: {
-                customerId: order.customerId,
-                points: -order.pointsUsed,
-                type: 'redeem',
-                label: `Points utilisés sur la commande ${order.number}`,
-                orderId: row.id,
-              },
-              select: { id: true },
-            });
           rows.push(row);
         }
         return rows;
@@ -459,7 +397,6 @@ export const ordersRepository: OrdersRepository = {
     } catch (error) {
       if (error instanceof OutOfStock) return { outcome: 'out_of_stock', shortages: error.shortages };
       if (error instanceof PromoUnavailable) return { outcome: 'promo_unavailable' };
-      if (error instanceof PointsUnavailable) return { outcome: 'points_unavailable' };
       if (isUniqueViolation(error)) {
         // Deux contraintes uniques possibles : la clé d'idempotence (requête rejouée) ou le numéro tiré au hasard
         const replay = await prisma.order.findFirst({
@@ -638,92 +575,6 @@ export const ordersRepository: OrdersRepository = {
     return updated.count === 1 ? ordersRepository.findById(orderId) : null;
   },
 
-  async proposeFeeChange(order, { toFee, reason, staffId }) {
-    try {
-      await prisma.deliveryFeeChange.create({
-        data: {
-          orderId: order.id,
-          fromFee: order.totals.deliveryFee - order.totals.deliveryDiscount,
-          toFee,
-          reason,
-          staffId,
-        },
-        select: { id: true },
-      });
-      return true;
-    } catch (error) {
-      if (isUniqueViolation(error)) return false;
-      throw error;
-    }
-  },
-
-  /** Acceptée : frais et total ajustés de l'écart, rien n'est encaissé entre-temps (garde sur le statut de paiement). */
-  async decideFeeChange(order, accept, at) {
-    const change = order.feeChange;
-    if (!change || change.status !== 'pending') return { outcome: 'stale' };
-    try {
-      const row = await prisma.$transaction(async (tx) => {
-        const decided = await tx.deliveryFeeChange.updateMany({
-          where: { id: change.id, status: 'pending' },
-          data: { status: accept ? 'accepted' : 'refused', decidedAt: at },
-        });
-        if (decided.count !== 1) throw new StaleOrder();
-        if (accept) {
-          const diff = change.toFee - change.fromFee;
-          const moved = await tx.order.updateMany({
-            where: { id: order.id, paymentStatus: 'awaiting_payment', status: order.status },
-            data: { deliveryFee: { increment: diff }, total: { increment: diff } },
-          });
-          if (moved.count !== 1) throw new StaleOrder();
-        }
-        await tx.orderEvent.create({
-          data: {
-            orderId: order.id,
-            status: order.status,
-            fromStatus: order.status,
-            note: accept
-              ? `Nouveaux frais de livraison acceptés par le client : ${change.toFee} FCFA`
-              : `Nouveaux frais de livraison refusés par le client (${change.toFee} FCFA)`,
-            actor: 'customer',
-          },
-          select: { id: true },
-        });
-        return tx.order.findUniqueOrThrow({ where: { id: order.id }, include });
-      });
-      return { outcome: 'applied', order: toRecord(row) };
-    } catch (error) {
-      if (error instanceof StaleOrder) return { outcome: 'stale' };
-      throw error;
-    }
-  },
-
-  async changeCheckoutPaymentMethod(routeOrders, to, note) {
-    if (!routeOrders.length) return false;
-    return prisma.$transaction(async (tx) => {
-      const first = routeOrders[0]!;
-      const ids = routeOrders.map((order) => order.id);
-      const changed = await tx.order.updateMany({
-        where: {
-          id: { in: ids },
-          paymentMethod: first.paymentMethod,
-          paymentStatus: 'awaiting_payment',
-          status: { notIn: ['delivered', 'cancelled'] },
-        },
-        data: { paymentMethod: to },
-      });
-      if (changed.count !== routeOrders.length) return false;
-      await tx.orderEvent.createMany({
-        data: routeOrders.map((order) => ({
-          orderId: order.id,
-          status: order.status,
-          fromStatus: order.status,
-          note,
-          actor: 'customer' as const,
-        })),
-      });
-      return true;
-    });
-  },
 
   async riskHistory(phoneKey, email, at) {
     const day = new Date(at.getTime() - DAY_MS);
@@ -877,9 +728,6 @@ async function applyInTransaction(tx: Tx, order: OrderRecord, change: AppliedTra
   });
 
   if (change.to === 'cancelled') await undoOrderAdvantages(tx, order);
-  // Livrée et payée : points crédités, puis bienvenue et parrainage si c'est la première (sans effet sinon)
-  await creditEarnedPoints(tx, order.id);
-  await rewardFirstOrder(tx, order.id);
 
   if (!change.stock) return;
   const quantities = new Map<string, number>();
@@ -924,37 +772,18 @@ async function applyInTransaction(tx: Tx, order: OrderRecord, change: AppliedTra
  * Usage d'un code dans la transaction de commande : le compteur n'augmente que si la limite totale le permet,
  * et la limite par client est recomptée alors que le compte du client est verrouillé.
  */
-async function usePromoCode(tx: Tx, promoCodeId: string, customerId: string | null) {
-  const [promo] = await tx.$queryRaw<Array<{ per_customer: number | null }>>`
+async function usePromoCode(tx: Tx, promoCodeId: string) {
+  const [promo] = await tx.$queryRaw<Array<{ id: string }>>`
     UPDATE promo_codes SET uses = uses + 1
     WHERE id = ${promoCodeId}::uuid AND active AND (max_uses IS NULL OR uses < max_uses)
-    RETURNING per_customer`;
+    RETURNING id`;
   if (!promo) throw new PromoUnavailable();
-  if (promo.per_customer !== null && customerId) {
-    const used = await tx.order.count({ where: { promoCodeId, customerId, status: { not: 'cancelled' } } });
-    if (used >= promo.per_customer) throw new PromoUnavailable();
-  }
 }
 
 /**
- * Annulation : le code redevient disponible, les points utilisés sont rendus et les points déjà gagnés
- * (commande rouverte après livraison) sont retirés. Les index partiels empêchent tout doublon.
+ * Annulation : le code redevient disponible. Les index partiels empêchent tout doublon.
  */
 async function undoOrderAdvantages(tx: Tx, order: OrderRecord) {
   if (order.promoCodeId)
     await tx.$executeRaw`UPDATE promo_codes SET uses = GREATEST(uses - 1, 0) WHERE id = ${order.promoCodeId}::uuid`;
-  if (!order.customerId) return;
-  if (order.pointsUsed > 0)
-    await tx.$executeRaw`
-      INSERT INTO loyalty_movements (id, customer_id, points, type, label, order_id, created_at)
-      VALUES (gen_random_uuid(), ${order.customerId}::uuid, ${order.pointsUsed}, 'restore',
-              ${`Points rendus : commande ${order.number} annulée`}, ${order.id}::uuid, CURRENT_TIMESTAMP)
-      ON CONFLICT (order_id) WHERE type = 'restore' DO NOTHING`;
-  const earned = await earnedForOrder(tx, order.id);
-  await reversePoints(tx, {
-    customerId: order.customerId,
-    orderId: order.id,
-    points: earned,
-    label: `Points retirés : commande ${order.number} annulée`,
-  });
 }

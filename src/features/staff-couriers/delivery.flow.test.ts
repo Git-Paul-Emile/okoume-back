@@ -5,7 +5,6 @@ import { createFakeEmailSender } from '../../infrastructure/email/fakeEmailSende
 
 const ordersManager = { id: 's1', role: 'orders_manager' as const, extraRoles: [], customPermissions: [] };
 const catalogManager = { id: 's2', role: 'catalog_manager' as const, extraRoles: [], customPermissions: [] };
-const cashier = { ...ordersManager, refundLimit: 100_000 };
 
 async function setup() {
   const clock = createClock();
@@ -111,51 +110,6 @@ describe('affectation et déroulement', () => {
     const { staffOrders, order } = await setup();
     const updated = await staffOrders.setDeliveryCost(order.id, 1_800, ordersManager);
     expect(updated).toMatchObject({ deliveryCost: 1_800, totals: { deliveryFee: 2_000 } });
-  });
-});
-
-describe('changement des frais facturés', () => {
-  it('attend l’accord du client avant de poursuivre, puis applique les nouveaux frais', async () => {
-    const { staffOrders, orders, order, courier, toReady } = await setup();
-    await toReady();
-    await staffOrders.proposeFeeChange(
-      order.id,
-      { toFee: 3_000, reason: 'Accès difficile en saison des pluies' },
-      ordersManager,
-    );
-    await expect(
-      staffOrders.proposeFeeChange(order.id, { toFee: 3_500, reason: 'Autre estimation' }, ordersManager),
-    ).rejects.toMatchObject({ status: 409 });
-    await expect(
-      staffOrders.transition(order.id, { action: 'assign_courier', courierId: courier.id }, ordersManager),
-    ).rejects.toMatchObject({ status: 409 });
-    await expect(orders.decideFeeChange('client-b', order.id, true)).rejects.toMatchObject({ status: 404 });
-    const accepted = await orders.decideFeeChange('client-a', order.id, true);
-    expect(accepted).toMatchObject({
-      totals: { deliveryFee: 3_000, total: 13_000 },
-      deliveryFeeChange: { status: 'accepted' },
-    });
-    await expect(
-      staffOrders.transition(order.id, { action: 'assign_courier', courierId: courier.id }, ordersManager),
-    ).resolves.toMatchObject({ status: 'courier_assigned' });
-  });
-
-  it('laisse les frais inchangés si le client refuse, et n’en propose plus après encaissement', async () => {
-    const { staffOrders, staffPayments, orders, order, clock } = await setup();
-    await staffOrders.proposeFeeChange(
-      order.id,
-      { toFee: 1_000, reason: 'Livreur déjà dans le quartier' },
-      ordersManager,
-    );
-    const refused = await orders.decideFeeChange('client-a', order.id, false);
-    expect(refused).toMatchObject({
-      totals: { deliveryFee: 2_000, total: 12_000 },
-      deliveryFeeChange: { status: 'refused' },
-    });
-    await staffPayments.record(order.id, { amount: 12_000, receivedAt: clock.now(), reference: null }, cashier);
-    await expect(
-      staffOrders.proposeFeeChange(order.id, { toFee: 3_000, reason: 'Accès difficile' }, ordersManager),
-    ).rejects.toMatchObject({ status: 409 });
   });
 });
 

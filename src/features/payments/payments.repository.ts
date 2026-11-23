@@ -1,8 +1,6 @@
 import { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
 import { issueCreditNote, issueInvoice } from '../invoices/invoices.repository.js';
-import { creditEarnedPoints, reversePoints } from '../loyalty/loyalty.repository.js';
-import { rewardFirstOrder } from '../loyalty-rewards/loyalty-rewards.repository.js';
 import type { OrderRecord, PaymentMethod, PaymentStatus } from '../orders/orders.repository.js';
 
 export interface PaymentRecord {
@@ -51,8 +49,6 @@ export interface ReturnRefund {
   returnId: string;
   /** Le dossier passe « Remboursé » quand tout son montant est rendu */
   completes: boolean;
-  /** Points gagnés sur les articles remboursés, retirés au même moment (12.3) */
-  pointsToReverse: number;
 }
 
 export interface RecordOptions {
@@ -82,8 +78,6 @@ export interface PaymentsRepository {
     payment: CheckoutPaymentWrite,
     options: RecordOptions,
   ): Promise<PaymentResult>;
-  /** Changement de moyen de paiement par le client, tant que rien n'est encaissé (8.6). */
-  changeMethod(order: OrderRecord, to: PaymentMethod, note: string): Promise<boolean>;
 }
 
 const isUniqueViolation = (error: unknown) =>
@@ -133,8 +127,6 @@ async function recordInTransaction(
     },
     select: { id: true },
   });
-  await creditEarnedPoints(tx, order.id);
-  await rewardFirstOrder(tx, order.id);
   if (order.shopId === null) await issueInvoice(tx, order, issuedAt);
   if (order.shopId && order.fulfilledBy === 'okoume') await createPayout(tx, order, payment.amount);
 }
@@ -171,13 +163,6 @@ export const paymentsRepository: PaymentsRepository = {
             },
           });
           if (updated.count !== 1) throw new StalePayment();
-          if (order.customerId)
-            await reversePoints(tx, {
-              customerId: order.customerId,
-              orderId: order.id,
-              points: returnRefund.pointsToReverse,
-              label: `Points retirés : articles remboursés (${order.number})`,
-            });
           if (returnRefund.completes)
             await tx.returnEvent.create({
               data: {
@@ -201,9 +186,6 @@ export const paymentsRepository: PaymentsRepository = {
           },
           select: { id: true },
         });
-        // Paiement enregistré sur une commande déjà livrée : les points sont crédités
-        await creditEarnedPoints(tx, order.id);
-        await rewardFirstOrder(tx, order.id);
         // Facture après confirmation du paiement ; avoir pour tout remboursement d'une commande facturée (25.4).
         // Les ventes des vendeurs ne sont pas facturées par Okoumé tant que leur facturation n'est pas validée (32.7)
         if (payment.kind === 'payment' && nextStatus === 'paid' && !order.shopId)
@@ -286,23 +268,4 @@ export const paymentsRepository: PaymentsRepository = {
     }
   },
 
-  async changeMethod(order, to, note) {
-    return prisma.$transaction(async (tx) => {
-      const changed = await tx.order.updateMany({
-        where: {
-          id: order.id,
-          paymentMethod: order.paymentMethod,
-          paymentStatus: 'awaiting_payment',
-          status: { notIn: ['delivered', 'cancelled'] },
-        },
-        data: { paymentMethod: to },
-      });
-      if (changed.count !== 1) return false;
-      await tx.orderEvent.create({
-        data: { orderId: order.id, status: order.status, fromStatus: order.status, note, actor: 'customer' },
-        select: { id: true },
-      });
-      return true;
-    });
-  },
 };

@@ -10,7 +10,6 @@ import {
 /** Variante vue par l'équipe : données publiques, plus coût d'achat et stock non revendable. */
 export interface StaffVariantRecord extends VariantRecord {
   cost: number | null;
-  unsellable: number;
 }
 
 export type ProductModeration = 'in_review' | 'changes_requested' | 'pending_moderation' | 'approved' | 'rejected';
@@ -161,7 +160,7 @@ const toStaffRecord = (row: Prisma.ProductGetPayload<{ include: typeof productIn
     ...base,
     variants: base.variants.map((v, i) => {
       const source = row.variants[i]!;
-      return { ...v, cost: source.cost?.toNumber() ?? null, unsellable: source.unsellable };
+      return { ...v, cost: source.cost?.toNumber() ?? null };
     }),
     shopId: row.shopId,
     moderation: row.moderation,

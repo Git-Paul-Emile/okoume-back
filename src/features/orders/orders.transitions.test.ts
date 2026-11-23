@@ -35,7 +35,6 @@ const order = (overrides: Partial<OrderRecord> = {}): OrderRecord => ({
   promoCodeId: null,
   courierId: null,
   deliveryCost: null,
-  feeChange: null,
   dispute: null,
   pointsUsed: 0,
   shopId: null,
@@ -107,21 +106,4 @@ describe('transitions de commande', () => {
     expect(deliveryRetryPlan(order({ status: 'shipping' }), 'Client absent').courier).toBeNull();
   });
 
-  it('bloque la livraison tant que de nouveaux frais attendent l’accord du client', () => {
-    const feeChange = {
-      id: 'f1',
-      fromFee: 2_000,
-      toFee: 3_000,
-      reason: 'Zone éloignée',
-      status: 'pending' as const,
-      createdAt: new Date(),
-    };
-    expect(() => assignCourierPlan(order({ status: 'ready', feeChange }), { id: 'c1', deliveryCost: null })).toThrow(
-      /frais/,
-    );
-    expect(() => advancePlan(order({ status: 'courier_assigned', feeChange }))).toThrow(/frais/);
-    expect(advancePlan(order({ status: 'courier_assigned', feeChange: { ...feeChange, status: 'accepted' } })).to).toBe(
-      'shipping',
-    );
-  });
 });

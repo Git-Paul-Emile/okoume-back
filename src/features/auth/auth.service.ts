@@ -7,11 +7,11 @@ import {
   UnprocessableError,
 } from '../../core/errors/AppError.js';
 import { burnPasswordCheck, hashPassword, verifyPassword } from '../../core/security/passwords.js';
+import { randomReadableCode } from '../../core/security/secrets.js';
 import { phoneKey } from '../../core/text/phoneKey.js';
 import type { EmailSender } from '../../infrastructure/email/emailSender.js';
 import type { SessionsService } from '../sessions/sessions.service.js';
 import type { VerificationService } from '../verification/verification.service.js';
-import { referralCode } from '../loyalty-rewards/loyalty-rewards.rules.js';
 import {
   contactChangedEmail,
   contactChangeEmail,
@@ -64,10 +64,8 @@ export const createAuthService = ({ customers, sessions, verification, email, ap
         // Numéro déjà rattaché à un autre compte : il n'est pas enregistré, l'inscription continue
         input = { ...input, phone: undefined };
       }
-      const referrer = input.referralCode ? await customers.findReferrer(input.referralCode) : null;
-      if (input.referralCode && !referrer) throw new UnprocessableError('Ce code de parrainage n’existe pas.');
       const data = {
-        referredById: referrer?.id ?? null,
+        referredById: null,
         phone: input.phone ?? null,
         phoneKey: input.phone ? key : null,
         passwordHash: await hashPassword(input.password),
@@ -76,7 +74,7 @@ export const createAuthService = ({ customers, sessions, verification, email, ap
       };
       const customer = existing
         ? await customers.updatePending(existing.id, data)
-        : await customers.create({ ...data, email: input.email, referralCode: referralCode(input.firstName) });
+        : await customers.create({ ...data, email: input.email, referralCode: `CUS-${randomReadableCode(8)}` });
       await sendVerification(customer);
     },
 

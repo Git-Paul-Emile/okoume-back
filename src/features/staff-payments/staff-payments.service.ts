@@ -10,8 +10,6 @@ import {
   refundedAmount,
   withinRefundLimit,
 } from '../payments/payments.rules.js';
-import type { LoyaltyRepository } from '../loyalty/loyalty.repository.js';
-import { EARN_PER } from '../orders/orders.pricing.js';
 import type { ReturnsRepository } from '../returns/returns.repository.js';
 import { toStaffOrderDto } from '../staff-orders/staff-orders.dto.js';
 import type { RecordPaymentInput, RefundInput } from './staff-payments.schemas.js';
@@ -32,7 +30,6 @@ export const createStaffPaymentsService = (
   orders: OrdersRepository,
   payments: PaymentsRepository,
   returns: ReturnsRepository,
-  loyalty: LoyaltyRepository,
   now: () => Date,
 ) => {
   async function load(id: string) {
@@ -45,25 +42,6 @@ export const createStaffPaymentsService = (
     if (at.getTime() > now().getTime() + CLOCK_SKEW_MS)
       throw new UnprocessableError('La date ne peut pas être dans le futur.');
     if (at < order.createdAt) throw new UnprocessableError('La date précède la commande.');
-  }
-
-  /**
-   * Points gagnés sur les articles retournés (12.3) : au prorata de leur prix dans la commande, sans dépasser
-   * ce que la commande porte encore. Le solde du client peut devenir négatif.
-   */
-  async function pointsOnReturnedItems(
-    order: OrderRecord,
-    items: ReadonlyArray<{ variantId: string; quantity: number }>,
-  ) {
-    const remaining = await loyalty.earnedFor(order.id);
-    if (!remaining || order.totals.subtotal <= 0) return 0;
-    const t = order.totals;
-    const gross = Math.floor(Math.max(0, t.subtotal - t.codeDiscount - t.pointsDiscount) / EARN_PER);
-    const returned = items.reduce(
-      (sum, r) => sum + (order.items.find((i) => i.variantId === r.variantId)?.unitPrice ?? 0) * r.quantity,
-      0,
-    );
-    return Math.min(remaining, Math.round((gross * returned) / t.subtotal));
   }
 
   async function summary(order: OrderRecord) {
@@ -184,7 +162,7 @@ export const createStaffPaymentsService = (
     /**
      * Remboursement effectué (14.4, 14.5) : seulement sur une commande « remboursement à effectuer », dans la
      * limite de ce qui a été encaissé et du plafond de la personne. Pour un retour, dans la limite du montant
-     * fixé à l'inspection. « Remboursé » quand tout l'encaissé est rendu.
+     * calculé à la réception du retour. « Remboursé » quand tout l'encaissé est rendu.
      */
     async refund(orderId: string, input: RefundInput, actor: PaymentActor) {
       if (!can(actor, 'paiements:valider')) throw new ForbiddenError();
@@ -196,10 +174,10 @@ export const createStaffPaymentsService = (
       const list = await payments.listForOrder(order.id);
       const paid = paidAmount(list);
       const refundedBefore = refundedAmount(list);
-      // Commande non annulée en « Remboursement à effectuer » : c'est un retour inspecté (14.4)
+      // Commande non annulée en « Remboursement à effectuer » : le retour a été reçu.
       const ret = order.status === 'cancelled' ? null : await returns.findByOrder(order.id);
       if (order.status !== 'cancelled' && ret?.status !== 'refund_due')
-        throw new ConflictError('Aucun retour inspecté à rembourser sur cette commande.');
+        throw new ConflictError('Aucun retour reçu à rembourser sur cette commande.');
       const refundable = ret
         ? Math.min((ret.refundAmount ?? 0) - ret.refundedAmount, paid - refundedBefore)
         : paid - refundedBefore;
@@ -210,7 +188,6 @@ export const createStaffPaymentsService = (
       assertDate(input.refundedAt, order);
 
       const completes = input.amount === refundable;
-      const pointsToReverse = ret && completes ? await pointsOnReturnedItems(order, ret.items) : 0;
       // Retour partiel remboursé : le reste de la commande demeure payé
       const next = !completes ? 'refund_due' : refundedBefore + input.amount >= paid ? 'refunded' : 'paid';
       const result = await payments.record(
@@ -227,7 +204,7 @@ export const createStaffPaymentsService = (
         },
         next,
         `Remboursement effectué : ${fcfa(input.amount)} (${PAYMENT_LABEL[input.method]})`,
-        { issuedAt: now(), returnRefund: ret ? { returnId: ret.id, completes, pointsToReverse } : undefined },
+          { issuedAt: now(), returnRefund: ret ? { returnId: ret.id, completes } : undefined },
       );
       return applied(result, orderId);
     },

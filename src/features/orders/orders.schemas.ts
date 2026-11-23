@@ -9,9 +9,8 @@ export const MAX_QUANTITY_PER_LINE = 20;
  * Commande envoyée par le navigateur : articles, quantités, livraison et paiement, rien d'autre.
  * Prix, remises et frais sont recalculés par l'API ; un champ en plus est refusé (schéma strict).
  */
-/** Un seul code par commande (11.2) ; points : 100 au moins, vérifiés par le calcul (12.2). */
+/** Un seul code promotionnel simple par commande. */
 const promoCode = z.string().trim().min(3).max(40);
-const points = z.int().min(0).max(1_000_000);
 
 export const createOrderBody = z.strictObject({
   idempotencyKey: z.uuid('Clé de commande invalide.'),
@@ -37,19 +36,16 @@ export const createOrderBody = z.strictObject({
   }),
   paymentMethod: z.enum(['cash', 'airtel', 'moov']),
   promoCode: promoCode.optional(),
-  points: points.default(0),
 });
 
-/** Type d'entrée : points facultatifs (0 par défaut), comme dans le schéma. */
 export type CreateOrderInput = z.input<typeof createOrderBody>;
 
-/** Devis du panier : mêmes articles, zone, code et points que la commande, sans coordonnées. */
+/** Devis du panier : mêmes articles, zone et code que la commande, sans coordonnées. */
 export const quoteBody = z.strictObject({
   lines: createOrderBody.shape.lines,
   /** Facultative : sans zone, le devis ne compte pas la livraison (page panier) */
   zoneId: z.uuid('Zone de livraison invalide.').optional(),
   promoCode: promoCode.optional(),
-  points: points.default(0),
 });
 
 export type QuoteInput = z.input<typeof quoteBody>;
@@ -75,8 +71,6 @@ export const cancellationRequestBody = z.strictObject({
   reason: z.enum(CANCEL_REASONS, 'Choisissez un motif d’annulation.'),
   comment: z.string().trim().max(500).default(''),
 });
-
-export const feeChangeDecisionBody = z.strictObject({ status: z.enum(['accepted', 'refused']) });
 
 export const disputeBody = z.strictObject({
   reason: z.string().trim().min(10, 'Décrivez ce qui s’est passé (10 caractères au moins).').max(1_000),

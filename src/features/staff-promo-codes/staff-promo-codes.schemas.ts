@@ -16,20 +16,15 @@ const fields = {
   value: z.int().min(0).max(100_000_000),
   minAmount: amount,
   freeDelivery: z.boolean(),
-  newCustomersOnly: z.boolean(),
-  tiers: z.array(z.enum(['bronze', 'argent', 'or'])).max(3),
-  startsAt: z.coerce.date(),
   endsAt: z.coerce.date(),
   maxUses: z.int().min(1).max(10_000_000).nullable(),
-  perCustomer: z.int().min(1).max(1_000).nullable(),
   active: z.boolean(),
-  customerId: z.uuid().nullable(),
   productIds: z.array(z.uuid()).max(500),
   categoryIds: z.array(z.uuid()).max(200),
 };
 
 const coherent = <
-  T extends { type?: 'percent' | 'fixed'; value?: number; freeDelivery?: boolean; startsAt?: Date; endsAt?: Date },
+  T extends { type?: 'percent' | 'fixed'; value?: number; freeDelivery?: boolean },
 >(
   schema: z.ZodType<T>,
 ) =>
@@ -42,23 +37,15 @@ const coherent = <
       message: 'Une réduction de 0 n’est possible que pour la livraison offerte.',
       path: ['value'],
     })
-    .refine((p) => !p.startsAt || !p.endsAt || p.startsAt < p.endsAt, {
-      message: 'La fin doit suivre le début.',
-      path: ['endsAt'],
-    });
 
-/** Code promotionnel (11.2) : réduction, minimum de panier, périmètre, public visé, validité, limites. */
+/** Coupon immédiat et simple : remise, périmètre, date de fin et limite globale. */
 export const createPromoCodeBody = coherent(
   z.strictObject({
     ...fields,
     minAmount: fields.minAmount.default(0),
     freeDelivery: fields.freeDelivery.default(false),
-    newCustomersOnly: fields.newCustomersOnly.default(false),
-    tiers: fields.tiers.default([]),
     maxUses: fields.maxUses.default(null),
-    perCustomer: fields.perCustomer.default(null),
     active: fields.active.default(true),
-    customerId: fields.customerId.default(null),
     productIds: fields.productIds.default([]),
     categoryIds: fields.categoryIds.default([]),
   }),

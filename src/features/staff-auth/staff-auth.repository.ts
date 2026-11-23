@@ -1,5 +1,4 @@
 import { prisma } from '../../lib/prisma.js';
-import type { StaffRoleName } from '../../core/security/permissions.js';
 
 export interface StaffRecord {
   id: string;
@@ -7,14 +6,12 @@ export interface StaffRecord {
   firstName: string;
   lastName: string;
   passwordHash: string | null;
-  role: StaffRoleName;
-  extraRoles: StaffRoleName[];
+  role: 'super_admin';
   status: 'invited' | 'active' | 'suspended';
   sessionsRevokedAt: Date | null;
   /** Plafond de remboursement en FCFA ; null : aucun remboursement autorisé (hors administrateur principal) */
   refundLimit: number | null;
   inviteExpiresAt: Date | null;
-  customPermissions: string[];
 }
 
 const select = {
@@ -23,27 +20,23 @@ const select = {
   firstName: true,
   lastName: true,
   passwordHash: true,
-  role: true,
-  extraRoles: true,
   status: true,
   sessionsRevokedAt: true,
   refundLimit: true,
   inviteExpiresAt: true,
-  customRoles: { select: { customRole: { select: { permissions: true } } } },
 } as const;
 
-type Row = Omit<StaffRecord, 'customPermissions' | 'refundLimit'> & {
+type Row = Omit<StaffRecord, 'refundLimit' | 'role'> & {
   refundLimit: { toNumber(): number } | null;
-  customRoles: Array<{ customRole: { permissions: string[] } }>;
 };
 
 const toRecord = (row: Row | null): StaffRecord | null => {
   if (!row) return null;
-  const { customRoles, refundLimit, ...rest } = row;
+  const { refundLimit, ...rest } = row;
   return {
     ...rest,
+    role: 'super_admin',
     refundLimit: refundLimit?.toNumber() ?? null,
-    customPermissions: [...new Set(customRoles.flatMap((r) => r.customRole.permissions))],
   };
 };
 

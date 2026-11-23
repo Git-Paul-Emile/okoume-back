@@ -68,11 +68,7 @@ export const notificationsRepository: NotificationsRepository = {
       select: {
         ...subscriptionSelect,
         staff: {
-          select: {
-            role: true,
-            extraRoles: true,
-            customRoles: { select: { customRole: { select: { permissions: true } } } },
-          },
+          select: { id: true },
         },
       },
     });
@@ -82,9 +78,9 @@ export const notificationsRepository: NotificationsRepository = {
             {
               ...subscription,
               grantee: {
-                role: staff.role,
-                extraRoles: staff.extraRoles,
-                customPermissions: staff.customRoles.flatMap((r) => r.customRole.permissions),
+                role: 'super_admin',
+                extraRoles: [],
+                customPermissions: [],
               },
             },
           ]

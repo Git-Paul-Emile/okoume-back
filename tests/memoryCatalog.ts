@@ -322,8 +322,6 @@ export function createMemoryCatalog(now: () => Date) {
         if (promo.perCustomer !== null && order.customerId && used >= promo.perCustomer)
           return { outcome: 'promo_unavailable' };
       }
-      if (order.pointsUsed > 0 && balanceOf(order.customerId ?? '') < order.pointsUsed)
-        return { outcome: 'points_unavailable' };
       if (promo) promo.uses += 1;
       for (const [variantId, quantity] of quantities) variantById(variantId)!.variant.reserved += quantity;
       const created: OrderRecord = {
@@ -349,7 +347,6 @@ export function createMemoryCatalog(now: () => Date) {
         cancellation: null,
         courierId: null,
         deliveryCost: null,
-        feeChange: null,
         dispute: null,
         collectionConfirmedAt: null,
         collectionConfirmedBy: null,
@@ -448,69 +445,6 @@ export function createMemoryCatalog(now: () => Date) {
       if (!stored) return null;
       stored.deliveryCost = cost;
       return stored;
-    },
-    async proposeFeeChange(order, { toFee, reason }) {
-      const stored = orders.find((o) => o.id === order.id)!;
-      if (stored.feeChange?.status === 'pending') return false;
-      stored.feeChange = {
-        id: randomUUID(),
-        fromFee: stored.totals.deliveryFee - stored.totals.deliveryDiscount,
-        toFee,
-        reason,
-        status: 'pending',
-        createdAt: now(),
-      };
-      return true;
-    },
-    async decideFeeChange(order, accept) {
-      const stored = orders.find((o) => o.id === order.id);
-      const change = stored?.feeChange;
-      if (!stored || !change || change.status !== 'pending') return { outcome: 'stale' };
-      if (accept && stored.paymentStatus !== 'awaiting_payment') return { outcome: 'stale' };
-      change.status = accept ? 'accepted' : 'refused';
-      if (accept) {
-        const diff = change.toFee - change.fromFee;
-        stored.totals = {
-          ...stored.totals,
-          deliveryFee: stored.totals.deliveryFee + diff,
-          total: stored.totals.total + diff,
-        };
-      }
-      stored.events.push({
-        status: stored.status,
-        fromStatus: stored.status,
-        note: accept ? 'Nouveaux frais de livraison acceptés par le client' : 'Nouveaux frais de livraison refusés',
-        actor: 'customer',
-        by: null,
-        createdAt: now(),
-      });
-      return { outcome: 'applied', order: stored };
-    },
-    async changeCheckoutPaymentMethod(routeOrders, to, note) {
-      if (
-        !routeOrders.length ||
-        routeOrders.some(
-          (order) =>
-            order.paymentMethod !== routeOrders[0]!.paymentMethod ||
-            order.paymentStatus !== 'awaiting_payment' ||
-            ['delivered', 'cancelled'].includes(order.status),
-        )
-      )
-        return false;
-      for (const routeOrder of routeOrders) {
-        const stored = orders.find((order) => order.id === routeOrder.id);
-        if (!stored) return false;
-        stored.paymentMethod = to;
-        stored.events.push({
-          status: stored.status,
-          fromStatus: stored.status,
-          note,
-          actor: 'customer',
-          by: null,
-          createdAt: now(),
-        });
-      }
-      return true;
     },
     async riskHistory(phoneKey, email, at) {
       const keyOf = (phone: string) => phone.replace(/\D/g, '').slice(-8);
@@ -618,14 +552,6 @@ export function createMemoryCatalog(now: () => Date) {
         const ret = returns.find((r) => r.id === returnRefund.returnId);
         if (!ret || ret.status !== 'refund_due') return { outcome: 'stale' };
         ret.refundedAmount += payment.amount;
-        if (stored.customerId && returnRefund.pointsToReverse > 0)
-          addMovement({
-            customerId: stored.customerId,
-            points: -returnRefund.pointsToReverse,
-            type: 'reversal',
-            label: `Points retirés : articles remboursés (${stored.number})`,
-            orderId: stored.id,
-          });
         if (returnRefund.completes) {
           ret.status = 'refunded';
           ret.events.push({ status: 'refunded', note, actor: 'staff', by: `Membre ${staffId}`, createdAt: now() });
@@ -713,26 +639,6 @@ export function createMemoryCatalog(now: () => Date) {
       }
       return { outcome: 'applied' };
     },
-    async changeMethod(order, to, note) {
-      const stored = orders.find((o) => o.id === order.id);
-      if (
-        !stored ||
-        stored.paymentMethod !== order.paymentMethod ||
-        stored.paymentStatus !== 'awaiting_payment' ||
-        ['delivered', 'cancelled'].includes(stored.status)
-      )
-        return false;
-      stored.paymentMethod = to;
-      stored.events.push({
-        status: stored.status,
-        fromStatus: stored.status,
-        note,
-        actor: 'customer',
-        by: null,
-        createdAt: now(),
-      });
-      return true;
-    },
   };
 
   const staffName = (actor: ReturnActor) => (actor.type === 'staff' ? `Membre ${actor.staffId}` : null);
@@ -756,12 +662,10 @@ export function createMemoryCatalog(now: () => Date) {
         decisionReason: null,
         shippingPaidBy: null,
         shippingReason: null,
-        inspectionNote: null,
         refundAmount: null,
         refundedAmount: 0,
-        restockStatus: 'none',
         reopenRequestedAt: null,
-        items: items.map((i) => ({ ...i, resaleable: null, unsellable: null })),
+        items: items.map((i) => ({ ...i })),
         events: [
           { status: 'pending', note: 'Demande de retour envoyée', actor: 'customer', by: null, createdAt: now() },
         ],
@@ -777,61 +681,20 @@ export function createMemoryCatalog(now: () => Date) {
       stored.events.push({ status: to, note, actor: actor.type, by: staffName(actor), createdAt: now() });
       return stored;
     },
-    async inspect(ret, inspection, staffId) {
+    async receive(ret, input, staffId) {
       const stored = returns.find((r) => r.id === ret.id);
       if (!stored || stored.status !== ret.status) return null;
-      for (const line of inspection.lines) {
-        Object.assign(
-          stored.items.find((i) => i.variantId === line.variantId)!,
-          line,
-        );
-        if (line.unsellable) {
-          unsellable.set(line.variantId, (unsellable.get(line.variantId) ?? 0) + line.unsellable);
-          movements.push({ variantId: line.variantId, type: 'non_vendable', delta: line.unsellable });
-        }
-      }
-      Object.assign(stored, {
-        status: inspection.next,
-        inspectionNote: inspection.note,
-        refundAmount: inspection.refundAmount,
-        restockStatus: inspection.lines.some((l) => l.resaleable > 0) ? 'pending' : 'none',
-      });
+      Object.assign(stored, { status: input.next, refundAmount: input.refundAmount });
       const order = orders.find((o) => o.id === ret.orderId)!;
-      if (inspection.orderRefundDue && order.paymentStatus === 'paid') order.paymentStatus = 'refund_due';
+      if (input.next === 'refund_due' && order.paymentStatus === 'paid') order.paymentStatus = 'refund_due';
       stored.events.push({
-        status: inspection.next,
-        note: inspection.note,
+        status: input.next,
+        note: input.note,
         actor: 'staff',
         by: `Membre ${staffId}`,
         createdAt: now(),
       });
       return stored;
-    },
-    async restock(ret, staffId) {
-      const stored = returns.find((r) => r.id === ret.id);
-      if (!stored || stored.restockStatus !== 'pending') return null;
-      stored.restockStatus = 'done';
-      for (const item of stored.items) {
-        if (!item.resaleable) continue;
-        variantById(item.variantId)!.variant.stock += item.resaleable;
-        movements.push({ variantId: item.variantId, type: 'retour', delta: item.resaleable });
-      }
-      stored.events.push({
-        status: stored.status,
-        note: 'Articles revendables remis en stock',
-        actor: 'staff',
-        by: `Membre ${staffId}`,
-        createdAt: now(),
-      });
-      return stored;
-    },
-    async writeOff(variantId, entry) {
-      if (!variantById(variantId)) return { outcome: 'not_found' };
-      const before = unsellable.get(variantId) ?? 0;
-      if (before < entry.quantity) return { outcome: 'insufficient', unsellable: before };
-      unsellable.set(variantId, before - entry.quantity);
-      movements.push({ variantId, type: 'mise_au_rebut', delta: -entry.quantity });
-      return { outcome: 'applied', unsellableLeft: before - entry.quantity };
     },
   };
 

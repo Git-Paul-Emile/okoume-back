@@ -43,7 +43,7 @@ if (!input.success) {
 }
 
 try {
-  if ((await staffTeamRepository.countActiveOwners()) > 0) {
+  if ((await staffTeamRepository.countActiveStaff()) > 0) {
     process.stderr.write('Un administrateur principal actif existe déjà : invitez depuis le back-office (Équipe).\n');
     process.exit(1);
   }
@@ -52,9 +52,6 @@ try {
     email: input.data.email,
     firstName: input.data['first-name'],
     lastName: input.data['last-name'],
-    role: 'super_admin',
-    extraRoles: [],
-    customRoleIds: [],
     refundLimit: null,
     inviteTokenHash: sha256(token),
     inviteExpiresAt: new Date(Date.now() + INVITE_DAYS * 24 * 60 * 60_000),

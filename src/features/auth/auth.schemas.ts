@@ -37,13 +37,6 @@ export const registerBody = z.strictObject({
   phone: gabonPhone.optional(),
   password: customerPassword,
   acceptTerms: z.literal(true, 'Acceptez les conditions générales de vente.'),
-  /** Code d'un client qui parraine (12.5) */
-  referralCode: z
-    .string()
-    .trim()
-    .max(20)
-    .transform((v) => v.toUpperCase())
-    .optional(),
 });
 
 export const verifyEmailBody = z.strictObject({ email, code });

@@ -1,9 +1,5 @@
-import { randomUUID } from 'node:crypto';
 import type { Permission } from '../../core/security/permissions.js';
 import type { PushMessage } from '../../infrastructure/push/pushSender.js';
-import type { JobQueue } from '../../infrastructure/queue/jobQueue.js';
-import type { JobPayloads } from '../../infrastructure/queue/jobs.js';
-import { logger } from '../../lib/logger.js';
 import type { NotificationTopic } from './notifications.rules.js';
 
 /**
@@ -15,19 +11,8 @@ export interface Notifier {
   notifyStaff(permission: Permission, message: PushMessage, urgent?: boolean): Promise<void>;
 }
 
-export const createNotifier = (queue: JobQueue): Notifier => {
-  async function enqueue(data: JobPayloads['push.send']) {
-    try {
-      await queue.send('push.send', data);
-    } catch (err) {
-      logger.error({ err }, 'Notification push non déposée');
-    }
-  }
-
-  return {
-    notifyCustomer: (customerId, topic, message) =>
-      enqueue({ notificationId: randomUUID(), audience: { customerId, topic }, message, urgent: false }),
-    notifyStaff: (permission, message, urgent = false) =>
-      enqueue({ notificationId: randomUUID(), audience: { permission }, message, urgent }),
-  };
-};
+/** Notifications push retirées du MVP. Les e-mails transactionnels restent actifs. */
+export const createNotifier = (_queue: unknown): Notifier => ({
+  notifyCustomer: async (_customerId, _topic, _message) => undefined,
+  notifyStaff: async (_permission, _message, _urgent = false) => undefined,
+});

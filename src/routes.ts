@@ -3,16 +3,13 @@ import { createAccountRoutes } from './features/account/account.routes.js';
 import { createPublicSettingsRoutes, createStaffSettingsRoutes } from './features/settings/settings.routes.js';
 import type { SettingsService } from './features/settings/settings.service.js';
 import { createPublicPromoCodesRoutes } from './features/promo-codes/promo-codes.routes.js';
-import { createStaffSupportRoutes, createSupportRoutes } from './features/support/support.routes.js';
-import { createPrivacyRoutes, createStaffPrivacyRoutes } from './features/privacy/privacy.routes.js';
-import type { PrivacyService } from './features/privacy/privacy.service.js';
 import { createReviewsRoutes, createStaffReviewsRoutes } from './features/reviews/reviews.routes.js';
 import type { ReviewsService } from './features/reviews/reviews.service.js';
 import { createContentRoutes, createStaffContentRoutes } from './features/content/content.routes.js';
 import type { ContentService } from './features/content/content.service.js';
 import { createStaffCustomersRoutes } from './features/staff-customers/staff-customers.routes.js';
 import type { StaffCustomersService } from './features/staff-customers/staff-customers.service.js';
-import { createCustomRolesRoutes, createStaffTeamRoutes } from './features/staff-team/staff-team.routes.js';
+import { createStaffTeamRoutes } from './features/staff-team/staff-team.routes.js';
 import type { StaffTeamService } from './features/staff-team/staff-team.service.js';
 import {
   createStaffZoneRequestsRoutes,
@@ -38,12 +35,11 @@ import { createSellerOrdersRoutes } from './features/seller-orders/seller-orders
 import type { SellerOrdersService } from './features/seller-orders/seller-orders.service.js';
 import { createSellerDeliveryRoutes } from './features/seller-delivery/seller-delivery.routes.js';
 import type { SellerDeliveryService } from './features/seller-delivery/seller-delivery.service.js';
-import { createSellerPayoutsRoutes, createStaffPayoutsRoutes } from './features/payouts/payouts.routes.js';
+import { createStaffPayoutsRoutes } from './features/payouts/payouts.routes.js';
 import type { PayoutsService } from './features/payouts/payouts.service.js';
 import type { ShopAssistantService } from './features/shop-assistant/shop-assistant.service.js';
 import { createAnalyticsRoutes, createStaffAnalyticsRoutes } from './features/analytics/analytics.routes.js';
 import type { AnalyticsService } from './features/analytics/analytics.service.js';
-import type { SupportService } from './features/support/support.service.js';
 import type { PublicPromoCodesService } from './features/promo-codes/promo-codes.service.js';
 import type { AccountService } from './features/account/account.service.js';
 import { createAuthRoutes } from './features/auth/auth.routes.js';
@@ -58,25 +54,14 @@ import {
   createOrderTrackingRoutes,
 } from './features/orders/orders.routes.js';
 import type { OrdersService } from './features/orders/orders.service.js';
-import { createPaymentsRoutes } from './features/payments/payments.routes.js';
-import type { PaymentsService } from './features/payments/payments.service.js';
 import { createStaffPaymentsRoutes } from './features/staff-payments/staff-payments.routes.js';
 import type { StaffPaymentsService } from './features/staff-payments/staff-payments.service.js';
 import { createReturnsRoutes } from './features/returns/returns.routes.js';
 import type { ReturnsService } from './features/returns/returns.service.js';
-import { createStaffReturnsRoutes, createWriteOffRoutes } from './features/staff-returns/staff-returns.routes.js';
+import { createStaffReturnsRoutes } from './features/staff-returns/staff-returns.routes.js';
 import type { StaffReturnsService } from './features/staff-returns/staff-returns.service.js';
 import { createOrderInvoicesRoutes, createStaffInvoicesRoutes } from './features/invoices/invoices.routes.js';
 import type { InvoicesService } from './features/invoices/invoices.service.js';
-import {
-  createCustomerRewardsRoutes,
-  createStaffReferralRoutes,
-} from './features/loyalty-rewards/loyalty-rewards.routes.js';
-import type { LoyaltyRewardsService } from './features/loyalty-rewards/loyalty-rewards.service.js';
-import { createLoyaltyRoutes } from './features/loyalty/loyalty.routes.js';
-import type { LoyaltyService } from './features/loyalty/loyalty.service.js';
-import { createStaffLoyaltyRoutes } from './features/staff-loyalty/staff-loyalty.routes.js';
-import type { StaffLoyaltyService } from './features/staff-loyalty/staff-loyalty.service.js';
 import { createStaffPromoCodesRoutes } from './features/staff-promo-codes/staff-promo-codes.routes.js';
 import type { StaffPromoCodesService } from './features/staff-promo-codes/staff-promo-codes.service.js';
 import { createProductsRoutes } from './features/products/products.routes.js';
@@ -98,11 +83,7 @@ import type { StaffOrdersService } from './features/staff-orders/staff-orders.se
 import { createStaffStockJournalRoutes, createStaffStockRoutes } from './features/staff-stock/staff-stock.routes.js';
 import type { StaffStockService } from './features/staff-stock/staff-stock.service.js';
 import type { StaffAuthService } from './features/staff-auth/staff-auth.service.js';
-import {
-  createCustomerPushRoutes,
-  createPreferencesRoutes,
-  createStaffPushRoutes,
-} from './features/notifications/notifications.routes.js';
+import { createPreferencesRoutes } from './features/notifications/notifications.routes.js';
 import type { NotificationsService } from './features/notifications/notifications.service.js';
 import { createStaffMediaRoutes } from './features/staff-media/staff-media.routes.js';
 import type { StaffMediaService } from './features/staff-media/staff-media.service.js';
@@ -122,8 +103,6 @@ export interface ApiServices {
   account: AccountService;
   settings: SettingsService;
   publicPromoCodes: PublicPromoCodesService;
-  support: SupportService;
-  privacy: PrivacyService;
   reviews: ReviewsService;
   content: ContentService;
   staffCustomers: StaffCustomersService;
@@ -146,12 +125,8 @@ export interface ApiServices {
   orders: OrdersService;
   staffOrders: StaffOrdersService;
   staffCouriers: StaffCouriersService;
-  payments: PaymentsService;
   returns: ReturnsService;
-  loyalty: LoyaltyService;
-  loyaltyRewards: LoyaltyRewardsService;
   invoices: InvoicesService;
-  staffLoyalty: StaffLoyaltyService;
   staffPromoCodes: StaffPromoCodesService;
   staffReturns: StaffReturnsService;
   staffPayments: StaffPaymentsService;
@@ -177,12 +152,9 @@ export const createApiRoutes = (services: ApiServices) => {
   router.use('/staff', recordStaffActivity(services.staffActivity));
   router.use('/auth', createAuthRoutes(services.auth, services.now));
   router.use('/me', createAccountRoutes(services.account, services.now));
-  router.use('/me', createPrivacyRoutes(services.privacy, services.now));
   router.use('/settings', createPublicSettingsRoutes(services.settings));
   router.use('/promo-codes', createPublicPromoCodesRoutes(services.publicPromoCodes));
   router.use('/assistant', createShopAssistantRoutes(services.shopAssistant));
-  router.use('/support', createSupportRoutes(services.support, services.now));
-  router.use('/staff/support/tickets', createStaffSupportRoutes(services.support, services.staffAuth, services.now));
   router.use('/reviews', createReviewsRoutes(services.reviews, services.now));
   router.use('/content', createContentRoutes(services.content));
   router.use('/staff/customers', createStaffCustomersRoutes(services.staffCustomers, services.staffAuth, services.now));
@@ -199,22 +171,17 @@ export const createApiRoutes = (services: ApiServices) => {
   router.use('/staff/activity', createStaffActivityRoutes(services.staffActivity, services.staffAuth, services.now));
   router.use('/staff/exports', createStaffExportsRoutes(services.staffActivity, services.staffAuth, services.now));
   router.use('/staff/team', createStaffTeamRoutes(services.staffTeam, services.staffAuth, services.now));
-  router.use('/staff/custom-roles', createCustomRolesRoutes(services.staffTeam, services.staffAuth, services.now));
   router.use('/staff/content', createStaffContentRoutes(services.content, services.staffAuth, services.now));
   router.use('/staff/reviews', createStaffReviewsRoutes(services.reviews, services.staffAuth, services.now));
-  router.use('/staff/privacy-requests', createStaffPrivacyRoutes(services.privacy, services.staffAuth, services.now));
   router.use('/staff/settings/shop', createStaffSettingsRoutes(services.settings, services.staffAuth, services.now));
   router.use('/staff/auth', createStaffAuthRoutes(services.staffAuth, services.now));
   router.use('/categories', createCategoriesRoutes(services.categories));
   router.use('/products', createProductsRoutes(services.products));
   router.use('/delivery-zones', createDeliveryZonesRoutes(services.deliveryZones));
   router.use('/orders', createOrdersRoutes(services.orders, services.now));
-  router.use('/orders', createPaymentsRoutes(services.payments, services.now));
   router.use('/orders', createReturnsRoutes(services.returns, services.now));
   router.use('/order-tracking', createOrderTrackingRoutes(services.orders));
   router.use('/checkout', createCheckoutRoutes(services.orders, services.now));
-  router.use('/loyalty', createCustomerRewardsRoutes(services.loyaltyRewards, services.now));
-  router.use('/loyalty', createLoyaltyRoutes(services.loyalty, services.now));
   router.use('/orders', createOrderInvoicesRoutes(services.invoices, services.now));
   // Paiements avant les commandes : leurs routes /staff/orders/:id/payments ne passent pas par le droit commandes:consulter
   router.use('/staff/orders', createStaffPaymentsRoutes(services.staffPayments, services.staffAuth, services.now));
@@ -223,16 +190,9 @@ export const createApiRoutes = (services: ApiServices) => {
     '/staff/promo-codes',
     createStaffPromoCodesRoutes(services.staffPromoCodes, services.staffAuth, services.now),
   );
-  router.use('/staff', createStaffLoyaltyRoutes(services.staffLoyalty, services.staffAuth, services.now));
   router.use('/staff/couriers', createStaffCouriersRoutes(services.staffCouriers, services.staffAuth, services.now));
-  router.use(
-    '/staff/referral-rewards',
-    createStaffReferralRoutes(services.loyaltyRewards, services.staffAuth, services.now),
-  );
   router.use('/staff/invoices', createStaffInvoicesRoutes(services.invoices, services.staffAuth, services.now));
   router.use('/staff/returns', createStaffReturnsRoutes(services.staffReturns, services.staffAuth, services.now));
-  // Sortie définitive avant le stock : sa route ne passe pas par le droit stock:consulter du routeur du stock
-  router.use('/staff/variants', createWriteOffRoutes(services.staffReturns, services.staffAuth, services.now));
   router.use('/staff/variants', createStaffStockRoutes(services.staffStock, services.staffAuth, services.now));
   router.use(
     '/staff/stock-movements',
@@ -248,9 +208,7 @@ export const createApiRoutes = (services: ApiServices) => {
     createStaffCategoriesRoutes(services.staffCategories, services.staffAuth, services.now),
   );
   router.use('/staff/delivery-zones', createStaffZonesRoutes(services.staffZones, services.staffAuth, services.now));
-  router.use('/push', createCustomerPushRoutes(services.notifications, services.now));
   router.use('/notification-preferences', createPreferencesRoutes(services.notifications, services.now));
-  router.use('/staff/push', createStaffPushRoutes(services.notifications, services.staffAuth, services.now));
   router.use('/staff/media', createStaffMediaRoutes(services.staffMedia, services.staffAuth, services.now));
   // Place de marché (section 32)
   router.use('/access-plans', createAccessPlansRoutes(services.shops));
@@ -259,7 +217,6 @@ export const createApiRoutes = (services: ApiServices) => {
   router.use('/seller/products', createSellerProductsRoutes(services.sellerProducts, services.now));
   router.use('/seller/orders', createSellerOrdersRoutes(services.sellerOrders, services.now));
   router.use('/seller/delivery', createSellerDeliveryRoutes(services.sellerDelivery, services.now));
-  router.use('/seller/payouts', createSellerPayoutsRoutes(services.payouts, services.now));
   router.use('/staff/payouts', createStaffPayoutsRoutes(services.payouts, services.staffAuth, services.now));
   const marketplace = createStaffMarketplaceRoutes(services.staffShops, services.staffAuth, services.now);
   router.use('/staff/access-plans', marketplace.plans);

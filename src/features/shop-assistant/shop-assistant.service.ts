@@ -51,7 +51,7 @@ function describeProduct(p: ProductDto, categoryName: (id: string) => string) {
 
 /**
  * Assistant d'achat public (16) : répond à partir des données réelles de la boutique (catalogue, livraison, paiement,
- * retours, fidélité, codes promo). Le compteur mensuel de l'assistant est appliqué ici.
+ * retours et codes promo). Le compteur mensuel de l'assistant est appliqué ici.
  */
 export const createShopAssistantService = (deps: ShopAssistantDeps) => {
   async function buildContext(question: string, productSlug: string | undefined) {
@@ -68,7 +68,6 @@ export const createShopAssistantService = (deps: ShopAssistantDeps) => {
     const products = new Map<string, ProductDto>();
     for (const p of [...matches.items, ...catalog.items]) products.set(p.id, p);
     const s = settings.support;
-    const { loyalty } = settings;
     return [
       'BOUTIQUE',
       `Okoumé, boutique en ligne. Contact : ${s.email}, téléphone ${s.phone}, WhatsApp ${s.whatsapp}, ${s.hours}. Adresse : ${s.address}.`,
@@ -87,9 +86,6 @@ export const createShopAssistantService = (deps: ShopAssistantDeps) => {
       'Annulation libre avant la préparation, ensuite par demande examinée par la boutique.',
       `Retour possible dans les ${settings.returnWindowDays} jours suivant la livraison, depuis le compte ou la page Contact ; photo demandée pour un produit endommagé, défectueux ou non conforme. Remboursement après réception et vérification.`,
       '',
-      'FIDÉLITÉ',
-      `1 point par tranche de ${fcfa(loyalty.earnPer)} d’achats (hors livraison), crédités après livraison et paiement. 1 point = ${fcfa(loyalty.pointValue)}, utilisable dès ${loyalty.minRedeem} points. Les points n’expirent pas. Niveaux : ${settings.tiers.map((t) => `${t.name} dès ${fcfa(t.threshold)}`).join(', ')}.`,
-      settings.referralReward ? `Parrainage : ${settings.referralReward} points.` : '',
       '',
       'CODES PROMO EN COURS',
       ...(codes.length

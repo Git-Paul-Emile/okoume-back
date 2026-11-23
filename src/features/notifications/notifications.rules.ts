@@ -3,13 +3,13 @@ import type { PushMessage } from '../../infrastructure/push/pushSender.js';
 import type { OrderStatus } from '../orders/orders.repository.js';
 
 /** Sujets de notification du client (front/src/features/auth/components/NotificationPreferences.tsx). */
+// `support` remains in stored legacy preferences while the old records age out; its routes are disabled.
 export const TOPICS = ['orders', 'support', 'loyalty', 'promotions', 'shop'] as const;
 export type NotificationTopic = (typeof TOPICS)[number];
 export type NotificationChannel = 'email' | 'push';
 
 /**
- * Réglages par défaut, repris du front. Les e-mails de commande et d'assistance sont obligatoires : ils
- * restent le canal de référence (10.1) et ne se désactivent pas.
+ * Réglages par défaut, repris du front. Les e-mails de commande restent le canal de référence et ne se désactivent pas.
  */
 export const DEFAULTS: Record<NotificationTopic, { email: boolean; push: boolean; emailLocked: boolean }> = {
   orders: { email: true, push: true, emailLocked: true },

@@ -1,12 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { buildShopServices, createClock, deliverOrder } from '../../../tests/factories.js';
-import { assertInspection, returnRefundAmount } from '../returns/returns.rules.js';
+import { returnRefundAmount } from '../returns/returns.rules.js';
 import type { ReturnActor } from './staff-returns.service.js';
 
 const owner: ReturnActor = { id: 's0', role: 'super_admin', extraRoles: [], customPermissions: [] };
 const ordersManager: ReturnActor = { id: 's1', role: 'orders_manager', extraRoles: [], customPermissions: [] };
-const stockManager: ReturnActor = { id: 's2', role: 'stock_manager', extraRoles: [], customPermissions: [] };
 const cashier = { ...ordersManager, refundLimit: 100_000 };
 const DAY = 24 * 60 * 60_000;
 
@@ -60,15 +59,7 @@ describe('règles des retours', () => {
       ],
       totals: { subtotal: 40_000, codeDiscount: 4_000, pointsDiscount: 0 },
     } as Parameters<typeof returnRefundAmount>[0];
-    expect(returnRefundAmount(order, [{ variantId: 'a', quantity: 1, resaleable: null, unsellable: null }])).toBe(
-      9_000,
-    );
-  });
-
-  it('exige un classement complet de chaque article reçu', () => {
-    const items = [{ variantId: 'a', quantity: 2, resaleable: null, unsellable: null }];
-    expect(() => assertInspection(items, [{ variantId: 'a', resaleable: 1, unsellable: 0 }])).toThrow();
-    expect(() => assertInspection(items, [{ variantId: 'a', resaleable: 1, unsellable: 1 }])).not.toThrow();
+    expect(returnRefundAmount(order, [{ variantId: 'a', quantity: 1 }])).toBe(9_000);
   });
 });
 
@@ -131,8 +122,8 @@ describe('traitement d’un retour', () => {
     ).rejects.toMatchObject({ status: 403 });
   });
 
-  it('suit tout le parcours : accepté, reçu, inspecté, remis en stock, remboursé', async () => {
-    const { request, staffReturns, staffPayments, order, variant, catalog, clock } = await deliveredOrder();
+  it('suit le parcours simple : accepté, reçu puis remboursé', async () => {
+    const { request, staffReturns, staffPayments, order, clock } = await deliveredOrder();
     const ret = await request();
     const accepted = await staffReturns.decide(
       ret.id,
@@ -146,7 +137,7 @@ describe('traitement d’un retour', () => {
     );
     expect(accepted).toMatchObject({ status: 'expected', shippingPaidBy: 'shop' });
 
-    // Aucun remboursement avant réception et inspection
+    // Aucun remboursement avant réception
     await expect(
       staffPayments.refund(
         order.id,
@@ -163,18 +154,8 @@ describe('traitement d’un retour', () => {
     ).rejects.toMatchObject({ status: 409 });
 
     await staffReturns.receive(ret.id, ordersManager);
-    const inspected = await staffReturns.inspect(
-      ret.id,
-      { outcome: 'conforming', lines: [{ variantId: variant.id, resaleable: 1, unsellable: 1 }], note: '' },
-      ordersManager,
-    );
-    expect(inspected).toMatchObject({ status: 'refund_due', refundAmount: 20_000, restockStatus: 'pending' });
-    expect(catalog.unsellable.get(variant.id)).toBe(1);
-
-    await expect(staffReturns.restock(ret.id, ordersManager)).rejects.toMatchObject({ status: 403 });
-    const stockBefore = variant.stock;
-    await staffReturns.restock(ret.id, stockManager);
-    expect(variant.stock).toBe(stockBefore + 1);
+    const received = await staffReturns.receive(ret.id, ordersManager);
+    expect(received).toMatchObject({ status: 'refund_due', refundAmount: 20_000 });
 
     const refund = {
       method: 'cash' as const,
@@ -192,28 +173,6 @@ describe('traitement d’un retour', () => {
     expect(await staffReturns.get(ret.id, owner)).toMatchObject({ status: 'refunded', refundedAmount: 20_000 });
   });
 
-  it('clôture sans remboursement une inspection non conforme', async () => {
-    const { request, staffReturns } = await deliveredOrder();
-    const ret = await request();
-    await staffReturns.decide(
-      ret.id,
-      {
-        status: 'accepted',
-        decisionReason: 'Accepté sous réserve',
-        shippingPaidBy: 'customer',
-        shippingReason: 'Changement d’avis',
-      },
-      owner,
-    );
-    await staffReturns.receive(ret.id, ordersManager);
-    const closed = await staffReturns.inspect(
-      ret.id,
-      { outcome: 'non_conforming', note: 'Article porté et lavé' },
-      ordersManager,
-    );
-    expect(closed).toMatchObject({ status: 'closed', refundAmount: null });
-  });
-
   it('rouvre un dossier refusé dans le délai, pas au-delà', async () => {
     const { request, staffReturns, returns, order, clock } = await deliveredOrder();
     const ret = await request();
@@ -224,30 +183,5 @@ describe('traitement d’un retour', () => {
     await staffReturns.decide(ret.id, { status: 'refused', decisionReason: 'Refus confirmé' }, owner);
     clock.advance(15 * DAY);
     await expect(returns.reopen('client-a', order.id, 'Je conteste encore')).rejects.toMatchObject({ status: 409 });
-  });
-});
-
-describe('stock non revendable', () => {
-  it('réserve la sortie définitive à l’administrateur principal, dans la limite du stock séparé', async () => {
-    const { request, staffReturns, variant, catalog, clock } = await deliveredOrder();
-    const ret = await request();
-    await staffReturns.decide(
-      ret.id,
-      { status: 'accepted', decisionReason: 'Accepté', shippingPaidBy: 'shop', shippingReason: 'Produit défectueux' },
-      owner,
-    );
-    await staffReturns.receive(ret.id, ordersManager);
-    await staffReturns.inspect(
-      ret.id,
-      { outcome: 'conforming', lines: [{ variantId: variant.id, resaleable: 0, unsellable: 2 }], note: '' },
-      ordersManager,
-    );
-    const entry = { quantity: 1, reason: 'Tissu déchiré, irréparable', referenceValue: 6_000, occurredAt: clock.now() };
-    await expect(staffReturns.writeOff(variant.id, entry, ordersManager)).rejects.toMatchObject({ status: 403 });
-    await expect(staffReturns.writeOff(variant.id, { ...entry, quantity: 3 }, owner)).rejects.toMatchObject({
-      status: 409,
-    });
-    expect(await staffReturns.writeOff(variant.id, entry, owner)).toEqual({ unsellable: 1 });
-    expect(catalog.movements.at(-1)).toMatchObject({ type: 'mise_au_rebut', delta: -1 });
   });
 });

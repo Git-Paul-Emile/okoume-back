@@ -68,14 +68,6 @@ export type TransitionInput = z.infer<typeof transitionBody>;
 /** Coût réel de la course (9.5), modifiable à tout moment, distinct des frais facturés. */
 export const deliveryCostBody = z.strictObject({ amount: z.int('Montant entier en FCFA.').min(0).max(1_000_000) });
 
-/** Nouveaux frais facturés proposés au client (9.5) : appliqués seulement s'il les accepte. */
-export const feeChangeBody = z.strictObject({
-  toFee: z.int('Montant entier en FCFA.').min(0).max(1_000_000),
-  reason,
-});
-
-export type FeeChangeInput = z.infer<typeof feeChangeBody>;
-
 /** Résolution d'une contestation de livraison (9.6), communiquée au client. */
 export const disputeResolutionBody = z.strictObject({ resolution: reason });
 

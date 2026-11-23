@@ -8,7 +8,7 @@ const review = { rating: 5, comment: 'Tissu de belle qualité, conforme aux phot
 
 function setup() {
   const { services } = buildApp();
-  services.supportStaff.push({ id: 's0', firstName: 'Inès', lastName: 'Moussavou' });
+  services.teamDirectory.push({ id: 's0', firstName: 'Inès', lastName: 'Moussavou' });
   const at = services.clock.now();
   for (const [id, firstName] of [
     ['c1', 'Awa'],

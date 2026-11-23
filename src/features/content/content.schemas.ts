@@ -28,13 +28,9 @@ export const updateBannerBody = z
   .refine((v) => Object.keys(v).length > 0, 'Aucune modification.');
 export type UpdateBannerInput = z.infer<typeof updateBannerBody>;
 
-const isoDateTime = z.iso.datetime({ offset: true }).transform((v) => new Date(v));
-
 export const createAdBody = z.strictObject({
   placement: z.enum(AD_PLACEMENTS),
   advertiser: z.string().trim().min(2).max(80).nullable(),
-  startsAt: isoDateTime.nullable(),
-  endsAt: isoDateTime.nullable(),
   priority: z.number().int().min(0).max(100),
   image,
   imageMobile: image.nullable(),
@@ -47,8 +43,6 @@ export type CreateAdInput = z.infer<typeof createAdBody>;
 export const updateAdBody = z
   .strictObject({
     advertiser: z.string().trim().min(2).max(80).nullable(),
-    startsAt: isoDateTime.nullable(),
-    endsAt: isoDateTime.nullable(),
     priority: z.number().int().min(0).max(100),
     image,
     imageMobile: image.nullable(),
@@ -62,33 +56,7 @@ export type UpdateAdInput = z.infer<typeof updateAdBody>;
 
 export const listAdsQuery = z.strictObject({ placement: z.enum(AD_PLACEMENTS).optional() });
 
-export const slugParam = z.object({
-  slug: z
-    .string()
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Adresse invalide.')
-    .max(120),
-});
 export const legalSlugParam = z.object({ slug: z.enum(LEGAL_SLUGS) });
-
-export const articleBody = z.strictObject({
-  slug: slugParam.shape.slug,
-  title: z.string().trim().min(5).max(150),
-  category: z.string().trim().min(2).max(60),
-  excerpt: z.string().trim().min(10).max(300),
-  cover: image,
-  content: z
-    .array(z.strictObject({ type: z.enum(['p', 'h2']), text: z.string().trim().min(1).max(5_000) }))
-    .min(1, 'L’article est vide.')
-    .max(200),
-  publishedAt: isoDateTime,
-  readingTime: z.number().int().min(1).max(120),
-  status: z.enum(['draft', 'published']),
-  seo: z
-    .strictObject({ title: z.string().trim().max(70), description: z.string().trim().max(160) })
-    .nullable()
-    .default(null),
-});
-export type ArticleInput = z.infer<typeof articleBody>;
 
 export const legalPageBody = z.strictObject({
   title: z.string().trim().min(3).max(120),

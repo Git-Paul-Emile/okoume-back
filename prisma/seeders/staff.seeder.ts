@@ -9,7 +9,6 @@ const schema = z.array(
     firstName: z.string().min(1),
     lastName: z.string().min(1),
     email: z.email(),
-    role: z.enum(['super_admin', 'catalog_manager', 'orders_manager', 'stock_manager']),
     status: z.enum(['invited', 'active', 'suspended']).optional(),
   }),
 );
@@ -19,10 +18,10 @@ export const loadStaff = () => readData('staff.json', schema);
 
 export const staffId = (legacyId: string) => legacyUuid('staff', legacyId);
 
-/** Propriétaire de la boutique (super_admin), auteur des encaissements de démonstration. */
+/** Administrateur de démonstration, auteur des encaissements. */
 export function ownerStaffId() {
-  const owner = loadStaff().find((m) => m.role === 'super_admin' && m.status !== 'invited');
-  if (!owner) throw new Error('data/staff.json : aucun super_admin actif');
+  const owner = loadStaff().find((m) => m.status !== 'invited');
+  if (!owner) throw new Error('data/staff.json : aucun administrateur actif');
   return staffId(owner.id);
 }
 
@@ -44,7 +43,7 @@ export const staffSeeder: Seeder = {
           email: m.email.toLowerCase(),
           firstName: m.firstName,
           lastName: m.lastName,
-          role: m.role,
+          role: 'super_admin',
           status,
           passwordHash: status === 'invited' ? null : passwordHash,
         };

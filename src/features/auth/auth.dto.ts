@@ -7,11 +7,6 @@ export interface CustomerDto {
   phone: string | null;
   emailVerified: boolean;
   emailVerifiedAt: string | null;
-  /** Code à partager pour parrainer (12.5) */
-  referralCode: string;
-  /** Date d'anniversaire au format AAAA-MM-JJ, modifiable sous /loyalty/preferences */
-  birthDate: string | null;
-  birthdayChoice: 'points' | 'code';
   createdAt: string;
 }
 
@@ -34,8 +29,5 @@ export const toCustomerDto = (c: {
   phone: c.phone,
   emailVerified: !!c.emailVerifiedAt,
   emailVerifiedAt: c.emailVerifiedAt?.toISOString() ?? null,
-  referralCode: c.referralCode,
-  birthDate: c.birthDate ? c.birthDate.toISOString().slice(0, 10) : null,
-  birthdayChoice: c.birthdayChoice,
   createdAt: c.createdAt.toISOString(),
 });

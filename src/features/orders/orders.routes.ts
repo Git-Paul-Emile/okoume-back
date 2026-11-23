@@ -10,7 +10,6 @@ import {
   claimOrderBody,
   createOrderBody,
   disputeBody,
-  feeChangeDecisionBody,
   listOrdersQuery,
   quoteBody,
   trackingQuery,
@@ -38,12 +37,6 @@ export const createOrdersRoutes = (service: OrdersService, now: () => Date) => {
     asyncHandler(c.claim),
   );
   router.get('/:id', requireCustomer(now), validate({ params: idParam }), asyncHandler(c.get));
-  router.patch(
-    '/:id/delivery-fee-change',
-    requireCustomer(now),
-    validate({ params: idParam, body: feeChangeDecisionBody }),
-    asyncHandler(c.decideFeeChange),
-  );
   router.post(
     '/:id/delivery-disputes',
     requireCustomer(now),

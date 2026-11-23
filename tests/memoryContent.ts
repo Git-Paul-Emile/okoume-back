@@ -1,19 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import type {
   AdRecord,
-  ArticleRecord,
   BannerRecord,
   ContentRepository,
   LegalPageRecord,
   OfferRecord,
 } from '../src/features/content/content.repository.js';
 
-/** Contenus en mémoire : mêmes règles que la base (adresse d'article unique, campagnes filtrées par date). */
+/** Contenus en mémoire : mêmes règles que la base (publicités actives). */
 export function createMemoryContent(now: () => Date) {
   const banners: BannerRecord[] = [];
   const ads: AdRecord[] = [];
   const offers: OfferRecord[] = [];
-  const articles: ArticleRecord[] = [];
   const legalPages: LegalPageRecord[] = [];
   const copy = <T>(value: T): T => structuredClone(value);
 
@@ -27,12 +25,12 @@ export function createMemoryContent(now: () => Date) {
       const banner = banners.find((b) => b.id === id);
       return banner ? copy(Object.assign(banner, changes)) : null;
     },
-    ads: async ({ placement, liveAt }) =>
+    ads: async ({ placement, activeOnly }) =>
       ads
         .filter(
           (a) =>
             (!placement || a.placement === placement) &&
-            (!liveAt || (a.active && (!a.startsAt || a.startsAt <= liveAt) && (!a.endsAt || a.endsAt > liveAt))),
+            (!activeOnly || a.active),
         )
         .sort((a, b) => b.priority - a.priority)
         .map(copy),
@@ -46,33 +44,6 @@ export function createMemoryContent(now: () => Date) {
       return ad ? copy(Object.assign(ad, changes)) : null;
     },
     offers: async () => offers.map(copy),
-    articles: async (liveAt) =>
-      articles
-        .filter((a) => !liveAt || (a.status === 'published' && a.publishedAt <= liveAt))
-        .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
-        .map(copy),
-    articleBySlug: async (slug) => {
-      const a = articles.find((x) => x.slug === slug);
-      return a ? copy(a) : null;
-    },
-    findArticle: async (id) => {
-      const a = articles.find((x) => x.id === id);
-      return a ? copy(a) : null;
-    },
-    async createArticle(content) {
-      if (articles.some((a) => a.slug === content.slug)) return { slugTaken: true };
-      const article = { ...copy(content), id: randomUUID(), history: [] };
-      articles.push(article);
-      return { article: copy(article) };
-    },
-    async updateArticle(id, content, version) {
-      const article = articles.find((a) => a.id === id);
-      if (!article) return { notFound: true };
-      if (articles.some((a) => a.slug === content.slug && a.id !== id)) return { slugTaken: true };
-      Object.assign(article, copy(content));
-      article.history.push(version);
-      return { article: copy(article) };
-    },
     legalPages: async () => legalPages.map(copy),
     async saveLegalPage(slug, page) {
       const existing = legalPages.find((p) => p.slug === slug);
@@ -83,5 +54,5 @@ export function createMemoryContent(now: () => Date) {
     },
     staffName: async () => null,
   };
-  return { repository, banners, ads, offers, articles, legalPages };
+  return { repository, banners, ads, offers, legalPages };
 }

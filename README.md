@@ -61,7 +61,7 @@ npm run db:seed         # données (SEED_DEMO_PASSWORD requis hors production)
 
 - Rejouable : chaque ligne reçoit un identifiant stable dérivé de son ancien identifiant, et seules les lignes
   absentes sont créées. Une ligne existante n'est jamais modifiée.
-- Données de référence (réglages, quartiers de livraison, rôles personnalisés) : chargées partout.
+- Données de référence (réglages et quartiers de livraison) : chargées partout.
 - Données de démonstration (comptes, catalogue, codes promo, livreurs, commandes, points) : jamais en production.
   Tous les comptes de démonstration ont le mot de passe `SEED_DEMO_PASSWORD` ; aucun mot de passe n'est versionné.
 - `seed-data.test.ts` vérifie sans base les schémas, les références, les unicités et les contraintes CHECK.
@@ -357,8 +357,9 @@ Compte du client connecté, sous `/api/v1/me` (2.2, 3.6) :
 | `DELETE /favorites/:productId` | Retrait idempotent                                                                    |
 
 La date et le cadeau d'anniversaire passent par `PUT /api/v1/loyalty/preferences`, les notifications par
-`/api/v1/notification-preferences`. Pas encore dans l'API : changement d'e-mail ou de téléphone, produits
-récemment consultés, rattachement d'une commande passée sans compte, export et suppression des données.
+`/api/v1/notification-preferences`. Les coordonnées se modifient dans le compte avec vérification de la nouvelle
+adresse ou du nouveau numéro. Pas encore dans l'API : produits récemment consultés et rattachement d'une commande
+passée sans compte. Les demandes d'export, de correction ou de suppression des données ne sont pas proposées.
 
 **Cookie anti-CSRF entre sous-domaines.** Le cookie `ok_csrf` est posé par l'API ; le site doit pouvoir le lire
 pour le renvoyer. En production, `COOKIE_DOMAIN=.okoume.ga` attache les cookies au domaine commun
@@ -381,7 +382,6 @@ Routes publiques, sous `/api/v1` :
 | `GET /orders`         | Commandes du client connecté (3 dernières années) ; `?number=CMD-...` pour en retrouver une par son numéro                                                                                     |
 | `GET /orders/:id`     | Détail d'une commande du client connecté ; 404 pour celle d'un autre                                                                                                                           |
 
-| `PUT /orders/:id/payment-method` | Changement de moyen de paiement par le client, tant que rien n'est encaissé (8.6) |
 | `POST /orders/:id/cancellation-requests` | Annulation par le client : immédiate si la commande est confirmée (200), sinon demande à l'équipe (202) |
 | `POST` / `GET /orders/:id/return` | Demande de retour d'une commande livrée (délai `RETURN_WINDOW_DAYS`) et suivi du dossier |
 | `POST /orders/:id/return/evidence-uploads` | Autorisation signée pour envoyer une photo justificative (dossier `returns`) ; seules les photos hébergées chez nous sont acceptées dans la demande |
@@ -390,7 +390,7 @@ Routes publiques, sous `/api/v1` :
 | `GET /loyalty`, `GET /loyalty/movements` | Solde, niveau, avantages, progression et historique des points du client |
 | `GET /orders/:id/invoices` | Factures et avoirs d'une commande du client (fenêtre de 3 ans du compte) |
 | `PATCH /orders/:id/delivery-fee-change` | Réponse du client aux nouveaux frais de livraison (accord ou refus) |
-| `POST /orders/:id/delivery-disputes` | Contestation d'une livraison marquée « Livrée » ; le statut reste inchangé |
+| `POST /orders/:id/delivery-disputes` | Réclamation d'une livraison marquée « Livrée » pour les commandes livrées par Okoumé |
 | `GET /loyalty/referral`, `GET /loyalty/codes`, `PUT /loyalty/preferences` | Code parrain et filleuls, codes personnels utilisables, date d'anniversaire et choix points ou code |
 | `GET /order-tracking` | Suivi sans compte par numéro de commande `CMD-…` ou panier `PAN-…` et code commun ; résumé de tous les arrêts, sans coordonnées du client |
 
@@ -425,7 +425,7 @@ enregistrée une seule fois.
 | `GET` / `POST /couriers`, `PATCH /couriers/:id`               | Répertoire des livreurs ; `commandes:consulter`, écriture `commandes:modifier`                                      |
 | `PUT /orders/:id/delivery-cost`                               | Coût réel de la course, distinct des frais facturés ; `commandes:modifier`                                          |
 | `POST /orders/:id/delivery-fee-changes`                       | Nouveaux frais proposés au client, appliqués avec son accord                                                        |
-| `PATCH /orders/:id/delivery-dispute`                          | Résolution d'une contestation de livraison                                                                          |
+| `PATCH /orders/:id/delivery-dispute`                          | Résolution d'une réclamation de livraison Okoumé ; aucune médiation pour les commandes livrées par le vendeur      |
 | `GET /referral-rewards`, `PATCH /referral-rewards/:id`        | Parrainages suspects à vérifier ; `clients:valider`                                                                 |
 | `GET /invoices`, `GET /invoices/:id`                          | Factures et avoirs ; `paiements:consulter`                                                                          |
 | `GET /returns`, `GET /returns/:id`                            | Dossiers de retour ; `retours:consulter`                                                                            |
@@ -488,38 +488,29 @@ enregistrée une seule fois.
 - La base vérifie elle-même la cohérence (CHECK) : stock et réservations positifs, réservations inférieures au stock,
   total égal au sous-total moins les remises plus la livraison.
 
-## Assistance, données personnelles, avis et contenus
+## Données personnelles, avis et contenus
 
 | Route                                           | Accès                           | Rôle                                                    |
 | ----------------------------------------------- | ------------------------------- | ------------------------------------------------------- |
-| `POST /support/tickets`                         | public (limité)                 | Demande d'assistance, avec ou sans compte               |
-| `GET /support/tickets`, `/:number`, réponses    | client                          | Suivi, réponse, réouverture, note                       |
-| `/staff/support/tickets`                        | `clients:consulter`, `modifier` | File, réponse, suivi, clôture                           |
-| `GET`, `POST /me/privacy-requests`              | client                          | Demandes d'accès et de correction                       |
-| `POST /me/data-exports`                         | client                          | Export immédiat de ses données (tracé)                  |
-| `POST /me/account-deletion`                     | client, mot de passe            | Anonymisation immédiate du compte                       |
-| `/staff/privacy-requests`                       | `donnees_sensibles:*`           | Suivi, export (`exporter`), clôture (`modifier`)        |
 | `GET /reviews/ratings`, `/reviews/products/:id` | public                          | Notes par produit, avis publiés                         |
 | `PUT /reviews/mine/:productId`, signalements    | client                          | Avis sur un produit reçu, signalement                   |
 | `/staff/reviews`                                | `clients:consulter`, `modifier` | Modération motivée par la charte                        |
-| `GET /content/...`                              | public                          | Bannières, publicités en cours, offres, articles, pages |
-| `/staff/content/...`                            | `catalogue:*`                   | Bannières, publicités, articles (`publier`), pages      |
+| `GET /content/...`                              | public                          | Bannières, publicités en cours, offres, pages           |
+| `/staff/content/...`                            | administrateur                  | Bannières, publicités et pages                          |
 
-- Anonymisation : refusée tant qu'une commande, un retour ou une demande à un vendeur est en cours, ou si le compte
+- Anonymisation automatique des comptes inactifs : refusée tant qu'une commande, un retour ou une demande à un vendeur est en cours, ou si le compte
   a une boutique ; les blocages sont revérifiés dans la transaction qui anonymise. Les montants des commandes et les
   avis restent, sans nom ni coordonnées. Le job quotidien `privacy.inactive-accounts` (3 h, heure de Libreville)
   anonymise les comptes sans connexion ni commande depuis 3 ans.
 - Avis : réservés à un produit reçu (commande livrée), affichés avec le prénom et l'initiale du nom, repassent en
   modération à chaque modification ; la décision de l'équipe clôt les signalements.
-- Articles : un article programmé (publié avec une date future) n'existe pas pour le public avant sa date. Chaque
-  enregistrement garde la version précédente avec son auteur et la nature du changement.
 
 ## Back-office : clients, équipe, journal, alertes, quartiers demandés
 
 | Route                                | Accès                             | Rôle                                                    |
 | ------------------------------------ | --------------------------------- | ------------------------------------------------------- |
 | `GET /staff/customers`, `/:id`       | `clients:consulter`               | Fichier clients : points, niveau, commandes, adresses   |
-| `/staff/team`, `/staff/custom-roles` | administrateur principal          | Invitations, droits, suspension, sessions, codes, rôles |
+| `/staff/team`                         | administrateur                  | Invitations, suspension, sessions et codes de secours ; tous les membres ont le même rôle |
 | `GET /staff/activity`                | administrateur principal          | Journal d'activité tenu par le serveur                  |
 | `GET`, `PATCH /staff/alerts`         | `pilotage:consulter`              | Dossiers d'alerte : prise en charge, clôture motivée    |
 | `POST /zone-requests`                | public (limité)                   | Demande de nouveau quartier                             |
@@ -690,8 +681,8 @@ les motifs ne sont jamais dans la vue du client.
 - Annonces : la liste des produits interdits utilisée par l'IA (`anthropicListingReviewer.ts`) est une liste de
   départ, à faire valider juridiquement. L'adaptateur Anthropic n'a pas encore été essayé avec une vraie clé. La
   recherche et le tri par proximité arrivent au lot 9.3.
-- Place de marché : la vérification du téléphone du vendeur (exigée avant publication, 32.2) n'est pas faite :
-  elle demande un fournisseur d'envoi de SMS, pas encore choisi. Seule l'adresse e-mail est vérifiée. Le domaine de droits `vendeurs` n'est pas encore dans l'éditeur de rôles du front ; les écrans
+- Place de marché : le contrôle du numéro vendeur est simulé dans le formulaire (aucun SMS n'est envoyé et le
+  propriétaire du numéro n'est donc pas réellement vérifié). Seule l'adresse e-mail est vérifiée. Le domaine de droits `vendeurs` n'est pas encore dans l'éditeur de rôles du front ; les écrans
   vendeur et administration restent à faire côté front. Isolation entre vendeurs assurée par l'API (aucun
   identifiant de boutique dans les routes vendeur), pas par la base (pas de RLS).
 - Push : pas encore de notification pour les retours, les remboursements ni la fidélité (l'assistance en envoie).
@@ -703,8 +694,7 @@ les motifs ne sont jamais dans la vue du client.
 - Suivi des e-mails : pas de durée de conservation automatique des lignes de suivi (destinataire et objet).
 - Durées de conservation : seule l'anonymisation des comptes inactifs est automatisée. Journaux de connexion,
   historique de navigation et demandes d'assistance anciennes ne sont pas encore purgés par l'API.
-- Données personnelles : le client n'est pas prévenu par e-mail de la réponse à sa demande (elle est visible dans
-  son compte). Les messages du tchat d'un compte anonymisé sont conservés.
+- Données personnelles : les clients modifient directement les informations de leur profil et leurs coordonnées. Les messages du tchat d'un compte anonymisé sont conservés.
 - Espaces publicitaires : l'équipe peut créer et modifier des campagnes depuis le back-office, les programmer,
   choisir leur emplacement et les activer ou désactiver. Les campagnes désactivées sont conservées ; leur suppression
   n'est pas disponible. Le contrat de l'annonceur n'est pas stocké par l'API. Les offres exclusives se lisent mais ne

@@ -9,7 +9,6 @@ import {
   deliveryCostBody,
   reviewClearanceBody,
   disputeResolutionBody,
-  feeChangeBody,
   listStaffOrdersQuery,
   transitionBody,
 } from './staff-orders.schemas.js';
@@ -39,11 +38,6 @@ export const createStaffOrdersRoutes = (
     '/:id/delivery-cost',
     validate({ params: idParam, body: deliveryCostBody }),
     asyncHandler(c.setDeliveryCost),
-  );
-  router.post(
-    '/:id/delivery-fee-changes',
-    validate({ params: idParam, body: feeChangeBody }),
-    asyncHandler(c.proposeFeeChange),
   );
   router.patch(
     '/:id/delivery-dispute',

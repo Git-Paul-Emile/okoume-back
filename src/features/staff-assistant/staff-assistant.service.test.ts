@@ -9,7 +9,7 @@ const PRODUCT = '22222222-2222-4222-8222-222222222222';
 
 function setup() {
   const services = buildApp().services;
-  services.supportStaff.push({ id: 's0', firstName: 'Inès', lastName: 'Moussavou' });
+  services.teamDirectory.push({ id: 's0', firstName: 'Inès', lastName: 'Moussavou' });
   return services;
 }
 

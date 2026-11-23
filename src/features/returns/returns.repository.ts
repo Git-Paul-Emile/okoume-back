@@ -7,8 +7,6 @@ export type ReturnActor = { type: 'customer' } | { type: 'staff'; staffId: strin
 export interface ReturnItemRecord {
   variantId: string;
   quantity: number;
-  resaleable: number | null;
-  unsellable: number | null;
 }
 
 export interface ReturnRecord {
@@ -23,10 +21,8 @@ export interface ReturnRecord {
   decisionReason: string | null;
   shippingPaidBy: 'shop' | 'customer' | null;
   shippingReason: string | null;
-  inspectionNote: string | null;
   refundAmount: number | null;
   refundedAmount: number;
-  restockStatus: 'none' | 'pending' | 'done';
   reopenRequestedAt: Date | null;
   items: ReturnItemRecord[];
   events: Array<{
@@ -51,20 +47,6 @@ export type ReturnPatch = Partial<
   Pick<ReturnRecord, 'decisionReason' | 'shippingPaidBy' | 'shippingReason' | 'reopenRequestedAt'>
 >;
 
-export interface InspectionWrite {
-  lines: Array<{ variantId: string; resaleable: number; unsellable: number }>;
-  note: string;
-  refundAmount: number;
-  next: 'refund_due' | 'closed';
-  /** La commande payée passe en « Remboursement à effectuer » dans la même transaction */
-  orderRefundDue: boolean;
-}
-
-export type WriteOffResult =
-  | { outcome: 'applied'; unsellableLeft: number }
-  | { outcome: 'not_found' }
-  | { outcome: 'insufficient'; unsellable: number };
-
 /** Contrat de stockage des retours. Chaque écriture vérifie l'étape lue : sinon null, rien n'est écrit. */
 export interface ReturnsRepository {
   findById(id: string): Promise<ReturnRecord | null>;
@@ -83,15 +65,12 @@ export interface ReturnsRepository {
     note: string,
     actor: ReturnActor,
   ): Promise<ReturnRecord | null>;
-  /** Inspection : classement des articles, stock non revendable mis à part, montant à rembourser. */
-  inspect(ret: ReturnRecord, inspection: InspectionWrite, staffId: string): Promise<ReturnRecord | null>;
-  /** Remise en stock des articles revendables, validée par une personne autorisée au stock. */
-  restock(ret: ReturnRecord, staffId: string): Promise<ReturnRecord | null>;
-  writeOff(
-    variantId: string,
-    entry: { quantity: number; reason: string; referenceValue: number; occurredAt: Date },
+  /** Réception simple : fixe le montant dû et ouvre directement le remboursement après réception. */
+  receive(
+    ret: ReturnRecord,
+    input: { refundAmount: number; next: 'refund_due' | 'closed'; note: string },
     staffId: string,
-  ): Promise<WriteOffResult>;
+  ): Promise<ReturnRecord | null>;
 }
 
 const include = {
@@ -114,17 +93,10 @@ const toRecord = (row: Row): ReturnRecord => ({
   decisionReason: row.decisionReason,
   shippingPaidBy: row.shippingPaidBy,
   shippingReason: row.shippingReason,
-  inspectionNote: row.inspectionNote,
   refundAmount: row.refundAmount?.toNumber() ?? null,
   refundedAmount: row.refundedAmount.toNumber(),
-  restockStatus: row.restockStatus,
   reopenRequestedAt: row.reopenRequestedAt,
-  items: row.items.map(({ variantId, quantity, resaleable, unsellable }) => ({
-    variantId,
-    quantity,
-    resaleable,
-    unsellable,
-  })),
+  items: row.items.map(({ variantId, quantity }) => ({ variantId, quantity })),
   events: row.events.map((e) => ({
     status: e.status,
     note: e.note,
@@ -217,106 +189,17 @@ export const returnsRepository: ReturnsRepository = {
       return ret.id;
     }),
 
-  inspect: (ret, inspection, staffId) =>
+  receive: (ret, input, staffId) =>
     guarded(async (tx) => {
-      const resaleable = inspection.lines.some((l) => l.resaleable > 0);
-      await move(tx, ret, inspection.next, {
-        inspectionNote: inspection.note,
-        refundAmount: inspection.refundAmount,
-        restockStatus: resaleable ? 'pending' : 'none',
-      });
-      for (const line of [...inspection.lines].sort((a, b) => a.variantId.localeCompare(b.variantId))) {
-        await tx.returnItem.update({
-          where: { returnId_variantId: { returnId: ret.id, variantId: line.variantId } },
-          data: { resaleable: line.resaleable, unsellable: line.unsellable },
-          select: { id: true },
-        });
-        if (!line.unsellable) continue;
-        // Non revendable : stock séparé, jamais proposé à la vente ; le journal suit ce compteur
-        const [updated] = await tx.$queryRaw<Array<{ unsellable: number }>>`
-          UPDATE variants SET unsellable = unsellable + ${line.unsellable} WHERE id = ${line.variantId}::uuid RETURNING unsellable`;
-        if (!updated) throw new Error(`Variante introuvable : ${line.variantId}`);
-        const after = Number(updated.unsellable);
-        await tx.stockMovement.create({
-          data: {
-            variantId: line.variantId,
-            type: 'non_vendable',
-            before: after - line.unsellable,
-            after,
-            delta: line.unsellable,
-            reason: `Retour non revendable (${ret.orderNumber}) : stock séparé, hors vente`,
-            orderId: ret.orderId,
-            staffId,
-          },
-          select: { id: true },
-        });
-      }
-      if (inspection.orderRefundDue)
-        await tx.order.updateMany({
+      await move(tx, ret, input.next, { refundAmount: input.refundAmount });
+      if (input.next === 'refund_due') {
+        const updated = await tx.order.updateMany({
           where: { id: ret.orderId, paymentStatus: 'paid' },
           data: { paymentStatus: 'refund_due' },
         });
-      await event(tx, ret.id, inspection.next, inspection.note, { type: 'staff', staffId });
-      return ret.id;
-    }),
-
-  restock: (ret, staffId) =>
-    guarded(async (tx) => {
-      const marked = await tx.returnRequest.updateMany({
-        where: { id: ret.id, restockStatus: 'pending' },
-        data: { restockStatus: 'done' },
-      });
-      if (marked.count !== 1) throw new StaleReturn();
-      for (const item of ret.items) {
-        if (!item.resaleable) continue;
-        const [updated] = await tx.$queryRaw<Array<{ stock: number }>>`
-          UPDATE variants SET stock = stock + ${item.resaleable} WHERE id = ${item.variantId}::uuid RETURNING stock`;
-        if (!updated) throw new Error(`Variante introuvable : ${item.variantId}`);
-        const after = Number(updated.stock);
-        await tx.stockMovement.create({
-          data: {
-            variantId: item.variantId,
-            type: 'retour',
-            before: after - item.resaleable,
-            after,
-            delta: item.resaleable,
-            reason: `Retour reçu pour la commande ${ret.orderNumber}`,
-            orderId: ret.orderId,
-            staffId,
-          },
-          select: { id: true },
-        });
+        if (updated.count !== 1) throw new StaleReturn();
       }
-      await event(tx, ret.id, ret.status, 'Articles revendables remis en stock', { type: 'staff', staffId });
+      await event(tx, ret.id, input.next, input.note, { type: 'staff', staffId });
       return ret.id;
     }),
-
-  async writeOff(variantId, entry, staffId) {
-    return prisma.$transaction(async (tx): Promise<WriteOffResult> => {
-      const [variant] = await tx.$queryRaw<Array<{ unsellable: number }>>`
-        SELECT unsellable FROM variants WHERE id = ${variantId}::uuid FOR UPDATE`;
-      if (!variant) return { outcome: 'not_found' };
-      const before = Number(variant.unsellable);
-      if (before < entry.quantity) return { outcome: 'insufficient', unsellable: before };
-      await tx.variant.update({
-        where: { id: variantId },
-        data: { unsellable: before - entry.quantity },
-        select: { id: true },
-      });
-      await tx.stockWriteOff.create({ data: { variantId, ...entry, staffId }, select: { id: true } });
-      await tx.stockMovement.create({
-        data: {
-          variantId,
-          type: 'mise_au_rebut',
-          before,
-          after: before - entry.quantity,
-          delta: -entry.quantity,
-          reason: entry.reason,
-          staffId,
-        },
-        select: { id: true },
-      });
-      return { outcome: 'applied', unsellableLeft: before - entry.quantity };
-    });
-  },
 };

@@ -19,15 +19,6 @@ export type DecisionInput = z.infer<typeof decisionBody>;
 /** Seuls « mis en avant » et la promotion peuvent changer par une proposition. */
 const productPatch = z.strictObject({
   featured: z.boolean().optional(),
-  promotion: z
-    .strictObject({
-      type: z.enum(['percent', 'fixed']),
-      value: z.number().positive().max(10_000_000),
-      startsAt: z.iso.datetime({ offset: true }),
-      endsAt: z.iso.datetime({ offset: true }),
-    })
-    .nullable()
-    .optional(),
 });
 
 export const actionBody = z.strictObject({

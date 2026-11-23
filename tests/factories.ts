@@ -1,5 +1,4 @@
 import { createApp } from '../src/app.js';
-import { createSupportService } from '../src/features/support/support.service.js';
 import { createPrivacyService } from '../src/features/privacy/privacy.service.js';
 import { createMemoryPrivacy } from './memoryPrivacy.js';
 import { createReviewsService } from '../src/features/reviews/reviews.service.js';
@@ -28,7 +27,6 @@ import {
   type ShopAssistantRequest,
 } from '../src/infrastructure/ai/shopAssistant.js';
 import { createMemoryAnalytics } from './memoryAnalytics.js';
-import { createMemorySupport } from './memorySupport.js';
 import { createPublicPromoCodesService } from '../src/features/promo-codes/promo-codes.service.js';
 import { createSettingsService } from '../src/features/settings/settings.service.js';
 import { createMemoryInformation } from './memorySettings.js';
@@ -42,7 +40,6 @@ import { createOrdersService } from '../src/features/orders/orders.service.js';
 import { createProductsService } from '../src/features/products/products.service.js';
 import { createStaffCouriersService } from '../src/features/staff-couriers/staff-couriers.service.js';
 import { createStaffOrdersService } from '../src/features/staff-orders/staff-orders.service.js';
-import { createPaymentsService } from '../src/features/payments/payments.service.js';
 import { createStaffPaymentsService } from '../src/features/staff-payments/staff-payments.service.js';
 import { createReturnsService } from '../src/features/returns/returns.service.js';
 import { createStaffReturnsService } from '../src/features/staff-returns/staff-returns.service.js';
@@ -152,8 +149,7 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
   const reviewer = createFakeListingReviewer();
   const media = createFakeMediaStorage();
   // Membres de l'équipe connus de l'assistance (responsables, auteurs des réponses)
-  const supportStaff: Array<{ id: string; firstName: string; lastName: string }> = [];
-  const supportStore = createMemorySupport(clock.now, () => supportStaff);
+  const teamDirectory: Array<{ id: string; firstName: string; lastName: string }> = [];
   // Vérificateur IA des produits de vendeurs : un faux réglable
   return {
     catalog,
@@ -162,18 +158,7 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
     notifications: createNotificationsService(notificationsStore.repository, 'cle-publique-de-test'),
     media,
     staffMedia: createStaffMediaService(media, clock.now),
-    supportStaff,
-    supportStore,
-    support: createSupportService({
-      support: supportStore.repository,
-      information: informationStore.repository,
-      media,
-      email,
-      notifier,
-      appUrl: 'http://localhost:5173',
-      reopenDays: 15,
-      now: clock.now,
-    }),
+    teamDirectory,
     reviewer,
     shopsStore,
     shops: createShopsService(marketplace),
@@ -192,7 +177,6 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
       zones: zonesRepository,
       categories,
       promoCodes: catalog.repositories.promoCodesRepository,
-      loyalty: catalog.repositories.loyaltyRepository,
       email,
       notifier,
       appUrl: 'http://localhost:5173',
@@ -208,12 +192,10 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
       now: clock.now,
     }),
     staffCouriers: createStaffCouriersService(catalog.repositories.couriersRepository),
-    payments: createPaymentsService(ordersRepository, catalog.repositories.paymentsRepository),
     staffPayments: createStaffPaymentsService(
       ordersRepository,
       catalog.repositories.paymentsRepository,
       catalog.repositories.returnsRepository,
-      catalog.repositories.loyaltyRepository,
       clock.now,
     ),
     returns: createReturnsService({
@@ -227,7 +209,7 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
       appUrl: 'http://localhost:5173',
       now: clock.now,
     }),
-    staffReturns: createStaffReturnsService(catalog.repositories.returnsRepository, ordersRepository, clock.now),
+    staffReturns: createStaffReturnsService(catalog.repositories.returnsRepository, ordersRepository),
     loyalty: createLoyaltyService(catalog.repositories.loyaltyRepository),
     informationStore,
     settings: createSettingsService({
@@ -248,11 +230,10 @@ export const buildShopServices = (clock = createClock(), email = createFakeEmail
     publicPromoCodes: createPublicPromoCodesService(catalog.repositories.promoCodesRepository, clock.now),
     staffStock: createStaffStockService(catalog.repositories.stockRepository),
     staffCatalog: createStaffCatalogService(staffStore.catalog),
-    payouts: createPayoutsService(catalog.repositories.payoutsRepository, shopsStore.repository, clock.now),
+    payouts: createPayoutsService(catalog.repositories.payoutsRepository, clock.now),
     sellerDashboard: createSellerDashboardService({
       dashboard: createMemorySellerDashboard({ catalog: staffStore.catalog, orders: catalog.orders }).repository,
       shops: shopsStore.repository,
-      payouts: catalog.repositories.payoutsRepository,
       now: clock.now,
     }),
     sellerDelivery: createSellerDeliveryService({
@@ -300,13 +281,9 @@ export const buildApp = ({ databaseUp = true }: { databaseUp?: boolean } = {}) =
     now: auth.clock.now,
   });
   const account = createAccountService({ customers: auth.customersStore.repository, account: accountStore.repository });
-  const privacyStore = createMemoryPrivacy(auth.customersStore.customers, () => shop.supportStaff, auth.clock.now);
-  const privacy = createPrivacyService({
-    privacy: privacyStore.repository,
-    customers: auth.customersStore.repository,
-    now: auth.clock.now,
-  });
-  const reviewsStore = createMemoryReviews(auth.clock.now, () => shop.supportStaff);
+  const privacyStore = createMemoryPrivacy(auth.customersStore.customers);
+  const privacy = createPrivacyService({ privacy: privacyStore.repository, now: auth.clock.now });
+  const reviewsStore = createMemoryReviews(auth.clock.now, () => shop.teamDirectory);
   const reviews = createReviewsService({
     reviews: reviewsStore.repository,
     customers: auth.customersStore.repository,
@@ -314,11 +291,10 @@ export const buildApp = ({ databaseUp = true }: { databaseUp?: boolean } = {}) =
     now: auth.clock.now,
   });
   const contentStore = createMemoryContent(auth.clock.now);
-  const content = createContentService({ content: contentStore.repository, now: auth.clock.now });
+  const content = createContentService({ content: contentStore.repository });
   const staffCustomersStore = createMemoryStaffCustomers();
   const staffCustomers = createStaffCustomersService({
     customers: staffCustomersStore.repository,
-    loyalty: shop.catalog.repositories.loyaltyRepository,
   });
   const staffTeamStore = createMemoryStaffTeam(auth.clock.now);
   const staffTeam = createStaffTeamService({
@@ -335,7 +311,7 @@ export const buildApp = ({ databaseUp = true }: { databaseUp?: boolean } = {}) =
   });
   const staffActivityStore = createMemoryStaffActivity();
   const staffActivity = createStaffActivityService({ activity: staffActivityStore.repository, now: auth.clock.now });
-  const staffAlertsStore = createMemoryStaffAlerts(() => shop.supportStaff);
+  const staffAlertsStore = createMemoryStaffAlerts(() => shop.teamDirectory);
   const staffAlerts = createStaffAlertsService({
     alerts: staffAlertsStore.repository,
     information: shop.informationStore.repository,
@@ -348,7 +324,7 @@ export const buildApp = ({ databaseUp = true }: { databaseUp?: boolean } = {}) =
     deliveries: emailDeliveriesStore.repository,
     email: auth.email,
   });
-  const staffAssistantStore = createMemoryStaffAssistant(auth.clock.now, () => shop.supportStaff);
+  const staffAssistantStore = createMemoryStaffAssistant(auth.clock.now, () => shop.teamDirectory);
   const staffAssistant = createStaffAssistantService({
     assistant: staffAssistantStore.repository,
     now: auth.clock.now,
@@ -413,8 +389,6 @@ export const buildApp = ({ databaseUp = true }: { databaseUp?: boolean } = {}) =
     account,
     settings: shop.settings,
     publicPromoCodes: shop.publicPromoCodes,
-    support: shop.support,
-    privacy,
     reviews,
     content,
     staffCustomers,
@@ -433,14 +407,10 @@ export const buildApp = ({ databaseUp = true }: { databaseUp?: boolean } = {}) =
     orders: shop.orders,
     staffOrders: shop.staffOrders,
     staffCouriers: shop.staffCouriers,
-    payments: shop.payments,
     staffPayments: shop.staffPayments,
     returns: shop.returns,
     staffReturns: shop.staffReturns,
-    loyalty: shop.loyalty,
-    loyaltyRewards: shop.loyaltyRewards,
     invoices: shop.invoices,
-    staffLoyalty: shop.staffLoyalty,
     staffPromoCodes: shop.staffPromoCodes,
     staffStock: shop.staffStock,
     staffCatalog: shop.staffCatalog,

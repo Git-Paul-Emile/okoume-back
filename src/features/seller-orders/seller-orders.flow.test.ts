@@ -119,7 +119,10 @@ describe('commandes reçues par un vendeur', () => {
       cashier,
     );
 
-    const { items, due } = await shop.payouts.listForSeller(shop.seller.id, { page: 1, limit: 20 });
+    const { items, due } = await shop.payouts.listForStaff(
+      { page: 1, limit: 20, shopId: shop.opened.id },
+      owner,
+    );
     // 22 000 encaissés, 2 000 de livraison gardés par Okoumé, 10 % de commission sur 20 000
     expect(items[0]).toMatchObject({ collected: 22_000, deliveryFee: 2_000, commission: 2_000, amount: 18_000 });
     expect(due).toBe(18_000);
@@ -132,7 +135,7 @@ describe('commandes reçues par un vendeur', () => {
     await expect(shop.payouts.markPaid(items[0]!.id, { method: 'cash', reference: null }, owner)).rejects.toMatchObject(
       { status: 409 },
     );
-    expect((await shop.payouts.listForSeller(shop.seller.id, { page: 1, limit: 20 })).due).toBe(0);
+    expect((await shop.payouts.listForStaff({ page: 1, limit: 20, shopId: shop.opened.id }, owner)).due).toBe(0);
   });
 
   it('le vendeur annule une commande avant son départ, le stock réservé est rendu', async () => {

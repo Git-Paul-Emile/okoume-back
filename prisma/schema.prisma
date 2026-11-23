@@ -74,13 +74,6 @@ model Customer {
 
 // ---------------------------------------------------------------- Équipe et droits
 
-enum StaffRole {
-  super_admin
-  catalog_manager
-  orders_manager
-  stock_manager
-}
-
 enum StaffStatus {
   invited
   active
@@ -94,9 +87,8 @@ model StaffMember {
   passwordHash      String?     @map("password_hash")
   firstName         String      @map("first_name")
   lastName          String      @map("last_name")
-  role              StaffRole
-  /// Rôles standards cumulés avec le rôle principal
-  extraRoles        StaffRole[] @default([]) @map("extra_roles")
+  /// Rôle unique de l'équipe back-office
+  role              String      @default("super_admin")
   status            StaffStatus @default(invited)
   /// Plafond de remboursement délégué, en FCFA (absent : pas de délégation)
   refundLimit       Decimal?    @map("refund_limit") @db.Decimal(12, 0)
@@ -108,7 +100,6 @@ model StaffMember {
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
 
-  customRoles       StaffCustomRole[]
   backupCodes       BackupCode[]
   sessions          Session[]
   stockMovements    StockMovement[]
@@ -133,31 +124,6 @@ model StaffMember {
   sellerPayouts     SellerPayout[]
 
   @@map("staff_members")
-}
-
-model CustomRole {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique
-  /// Droits « domaine:action », par exemple paiements:valider
-  permissions String[]
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  members StaffCustomRole[]
-
-  @@map("custom_roles")
-}
-
-model StaffCustomRole {
-  staffId      String @map("staff_id") @db.Uuid
-  customRoleId String @map("custom_role_id") @db.Uuid
-
-  staff      StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  customRole CustomRole  @relation(fields: [customRoleId], references: [id], onDelete: Cascade)
-
-  @@id([staffId, customRoleId])
-  @@index([customRoleId])
-  @@map("staff_custom_roles")
 }
 
 /// Codes de secours de la double vérification : seule l'empreinte est conservée
@@ -1858,8 +1824,8 @@ enum PrivacyRequestStatus {
   refused
 }
 
-/// Demande d'un client sur ses données personnelles (19.5) : accès, export, correction ou suppression.
-/// Réponse due sous 30 jours. Une suppression effectuée garde ici une trace sans donnée identifiante.
+/// Archives des anciennes demandes de confidentialité ; aucun parcours API n'en crée ou n'en expose de nouvelles.
+/// Les coordonnées sont effacées lors de l'anonymisation automatique du compte associé.
 model PrivacyRequest {
   id         String               @id @default(uuid()) @db.Uuid
   number     String               @unique
@@ -2083,7 +2049,7 @@ model StaffActivity {
   /// Membre ; son nom et son rôle sont figés au moment de l'action
   staffId   String?   @map("staff_id") @db.Uuid
   staffName String    @map("staff_name")
-  role      StaffRole
+  role      String
   /// Domaine concerné (Commandes, Stock…) et libellé de l'action
   area      String
   action    String

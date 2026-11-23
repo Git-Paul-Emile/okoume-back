@@ -45,30 +45,15 @@ export function assertReturnItems(order: OrderRecord, items: ReadonlyArray<{ var
 }
 
 /**
- * Montant remboursable d'un retour (14.4) : prix payé des articles retournés, remises de la commande (code,
- * points) réparties au prorata. Les frais de livraison sont examinés séparément.
+ * Montant remboursable d'un retour : prix payé des articles retournés, remise du code répartie au prorata.
+ * Les frais de livraison sont examinés séparément.
  */
 export function returnRefundAmount(order: Pick<OrderRecord, 'items' | 'totals'>, items: readonly ReturnItemRecord[]) {
   const goods = order.totals.subtotal;
-  const discounts = order.totals.codeDiscount + order.totals.pointsDiscount;
+  const discounts = order.totals.codeDiscount;
   const returned = items.reduce(
     (sum, r) => sum + (order.items.find((i) => i.variantId === r.variantId)?.unitPrice ?? 0) * r.quantity,
     0,
   );
   return Math.max(0, Math.round(returned - (goods > 0 ? (discounts * returned) / goods : 0)));
-}
-
-/** Chaque article reçu est classé revendable ou non revendable, pour toute sa quantité (14.3). */
-export function assertInspection(
-  items: readonly ReturnItemRecord[],
-  lines: ReadonlyArray<{ variantId: string; resaleable: number; unsellable: number }>,
-) {
-  if (lines.length !== items.length) throw new UnprocessableError('Classez chaque article retourné.');
-  for (const item of items) {
-    const line = lines.find((l) => l.variantId === item.variantId);
-    if (!line || line.resaleable + line.unsellable !== item.quantity)
-      throw new UnprocessableError(
-        'Classez chaque article retourné : revendable ou non revendable, pour la quantité reçue.',
-      );
-  }
 }

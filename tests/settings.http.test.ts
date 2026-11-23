@@ -12,7 +12,7 @@ const account = {
 };
 
 describe('réglages publics', () => {
-  it('donnent paiement, fidélité et délais, sans les seuils internes de l’équipe', async () => {
+  it('donnent les informations de paiement et les délais publics', async () => {
     const app = buildApp();
     app.services.informationStore.info.mobileMoney = [
       {
@@ -26,14 +26,14 @@ describe('réglages publics', () => {
     const res = await request(app).get('/api/v1/settings').expect(200);
     expect(res.body.data).toMatchObject({
       currency: 'XAF',
-      loyalty: { pointValue: 50, minRedeem: 100, earnPer: 1000 },
-      tiers: [{ id: 'bronze' }, { id: 'argent', threshold: 300_000 }, { id: 'or', threshold: 1_000_000 }],
       mobileMoney: [{ method: 'airtel', beneficiary: 'OKOUME SARL' }],
       mobileMoneyExpiryHours: 24,
       returnWindowDays: 14,
       maxAddresses: 5,
       supportSla: { high: 4, normal: 24 },
     });
+    expect(res.body.data).not.toHaveProperty('loyalty');
+    expect(res.body.data).not.toHaveProperty('referralReward');
     expect(res.body.data).not.toHaveProperty('reviewAmount');
     expect(res.body.data).not.toHaveProperty('assistantMonthlyBudget');
     expect(res.headers['cache-control']).toContain('public');
@@ -55,7 +55,7 @@ describe('réglages publics', () => {
 });
 
 describe('codes promotionnels publics', () => {
-  it('montrent les codes ouverts à tous, jamais un code personnel ou réservé aux nouveaux clients', async () => {
+  it('montrent les codes promo actifs ouverts à tous', async () => {
     const app = buildApp();
     const manager = { role: 'catalog_manager' as const, extraRoles: [], customPermissions: [] };
     const code = (overrides: Record<string, unknown>) =>
@@ -67,14 +67,9 @@ describe('codes promotionnels publics', () => {
           value: 10,
           minAmount: 0,
           freeDelivery: false,
-          newCustomersOnly: false,
-          tiers: [],
-          startsAt: new Date('2026-11-01'),
           endsAt: new Date('2026-12-31'),
           maxUses: null,
-          perCustomer: null,
           active: true,
-          customerId: null,
           productIds: [],
           categoryIds: [],
           ...overrides,
@@ -82,7 +77,6 @@ describe('codes promotionnels publics', () => {
         manager,
       );
     await code({ code: 'NOEL10' });
-    await code({ code: 'BIENVENUE', newCustomersOnly: true });
     await code({ code: 'INACTIF', active: false });
     const res = await request(app).get('/api/v1/promo-codes').expect(200);
     expect(res.body.data.map((c: { code: string }) => c.code)).toEqual(['NOEL10']);

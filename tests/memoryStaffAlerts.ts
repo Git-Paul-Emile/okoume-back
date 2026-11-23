@@ -6,11 +6,9 @@ const ZERO: AlertCounts = {
   paymentsToVerify: 0,
   outOfStock: 0,
   lowStock: 0,
-  lateSupport: 0,
   cancellationsPending: 0,
   returnsPending: 0,
   cashWaiting: 0,
-  privacyOverdue: 0,
   listingsToModerate: 0,
   emailsFailed: 0,
 };

@@ -4,10 +4,10 @@ import type {
   StaffCustomersRepository,
 } from '../src/features/staff-customers/staff-customers.repository.js';
 
-/** Fichier clients en mémoire : les agrégats (points, commandes, montant du niveau) sont posés par les tests. */
+/** Fichier clients en mémoire : les agrégats de commandes sont posés par les tests. */
 export function createMemoryStaffCustomers() {
   const customers: CustomerDetailRecord[] = [];
-  const summary = ({ addresses: _a, orders: _o, movements: _m, ...c }: CustomerDetailRecord): CustomerSummaryRecord =>
+  const summary = ({ addresses: _a, orders: _o, ...c }: CustomerDetailRecord): CustomerSummaryRecord =>
     structuredClone(c);
 
   const repository: StaffCustomersRepository = {
