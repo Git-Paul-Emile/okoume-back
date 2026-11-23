@@ -15,6 +15,11 @@ export const createShopsController = (service: ShopsService) => ({
     return sendSuccess(res, await service.publicShop(String(req.params.slug)));
   },
 
+  async publicList(req: Request, res: Response) {
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    return sendSuccess(res, await service.publicList(pageQuery.parse(req.query)));
+  },
+
   async open(req: Request, res: Response) {
     return sendSuccess(res, await service.open(req.customer!.id, req.body), 201, 'Boutique ouverte.');
   },

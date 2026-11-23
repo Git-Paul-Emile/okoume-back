@@ -25,6 +25,7 @@ export const createAccessPlansRoutes = (service: ShopsService) => {
 export const createPublicShopsRoutes = (service: ShopsService) => {
   const c = createShopsController(service);
   const router = Router();
+  router.get('/', validate({ query: pageQuery }), asyncHandler(c.publicList));
   router.get('/:slug', validate({ params: slugParam }), asyncHandler(c.publicShop));
   return router;
 };

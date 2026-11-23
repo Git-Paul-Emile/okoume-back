@@ -83,6 +83,7 @@ choisissant une offre d'accès configurée par l'administration.
 | ----------------------------------- | ------------------- | -------------------------------------------------------- |
 | `GET /access-plans`                 | public              | Offres actives                                           |
 | `GET /shops/:slug`                  | public              | Fiche publique (404 si suspendue ou sans accès en cours) |
+| `GET /shops?page=1&limit=24`        | public              | Annuaire des boutiques actives et visibles               |
 | `POST`, `GET`, `PATCH /seller/shop` | client connecté     | Ouvrir, consulter, modifier sa boutique                  |
 | `PUT /seller/shop/plan`             | client connecté     | Passer sur une offre gratuite                            |
 | `POST`, `GET /seller/shop/payments` | client connecté     | Déclarer un paiement Mobile Money, historique            |

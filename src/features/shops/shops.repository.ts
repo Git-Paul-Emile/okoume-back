@@ -120,6 +120,8 @@ export interface ShopsRepository {
   findByOwner(customerId: string): Promise<ShopRecord | null>;
   findById(id: string): Promise<ShopRecord | null>;
   findBySlug(slug: string): Promise<ShopRecord | null>;
+  /** Boutiques actives dont l'offre est visible au public. */
+  listPublic(query: { page: number; limit: number; now: Date; graceDays: number }): Promise<Page<ShopRecord>>;
   create(shop: NewShop): Promise<ShopRecord | 'owner_taken' | 'slug_taken'>;
   update(id: string, fields: Partial<ShopFields>): Promise<ShopRecord>;
   /** Changement d'offre direct (offre gratuite) : la période en cours s'arrête. */
@@ -273,6 +275,27 @@ export const shopsRepository: ShopsRepository = {
   async findBySlug(slug) {
     const row = await prisma.shop.findUnique({ where: { slug }, include: shopInclude });
     return row ? toShop(row) : null;
+  },
+
+  async listPublic({ page, limit, now, graceDays }) {
+    const where: Prisma.ShopWhereInput = {
+      status: 'active',
+      OR: [
+        { plan: { is: { kind: 'free' } } },
+        { accessEndsAt: { gt: addDays(now, -graceDays) } },
+      ],
+    };
+    const [rows, total] = await prisma.$transaction([
+      prisma.shop.findMany({
+        where,
+        include: shopInclude,
+        orderBy: [{ name: 'asc' }, { createdAt: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.shop.count({ where }),
+    ]);
+    return { items: rows.map(toShop), total };
   },
 
   /** Les doublons sont vérifiés avant l'écriture ; une course entre deux ouvertures finit sur l'index unique. */

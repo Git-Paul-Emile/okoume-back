@@ -184,6 +184,13 @@ export const createShopsService = (deps: ShopsDependencies) => {
       return toPublicShopDto(shop);
     },
 
+    /** Annuaire public : uniquement les boutiques dont l'offre est actuellement visible. */
+    async publicList(query: PageQuery) {
+      const { graceDays } = await shops.settings();
+      const { items, total } = await shops.listPublic({ ...query, now: now(), graceDays });
+      return paginate(items.map(toPublicShopDto), total, query.page, query.limit);
+    },
+
     /** Rappels d'échéance du jour (job quotidien) : un seul par échéance, même si le job est rejoué. */
     async sendAccessReminders() {
       const at = now();

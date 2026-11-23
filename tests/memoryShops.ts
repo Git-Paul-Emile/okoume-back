@@ -7,7 +7,7 @@ import type {
   ShopRecord,
   ShopsRepository,
 } from '../src/features/shops/shops.repository.js';
-import { addDays, nextPeriod } from '../src/features/shops/shops.rules.js';
+import { accessState, addDays, isVisible, nextPeriod } from '../src/features/shops/shops.rules.js';
 
 type StoredShop = Omit<ShopRecord, 'plan'> & { planId: string };
 type StoredPayment = Omit<ShopPaymentRecord, 'shop' | 'plan'> & { shopId: string; planId: string };
@@ -85,6 +85,21 @@ export function createMemoryShops(now: () => Date) {
     async findBySlug(slug) {
       const shop = shops.find((s) => s.slug === slug);
       return shop ? toShop(shop) : null;
+    },
+    async listPublic({ page: p, limit, now: at, graceDays }) {
+      const found = shops
+        .map(toShop)
+        .filter((shop) =>
+          isVisible(
+            accessState(
+              { status: shop.status, planKind: shop.plan.kind, accessEndsAt: shop.accessEndsAt, inTrial: shop.inTrial },
+              at,
+              graceDays,
+            ),
+          ),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name) || b.createdAt.getTime() - a.createdAt.getTime());
+      return page(found, p, limit);
     },
     async create(fields) {
       if (shops.some((s) => s.ownerId === fields.ownerId)) return 'owner_taken';
