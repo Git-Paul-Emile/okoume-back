@@ -15,6 +15,18 @@ export interface AdRecord {
 }
 export type AdChanges = Partial<Omit<AdRecord, 'id' | 'placement'>>;
 
+export interface BannerRecord {
+  id: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  href: string;
+  image: string;
+  accent: 'forest' | 'mure';
+  position: number;
+  active: boolean;
+}
+
 export interface OfferRecord {
   id: string;
   label: string;
@@ -34,6 +46,7 @@ export interface LegalPageRecord {
 
 /** Contrat de stockage des contenus du site. */
 export interface ContentRepository {
+  banners(onlyActive: boolean): Promise<BannerRecord[]>;
   /** liveAt : seulement les espaces actifs dont la campagne est en cours à cette date */
   ads(filters: { placement?: string | undefined; activeOnly?: boolean | undefined }): Promise<AdRecord[]>;
   createAd(ad: Omit<AdRecord, 'id'>): Promise<AdRecord>;
@@ -78,7 +91,26 @@ const adColumns = {
   active: true,
 } as const;
 
+const bannerColumns = {
+  id: true,
+  title: true,
+  subtitle: true,
+  cta: true,
+  href: true,
+  image: true,
+  accent: true,
+  position: true,
+  active: true,
+} as const;
+
 export const contentRepository: ContentRepository = {
+  banners: (onlyActive) =>
+    prisma.homeBanner.findMany({
+      where: onlyActive ? { active: true } : {},
+      select: bannerColumns,
+      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
+    }),
+
   ads: ({ placement, activeOnly }) =>
     prisma.ad.findMany({
       where: {

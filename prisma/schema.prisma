@@ -180,6 +180,11 @@ enum PromotionType {
   fixed
 }
 
+enum BannerAccent {
+  forest
+  mure
+}
+
 /// Prix TTC en francs CFA, sans dÃ©cimale. La promotion est portÃ©e par le produit et vaut pour toutes ses variantes.
 model Product {
   id                String             @id @default(uuid()) @db.Uuid
@@ -853,9 +858,29 @@ model ProductReview {
 
 // ---------------------------------------------------------------- Contenus Ã©ditoriaux
 
+/// Bannière du carrousel de l'accueil.
+model HomeBanner {
+  id        String       @id @default(uuid()) @db.Uuid
+  title     String
+  subtitle  String
+  cta       String
+  /// Lien interne (/catalogue…) ou adresse HTTPS
+  href      String
+  image     String
+  accent    BannerAccent @default(forest)
+  /// Ordre d'affichage, croissant
+  position  Int          @default(0)
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  @@index([active, position])
+  @@map("home_banners")
+}
+
 model Ad {
   id          String    @id @default(uuid()) @db.Uuid
-  /// Emplacement publicitaire unique de la page d'accueil : home-promo
+  /// Emplacement sur la page d'accueil : home-promo ou home-promo-side
   placement   String
   /// null : visuel de la boutique qui propose l'espace
   advertiser  String?

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const AD_PLACEMENTS = ['home-promo'] as const;
+export const AD_PLACEMENTS = ['home-promo', 'home-promo-side'] as const;
 /** Pages légales modifiables : leurs adresses sur le site */
 export const LEGAL_SLUGS = ['cgv', 'confidentialite', 'mentions'] as const;
 

@@ -32,6 +32,7 @@ export const createContentService = (deps: { content: ContentRepository }) => {
   }
 
   return {
+    banners: () => content.banners(true),
     ads: async (placement: string | undefined) => (await content.ads({ placement, activeOnly: true })).map(toAdDto),
     offers: () => content.offers(),
     legalPages: async () => (await content.legalPages()).map(toLegalPageDto),

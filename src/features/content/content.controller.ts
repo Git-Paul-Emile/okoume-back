@@ -9,6 +9,10 @@ const privateData = (res: Response) => res.setHeader('Cache-Control', 'no-store'
 
 /** Traduit HTTP vers le service et inversement ; aucune règle métier ici. */
 export const createContentController = (service: ContentService) => ({
+  async banners(_req: Request, res: Response) {
+    publicCache(res);
+    return sendSuccess(res, await service.banners());
+  },
   async ads(req: Request, res: Response) {
     publicCache(res);
     return sendSuccess(res, await service.ads(listAdsQuery.parse(req.query).placement));

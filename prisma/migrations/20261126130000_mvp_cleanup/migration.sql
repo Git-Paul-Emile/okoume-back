@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS
   "delivery_fee_changes", "delivery_disputes", "referral_rewards", "birthday_rewards",
   "loyalty_movements", "customer_favorites", "push_deliveries", "push_subscriptions",
   "return_items", "return_requests", "stock_write_offs", "cancellation_requests",
-  "invoices", "document_sequences", "home_banners", "articles", "shop_payments",
+  "invoices", "document_sequences", "articles", "shop_payments",
   "access_plans", "marketplace_settings", "custom_roles"
 CASCADE;
 
@@ -131,8 +131,7 @@ ALTER TABLE "shop_settings"
   DROP COLUMN IF EXISTS "welcome_valid_days";
 
 ALTER TABLE "ads" DROP CONSTRAINT IF EXISTS "ads_placement";
-DELETE FROM "ads" WHERE "placement" <> 'home-promo';
-ALTER TABLE "ads" ADD CONSTRAINT "ads_placement" CHECK ("placement" = 'home-promo');
+ALTER TABLE "ads" ADD CONSTRAINT "ads_placement" CHECK ("placement" IN ('home-promo', 'home-promo-side'));
 
 -- Ramène les énumérations des commandes et du stock aux états encore proposés dans l'application.
 ALTER TABLE "orders" ALTER COLUMN "status" DROP DEFAULT;
@@ -188,7 +187,7 @@ DROP TYPE IF EXISTS
   "ReviewSource", "ReviewOutcome", "ListingReportReason", "ListingReportStatus", "HandoverMode",
   "ListingRequestStatus", "RequestActor", "ConversationStatus", "ChatAuthor", "TicketCategory",
   "TicketStatus", "TicketPriority", "TicketAuthor", "PrivacyRequestType", "PrivacyRequestStatus",
-  "BannerAccent", "ArticleStatus", "ZoneRequestStatus", "AlertLevel", "AlertState",
+  "ArticleStatus", "ZoneRequestStatus", "AlertLevel", "AlertState",
   "AssistantDecisionKind", "AnalyticsEventKind", "OrderReviewStatus", "ListingStatus";
 
 COMMIT;

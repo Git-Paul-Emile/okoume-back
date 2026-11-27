@@ -17,6 +17,7 @@ import type { ContentService } from './content.service.js';
 export const createContentRoutes = (service: ContentService) => {
   const c = createContentController(service);
   const router = Router();
+  router.get('/banners', asyncHandler(c.banners));
   router.get('/ads', validate({ query: listAdsQuery }), asyncHandler(c.ads));
   router.get('/offers', asyncHandler(c.offers));
   router.get('/legal-pages', asyncHandler(c.legalPages));

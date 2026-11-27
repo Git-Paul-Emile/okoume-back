@@ -39,6 +39,45 @@
     "active": false
   },
   {
+    "id": "home-promo-side-1",
+    "placement": "home-promo-side",
+    "advertiser": null,
+    "startsAt": null,
+    "endsAt": null,
+    "priority": 3,
+    "image": "/banniere-shopping.jpg",
+    "imageMobile": null,
+    "alt": "OKOZA : mode, maison, loisirs et high-tech.",
+    "href": "/catalogue",
+    "active": true
+  },
+  {
+    "id": "home-promo-side-2",
+    "placement": "home-promo-side",
+    "advertiser": null,
+    "startsAt": null,
+    "endsAt": null,
+    "priority": 2,
+    "image": "/banniere-shopping.jpg",
+    "imageMobile": null,
+    "alt": "Faites connaître votre marque auprès des visiteurs de la boutique : devenir annonceur.",
+    "href": "/contact?sujet=publicite",
+    "active": false
+  },
+  {
+    "id": "home-promo-side-3",
+    "placement": "home-promo-side",
+    "advertiser": null,
+    "startsAt": null,
+    "endsAt": null,
+    "priority": 1,
+    "image": "/banniere-shopping.jpg",
+    "imageMobile": null,
+    "alt": "Annoncez sur la page d’accueil, à la semaine ou au mois : nous contacter.",
+    "href": "/contact?sujet=publicite",
+    "active": false
+  },
+  {
     "id": "exemple-annonceur",
     "placement": "home-promo",
     "advertiser": "Nom de l’annonceur",

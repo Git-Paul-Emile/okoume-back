@@ -2,10 +2,22 @@ import { z } from 'zod';
 import { productId } from './products.seeder.js';
 import { isoDate, legacyUuid, readData, type Seeder } from './support.js';
 
+const banners = z.array(
+  z.object({
+    id: z.string(),
+    title: z.string().min(1),
+    subtitle: z.string(),
+    cta: z.string().min(1),
+    href: z.string().min(1),
+    image: z.string().min(1),
+    accent: z.enum(['forest', 'mure']),
+  }),
+);
+
 const ads = z.array(
   z.object({
     id: z.string(),
-    placement: z.literal('home-promo'),
+    placement: z.enum(['home-promo', 'home-promo-side']),
     advertiser: z.string().nullable(),
     startsAt: isoDate.nullable(),
     endsAt: isoDate.nullable(),
@@ -31,6 +43,7 @@ const offers = z.array(
 );
 
 export const loadContent = () => ({
+  banners: readData('banners.json', banners),
   ads: readData('ads.json', ads),
   offers: readData('offers.json', offers),
 });
@@ -41,6 +54,14 @@ export const contentSeeder: Seeder = {
   demo: true,
   async run({ prisma }) {
     const data = loadContent();
+    const banner = await prisma.homeBanner.createMany({
+      data: data.banners.map(({ id, ...values }, position) => ({
+        id: legacyUuid('banner', id),
+        ...values,
+        position,
+      })),
+      skipDuplicates: true,
+    });
     const ad = await prisma.ad.createMany({
       data: data.ads.map(({ id, ...values }) => ({ id: legacyUuid('ad', id), ...values })),
       skipDuplicates: true,
@@ -54,6 +75,6 @@ export const contentSeeder: Seeder = {
       })),
       skipDuplicates: true,
     });
-    return ad.count + offer.count;
+    return banner.count + ad.count + offer.count;
   },
 };
