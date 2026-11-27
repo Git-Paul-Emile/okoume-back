@@ -9,10 +9,6 @@ const privateData = (res: Response) => res.setHeader('Cache-Control', 'no-store'
 
 /** Traduit HTTP vers le service et inversement ; aucune règle métier ici. */
 export const createContentController = (service: ContentService) => ({
-  async banners(_req: Request, res: Response) {
-    publicCache(res);
-    return sendSuccess(res, await service.banners());
-  },
   async ads(req: Request, res: Response) {
     publicCache(res);
     return sendSuccess(res, await service.ads(listAdsQuery.parse(req.query).placement));
@@ -26,18 +22,6 @@ export const createContentController = (service: ContentService) => ({
     return sendSuccess(res, await service.legalPages());
   },
 
-  async staffBanners(req: Request, res: Response) {
-    privateData(res);
-    return sendSuccess(res, await service.staffBanners(req.staff!));
-  },
-  async updateBanner(req: Request, res: Response) {
-    return sendSuccess(
-      res,
-      await service.updateBanner(String(req.params.id), req.body, req.staff!),
-      200,
-      'Bannière enregistrée.',
-    );
-  },
   async staffAds(req: Request, res: Response) {
     privateData(res);
     return sendSuccess(res, await service.staffAds(req.staff!));

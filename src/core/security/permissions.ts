@@ -5,7 +5,6 @@ export const DOMAINS = [
   'pilotage',
   'commandes',
   'paiements',
-  'retours',
   'catalogue',
   'stock',
   'clients',

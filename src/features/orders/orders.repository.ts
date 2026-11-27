@@ -1,17 +1,15 @@
 import { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
-import { DAY_MS, HISTORY_DAYS, type RiskHistory } from './orders.risk.js';
 
 export type OrderStatus =
-  'confirmed' | 'preparing' | 'ready' | 'courier_assigned' | 'shipping' | 'delivered' | 'cancelled' | 'claim';
-export type PaymentStatus = 'awaiting_payment' | 'awaiting_verification' | 'paid' | 'refund_due' | 'refunded';
+  'confirmed' | 'preparing' | 'ready' | 'courier_assigned' | 'shipping' | 'delivered';
+export type PaymentStatus = 'awaiting_payment' | 'paid';
 export type PaymentMethod = 'cash' | 'airtel' | 'moov';
 
 export interface OrderTotals {
   subtotal: number;
   productDiscount: number;
   codeDiscount: number;
-  pointsDiscount: number;
   deliveryFee: number;
   deliveryDiscount: number;
   total: number;
@@ -39,23 +37,6 @@ export interface OrderEventRecord {
   createdAt: Date;
 }
 
-/** Contestation d'une livraison marquée « Livrée » (9.6). */
-export interface DisputeRecord {
-  id: string;
-  reason: string;
-  status: 'open' | 'resolved';
-  resolution: string | null;
-  createdAt: Date;
-}
-
-export interface CancellationRecord {
-  reason: string;
-  comment: string;
-  status: 'pending' | 'accepted' | 'refused';
-  decisionReason: string | null;
-  createdAt: Date;
-}
-
 export interface OrderRecord {
   id: string;
   number: string;
@@ -73,19 +54,14 @@ export interface OrderRecord {
   totals: OrderTotals;
   promoCode: string | null;
   promoCodeId: string | null;
-  pointsUsed: number;
   courierId: string | null;
   /** Coût réel de la course pour la boutique ; null tant qu'il n'est pas renseigné */
   deliveryCost: number | null;
-  dispute: DisputeRecord | null;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
-  /** Vérification anti-fraude (19.3) : null si aucun signal n'a été levé à la création */
-  review: OrderReviewRecord | null;
   status: OrderStatus;
   items: OrderItemRecord[];
   events: OrderEventRecord[];
-  cancellation: CancellationRecord | null;
   /** Boutique du vendeur qui a reçu la commande (32.4) ; null pour la boutique OKOZA */
   shopId: string | null;
   shop: { id: string; slug: string; name: string; city?: string; district?: string; phone?: string } | null;
@@ -99,35 +75,18 @@ export interface OrderRecord {
   createdAt: Date;
 }
 
-export interface OrderReviewRecord {
-  status: 'pending' | 'cleared';
-  reasons: string[];
-  note: string | null;
-  by: string | null;
-  at: Date | null;
-}
-
 export type NewOrder = Omit<
   OrderRecord,
   | 'id'
   | 'events'
-  | 'cancellation'
   | 'createdAt'
   | 'status'
   | 'courierId'
   | 'deliveryCost'
-  | 'dispute'
-  | 'review'
   | 'shop'
   | 'collectionConfirmedAt'
   | 'collectionConfirmedBy'
-> & {
-  /** Clé du téléphone (8 derniers chiffres), pour rapprocher les commandes d'un même numéro */
-  phoneKey: string;
-  /** Signaux levés ; non vide : la commande attend une vérification avant la préparation */
-  reviewReasons: string[];
-  reviewStatus: 'pending' | null;
-};
+>;
 
 /** Auteur d'un changement : le client, un membre de l'équipe, ou un traitement automatique. */
 export type OrderActor =
@@ -143,7 +102,7 @@ export interface AppliedTransition {
   to: OrderStatus;
   paymentStatus?: PaymentStatus | undefined;
   note?: string | undefined;
-  stock: 'consume' | 'release' | 'restock' | null;
+  stock: 'consume' | null;
   /** Livreur affecté avec le coût réel de la course ; null : livreur retiré ; absent : inchangé */
   courier?: { id: string; deliveryCost: number | null } | null | undefined;
 }
@@ -154,8 +113,6 @@ export type RouteUpdateResult = { outcome: 'applied'; orders: OrderRecord[] } | 
 
 export interface StaffOrderFilters {
   status?: OrderStatus | undefined;
-  /** pending : commandes signalées en attente de vérification */
-  review?: 'pending' | undefined;
   paymentMethod?: PaymentMethod | undefined;
   paymentStatus?: PaymentStatus | undefined;
   /** Numéro de commande, nom du destinataire ou téléphone */
@@ -209,35 +166,13 @@ export interface OrdersRepository {
     actor: OrderActor,
     at: Date,
   ): Promise<RouteUpdateResult>;
-  /** Enregistre la demande d'annulation du client ; false si la commande en a déjà une. */
-  requestCancellation(orderId: string, request: { reason: string; comment: string }): Promise<boolean>;
   /** Enregistre le coût réel de livraison pour les calculs de marge. */
   setDeliveryCost(orderId: string, cost: number): Promise<OrderRecord | null>;
-  /** false : une contestation est déjà ouverte. */
-  openDispute(orderId: string, reason: string): Promise<boolean>;
-  /** Historique d'un numéro de téléphone avant une nouvelle commande (signaux anti-fraude) */
-  riskHistory(phoneKey: string, email: string, at: Date): Promise<RiskHistory>;
-  /** Seuil de montant au-delà duquel une commande est vérifiée (paramètres de la boutique) */
-  reviewThreshold(): Promise<number>;
-  /** Vérification faite : false si la commande n'attendait pas de vérification */
-  clearReview(orderId: string, review: { note: string; staffId: string; at: Date }): Promise<boolean>;
-  /** Rattache une commande passée sans compte ; false si elle a déjà un compte (vérifié dans la même écriture). */
-  claim(orderId: string, customerId: string): Promise<boolean>;
-  /** Rattache atomiquement toutes les sous-commandes d'un panier au même compte. */
-  claimCheckout(orders: readonly OrderRecord[], customerId: string): Promise<boolean>;
-  resolveDispute(orderId: string, resolution: string, staffId: string, at: Date): Promise<boolean>;
-  decideCancellation(
-    order: OrderRecord,
-    decision: { accept: boolean; reason: string; staffId: string; at: Date },
-    cancellation: AppliedTransition | null,
-  ): Promise<TransitionResult>;
 }
 
 const include = {
   items: true,
   events: { orderBy: { createdAt: 'asc' }, include: { staff: { select: { firstName: true, lastName: true } } } },
-  cancellation: true,
-  disputes: { orderBy: { createdAt: 'desc' }, take: 1 },
   shop: { select: { id: true, slug: true, name: true, city: true, district: true, phone: true } },
 } as const satisfies Prisma.OrderInclude;
 
@@ -266,36 +201,16 @@ const toRecord = (row: OrderRow): OrderRecord => ({
     subtotal: row.subtotal.toNumber(),
     productDiscount: row.productDiscount.toNumber(),
     codeDiscount: row.codeDiscount.toNumber(),
-    pointsDiscount: row.pointsDiscount.toNumber(),
     deliveryFee: row.deliveryFee.toNumber(),
     deliveryDiscount: row.deliveryDiscount.toNumber(),
     total: row.total.toNumber(),
   },
   promoCode: row.promoCode,
   promoCodeId: row.promoCodeId,
-  pointsUsed: row.pointsUsed,
   courierId: row.courierId,
   deliveryCost: row.deliveryCost?.toNumber() ?? null,
-  dispute: row.disputes[0]
-    ? {
-        id: row.disputes[0].id,
-        reason: row.disputes[0].reason,
-        status: row.disputes[0].status,
-        resolution: row.disputes[0].resolution,
-        createdAt: row.disputes[0].createdAt,
-      }
-    : null,
   paymentMethod: row.paymentMethod,
   paymentStatus: row.paymentStatus,
-  review: row.reviewStatus
-    ? {
-        status: row.reviewStatus,
-        reasons: row.reviewReasons,
-        note: row.reviewNote,
-        by: row.reviewedBy,
-        at: row.reviewedAt,
-      }
-    : null,
   status: row.status,
   items: row.items.map((i) => ({
     productId: i.productId,
@@ -316,21 +231,11 @@ const toRecord = (row: OrderRow): OrderRecord => ({
     by: e.staff ? `${e.staff.firstName} ${e.staff.lastName}` : null,
     createdAt: e.createdAt,
   })),
-  cancellation: row.cancellation && {
-    reason: row.cancellation.reason,
-    comment: row.cancellation.comment,
-    status: row.cancellation.status,
-    decisionReason: row.cancellation.decisionReason,
-    createdAt: row.cancellation.createdAt,
-  },
   createdAt: row.createdAt,
 });
 
 /** Code épuisé ou limite par client atteinte : la transaction est annulée. */
 class PromoUnavailable extends Error {}
-
-/** Un panier appartient déjà à un compte ou a été rattaché en parallèle. */
-class StaleClaim extends Error {}
 
 /** Levée dans la transaction pour l'annuler entièrement quand un article manque. */
 class OutOfStock extends Error {
@@ -447,11 +352,10 @@ export const ordersRepository: OrdersRepository = {
     return row ? toRecord(row) : null;
   },
 
-  async listForStaff({ status, review, paymentMethod, paymentStatus, search, shopId, sort, page, limit }) {
+  async listForStaff({ status, paymentMethod, paymentStatus, search, shopId, sort, page, limit }) {
     const where: Prisma.OrderWhereInput = {
       ...(status ? { status } : {}),
       ...(shopId ? { shopId: shopId === 'okoza' ? null : shopId } : {}),
-      ...(review ? { reviewStatus: review } : {}),
       ...(paymentMethod ? { paymentMethod } : {}),
       ...(paymentStatus ? { paymentStatus } : {}),
       ...(search
@@ -494,8 +398,8 @@ export const ordersRepository: OrdersRepository = {
     try {
       const rows = await prisma.$transaction(async (tx) => {
         const where = order.checkoutNumber
-          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoza' as const, status: { not: 'cancelled' as const } }
-          : { id: order.id, fulfilledBy: 'okoza' as const, status: { not: 'cancelled' as const } };
+          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoza' as const }
+          : { id: order.id, fulfilledBy: 'okoza' as const };
         const route = (await tx.order.findMany({ where, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] })).map(
           toRecord,
         );
@@ -524,8 +428,8 @@ export const ordersRepository: OrdersRepository = {
     try {
       const rows = await prisma.$transaction(async (tx) => {
         const where = order.checkoutNumber
-          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoza' as const, status: { not: 'cancelled' as const } }
-          : { id: order.id, fulfilledBy: 'okoza' as const, status: { not: 'cancelled' as const } };
+          ? { checkoutNumber: order.checkoutNumber, fulfilledBy: 'okoza' as const }
+          : { id: order.id, fulfilledBy: 'okoza' as const };
         const route = (await tx.order.findMany({ where, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] })).map(
           toRecord,
         );
@@ -576,112 +480,6 @@ export const ordersRepository: OrdersRepository = {
   },
 
 
-  async riskHistory(phoneKey, email, at) {
-    const day = new Date(at.getTime() - DAY_MS);
-    const month = new Date(at.getTime() - HISTORY_DAYS * DAY_MS);
-    const [recentOrders, cancelledOrders, emails] = await prisma.$transaction([
-      prisma.order.count({ where: { phoneKey, createdAt: { gte: day } } }),
-      prisma.order.count({ where: { phoneKey, status: 'cancelled', createdAt: { gte: month } } }),
-      prisma.order.findMany({
-        where: { phoneKey, createdAt: { gte: month }, NOT: { email: { equals: email, mode: 'insensitive' } } },
-        distinct: ['email'],
-        select: { email: true },
-      }),
-    ]);
-    return { recentOrders, cancelledOrders, otherEmails: emails.length };
-  },
-
-  async reviewThreshold() {
-    const settings = await prisma.shopInformation.findUnique({ where: { id: 1 }, select: { reviewAmount: true } });
-    return settings?.reviewAmount ?? 0;
-  },
-
-  async clearReview(orderId, { note, staffId, at }) {
-    // Nom figé au moment de la vérification, comme dans le journal d'activité
-    const member = await prisma.staffMember.findUnique({
-      where: { id: staffId },
-      select: { firstName: true, lastName: true },
-    });
-    const by = member ? member.firstName + ' ' + member.lastName : 'Équipe';
-    const updated = await prisma.order.updateMany({
-      where: { id: orderId, reviewStatus: 'pending' },
-      data: { reviewStatus: 'cleared', reviewNote: note, reviewedBy: by, reviewedAt: at },
-    });
-    return updated.count === 1;
-  },
-
-  async claim(orderId, customerId) {
-    const updated = await prisma.order.updateMany({ where: { id: orderId, customerId: null }, data: { customerId } });
-    return updated.count === 1;
-  },
-
-  async claimCheckout(routeOrders, customerId) {
-    if (!routeOrders.length) return false;
-    try {
-      await prisma.$transaction(async (tx) => {
-        const ids = routeOrders.map((order) => order.id);
-        const unclaimed = await tx.order.count({ where: { id: { in: ids }, customerId: null } });
-        if (unclaimed !== ids.length) throw new StaleClaim();
-        const updated = await tx.order.updateMany({ where: { id: { in: ids }, customerId: null }, data: { customerId } });
-        if (updated.count !== ids.length) throw new StaleClaim();
-      });
-      return true;
-    } catch (error) {
-      if (error instanceof StaleClaim) return false;
-      throw error;
-    }
-  },
-
-  async openDispute(orderId, reason) {
-    try {
-      await prisma.deliveryDispute.create({ data: { orderId, reason }, select: { id: true } });
-      return true;
-    } catch (error) {
-      if (isUniqueViolation(error)) return false;
-      throw error;
-    }
-  },
-
-  async resolveDispute(orderId, resolution, staffId, at) {
-    const resolved = await prisma.deliveryDispute.updateMany({
-      where: { orderId, status: 'open' },
-      data: { status: 'resolved', resolution, staffId, resolvedAt: at },
-    });
-    return resolved.count === 1;
-  },
-
-  async requestCancellation(orderId, request) {
-    try {
-      await prisma.cancellationRequest.create({ data: { orderId, ...request }, select: { id: true } });
-      return true;
-    } catch (error) {
-      if (isUniqueViolation(error)) return false;
-      throw error;
-    }
-  },
-
-  async decideCancellation(order, { accept, reason, staffId, at }, cancellation) {
-    try {
-      const row = await prisma.$transaction(async (tx) => {
-        const decided = await tx.cancellationRequest.updateMany({
-          where: { orderId: order.id, status: 'pending' },
-          data: {
-            status: accept ? 'accepted' : 'refused',
-            decisionReason: reason,
-            decidedById: staffId,
-            decidedAt: at,
-          },
-        });
-        if (decided.count !== 1) throw new StaleOrder();
-        if (cancellation) await applyInTransaction(tx, order, cancellation, { type: 'staff', staffId });
-        return tx.order.findUniqueOrThrow({ where: { id: order.id }, include });
-      });
-      return { outcome: 'applied', order: toRecord(row) };
-    } catch (error) {
-      if (error instanceof StaleOrder) return { outcome: 'stale' };
-      throw error;
-    }
-  },
 };
 
 /** La commande a changé depuis sa lecture (autre membre de l'équipe, autre onglet) : tout est annulé. */
@@ -691,7 +489,6 @@ type Tx = Prisma.TransactionClient;
 
 const STOCK_REASON = {
   consume: (number: string) => `Préparation de la commande ${number}`,
-  restock: (number: string) => `Annulation de la commande ${number} après préparation`,
 };
 
 /**
@@ -727,8 +524,6 @@ async function applyInTransaction(tx: Tx, order: OrderRecord, change: AppliedTra
     select: { id: true },
   });
 
-  if (change.to === 'cancelled') await undoOrderAdvantages(tx, order);
-
   if (!change.stock) return;
   const quantities = new Map<string, number>();
   for (const item of order.items) quantities.set(item.variantId, (quantities.get(item.variantId) ?? 0) + item.quantity);
@@ -736,26 +531,16 @@ async function applyInTransaction(tx: Tx, order: OrderRecord, change: AppliedTra
   // Ordre fixe des variantes, comme à la création : pas d'interblocage entre deux transactions
   for (const variantId of [...quantities.keys()].sort()) {
     const quantity = quantities.get(variantId) ?? 0;
-    if (change.stock === 'release') {
-      const released = await tx.$executeRaw`
-        UPDATE variants SET reserved = reserved - ${quantity} WHERE id = ${variantId}::uuid AND reserved >= ${quantity}`;
-      if (released !== 1) throw new Error(`Réservation incohérente pour la variante ${variantId}`);
-      continue;
-    }
-    const [updated] =
-      change.stock === 'consume'
-        ? await tx.$queryRaw<Array<{ stock: number }>>`
+    const [updated] = await tx.$queryRaw<Array<{ stock: number }>>`
             UPDATE variants SET stock = stock - ${quantity}, reserved = reserved - ${quantity}
-            WHERE id = ${variantId}::uuid AND reserved >= ${quantity} RETURNING stock`
-        : await tx.$queryRaw<Array<{ stock: number }>>`
-            UPDATE variants SET stock = stock + ${quantity} WHERE id = ${variantId}::uuid RETURNING stock`;
+            WHERE id = ${variantId}::uuid AND reserved >= ${quantity} RETURNING stock`;
     if (!updated) throw new Error(`Stock incohérent pour la variante ${variantId}`);
     const after = Number(updated.stock);
-    const delta = change.stock === 'consume' ? -quantity : quantity;
+    const delta = -quantity;
     await tx.stockMovement.create({
       data: {
         variantId,
-        type: change.stock === 'consume' ? 'commande' : 'annulation',
+        type: 'commande',
         before: after - delta,
         after,
         delta,
@@ -780,10 +565,3 @@ async function usePromoCode(tx: Tx, promoCodeId: string) {
   if (!promo) throw new PromoUnavailable();
 }
 
-/**
- * Annulation : le code redevient disponible. Les index partiels empêchent tout doublon.
- */
-async function undoOrderAdvantages(tx: Tx, order: OrderRecord) {
-  if (order.promoCodeId)
-    await tx.$executeRaw`UPDATE promo_codes SET uses = GREATEST(uses - 1, 0) WHERE id = ${order.promoCodeId}::uuid`;
-}

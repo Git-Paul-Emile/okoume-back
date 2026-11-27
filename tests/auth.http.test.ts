@@ -13,8 +13,6 @@ const customer = {
   acceptTerms: true,
 };
 
-const codeIn = (text: string | undefined) => /\b(\d{6})\b/.exec(text ?? '')?.[1] ?? '';
-
 /** Cookies posés par une réponse, sous forme « nom=valeur » réutilisable et brute pour les attributs. */
 const cookiesOf = (res: request.Response) => {
   const raw = ([] as string[]).concat(res.headers['set-cookie'] ?? []);
@@ -26,18 +24,15 @@ const cookiesOf = (res: request.Response) => {
 async function signedInCustomer() {
   const app = buildApp();
   const agent = request(app);
-  await agent.post('/api/v1/auth/registrations').send(customer).expect(202);
-  const code = codeIn(app.services.email.last(customer.email)?.text);
-  const res = await agent.post('/api/v1/auth/verifications').send({ email: customer.email, code }).expect(200);
+  const res = await agent.post('/api/v1/auth/registrations').send(customer).expect(201);
   return { app, agent, cookies: cookiesOf(res) };
 }
 
 describe('authentification HTTP des clients', () => {
-  it('répond pareil à l’inscription, que l’adresse soit libre ou non', async () => {
+  it('ouvre la session après inscription et refuse une adresse déjà utilisée', async () => {
     const { agent } = await signedInCustomer();
     const res = await agent.post('/api/v1/auth/registrations').send(customer);
-    expect(res.status).toBe(202);
-    expect(res.body.message).toContain('Si les informations sont correctes');
+    expect(res.status).toBe(409);
   });
 
   it('pose des cookies de session HttpOnly et un jeton CSRF lisible', async () => {

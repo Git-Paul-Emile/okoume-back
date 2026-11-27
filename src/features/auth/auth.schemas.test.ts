@@ -1,27 +1,30 @@
 import { describe, expect, it } from 'vitest';
-import { staffPasswordResetConfirmBody } from '../staff-auth/staff-auth.schemas.js';
-import { contactChangeBody, contactChangeConfirmationBody } from './auth.schemas.js';
+import { contactChangeBody, registerBody } from './auth.schemas.js';
+import { acceptInvitationBody, staffLoginBody } from '../staff-auth/staff-auth.schemas.js';
 
-describe('schémas des nouvelles démarches de compte', () => {
-  it('accepte un code à 6 chiffres et refuse le reste', () => {
-    expect(contactChangeConfirmationBody.safeParse({ code: '123456' }).success).toBe(true);
-    expect(contactChangeConfirmationBody.safeParse({ code: ' 123456 ' }).success).toBe(true);
-    expect(contactChangeConfirmationBody.safeParse({ code: 'dddddd' }).success).toBe(false);
-    expect(contactChangeConfirmationBody.safeParse({ code: '12345' }).success).toBe(false);
-  });
-
-  it('valide une demande de changement selon son type', () => {
-    expect(contactChangeBody.safeParse({ type: 'email', value: ' Awa@Example.ga ', password: 'x' }).data?.value).toBe(
+describe('schémas des accès directs', () => {
+  it('valide les coordonnées à l’inscription et au changement de compte', () => {
+    expect(
+      registerBody.safeParse({
+        firstName: 'Awa',
+        lastName: 'Ndong',
+        email: ' Awa@Example.ga ',
+        password: 'motdepasse1',
+        acceptTerms: true,
+      }).success,
+    ).toBe(true);
+    expect(contactChangeBody.safeParse({ type: 'email', value: ' Awa@Example.ga ' }).data?.value).toBe(
       'awa@example.ga',
     );
-    expect(contactChangeBody.safeParse({ type: 'phone', value: '077 12 34 56', password: 'x' }).success).toBe(true);
-    expect(contactChangeBody.safeParse({ type: 'phone', value: 'pas un numéro', password: 'x' }).success).toBe(false);
+    expect(contactChangeBody.safeParse({ type: 'phone', value: '077 12 34 56' }).success).toBe(true);
   });
 
-  it('exige code, code de secours et mot de passe solide pour l’équipe', () => {
-    const valid = { email: 'awa@okoza.ga', code: '123456', backupCode: 'ABCD-EFGH', password: 'motdepasse-2026' };
-    expect(staffPasswordResetConfirmBody.safeParse(valid).success).toBe(true);
-    expect(staffPasswordResetConfirmBody.safeParse({ ...valid, code: 'dddddd' }).success).toBe(false);
-    expect(staffPasswordResetConfirmBody.safeParse({ ...valid, password: 'court1' }).success).toBe(false);
+  it('ne demande aucun code pour un changement de coordonnées ni pour accepter une invitation', () => {
+    expect(contactChangeBody.safeParse({ type: 'email', value: 'awa@example.ga', code: '123456' }).success).toBe(false);
+    expect(acceptInvitationBody.safeParse({ password: 'motdepasse-2026', code: '123456' }).success).toBe(false);
+  });
+
+  it('accepte une connexion admin par e-mail et mot de passe', () => {
+    expect(staffLoginBody.safeParse({ email: 'awa@okoza.ga', password: 'secret' }).success).toBe(true);
   });
 });

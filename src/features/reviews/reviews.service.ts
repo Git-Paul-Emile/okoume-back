@@ -1,5 +1,4 @@
 import {
-  ConflictError,
   ForbiddenError,
   NotFoundError,
   ServiceUnavailableError,
@@ -13,7 +12,7 @@ import type { CustomersRepository } from '../auth/auth.repository.js';
 import type { ReviewRecord, ReviewsRepository } from './reviews.repository.js';
 import type { DecideReviewInput, ListStaffReviewsQuery, ReviewInput } from './reviews.schemas.js';
 
-/** Vue publique : ni le compte de l'auteur, ni les signalements, ni l'historique de modération. */
+/** Vue publique : ni le compte de l'auteur ni l'historique de modération. */
 export const toPublicReviewDto = (r: ReviewRecord) => ({
   id: r.id,
   productId: r.productId,
@@ -33,11 +32,10 @@ export const toOwnReviewDto = (r: ReviewRecord) => ({
   history: r.history,
 });
 
-/** Vue de l'équipe : avis, produit, signalements en attente et historique complet. */
+/** Vue de l'équipe : avis, produit et historique de modération. */
 export const toStaffReviewDto = (r: ReviewRecord) => ({
   ...toOwnReviewDto(r),
   productName: r.productName,
-  reports: r.reports,
 });
 
 export interface ReviewsDependencies {
@@ -48,8 +46,8 @@ export interface ReviewsDependencies {
 }
 
 /**
- * Avis clients (13) : un avis par produit reçu, modifiable, publié après modération ; signalements par les
- * clients ; décisions de l'équipe motivées par la charte. Lecture clients:consulter, décision clients:modifier.
+ * Avis clients : un avis par produit reçu, modifiable, publié après modération. Lecture clients:consulter,
+ * décision clients:modifier.
  */
 export const createReviewsService = (deps: ReviewsDependencies) => {
   const { reviews, customers, media, now } = deps;
@@ -97,15 +95,6 @@ export const createReviewsService = (deps: ReviewsDependencies) => {
         event: 'Avis déposé',
       });
       return toOwnReviewDto(saved);
-    },
-
-    async report(reviewId: string, customerId: string, reason: string) {
-      const review = await reviews.findById(reviewId);
-      if (!review || review.status !== 'approved') throw new NotFoundError('Avis introuvable.');
-      if (review.customerId === customerId)
-        throw new UnprocessableError('Vous ne pouvez pas signaler votre propre avis.');
-      if (!(await reviews.report(reviewId, customerId, reason)))
-        throw new ConflictError('Vous avez déjà signalé cet avis.');
     },
 
     async list(query: ListStaffReviewsQuery, actor: Grantee) {

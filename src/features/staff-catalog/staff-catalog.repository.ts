@@ -331,7 +331,7 @@ export const staffCatalogRepository: StaffCatalogRepository = {
     const row = await prisma.product.update({
       where: { id },
       data: {
-        moderation: 'in_review',
+        moderation: 'pending_moderation',
         moderationIssues: [],
         moderationNote: null,
         status: 'draft',

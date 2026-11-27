@@ -12,11 +12,4 @@ export const listPayoutsQuery = listQuery(['createdAt'])
 export type ListPayoutsQuery = z.infer<typeof listPayoutsQuery>;
 
 export const sellerPayoutsQuery = listPayoutsQuery.omit({ shopId: true });
-
-/** Reversement fait au vendeur : moyen utilisé, et référence de la transaction pour le Mobile Money. */
-export const markPayoutPaidBody = z.strictObject({
-  method: z.enum(['cash', 'airtel', 'moov'], 'Choisissez le moyen du reversement.'),
-  reference: z.string().trim().min(3, 'Référence de 3 caractères au moins.').max(80).nullable().default(null),
-});
-
-export type MarkPayoutPaidInput = z.infer<typeof markPayoutPaidBody>;
+export type SellerPayoutsQuery = z.infer<typeof sellerPayoutsQuery>;

@@ -24,20 +24,4 @@ export const createStaffOrdersController = (service: StaffOrdersService) => ({
     );
   },
 
-  async clearReview(req: Request, res: Response) {
-    const order = await service.clearReview(String(req.params.id), req.body.note, req.staff!);
-    return sendSuccess(res, order, 200, 'Commande vérifiée : la préparation peut commencer.');
-  },
-
-  async setDeliveryCost(req: Request, res: Response) {
-    return sendSuccess(res, await service.setDeliveryCost(String(req.params.id), req.body.amount, req.staff!));
-  },
-
-  async resolveDispute(req: Request, res: Response) {
-    return sendSuccess(res, await service.resolveDispute(String(req.params.id), req.body.resolution, req.staff!));
-  },
-
-  async decideCancellation(req: Request, res: Response) {
-    return sendSuccess(res, await service.decideCancellation(String(req.params.id), req.body, req.staff!));
-  },
 });

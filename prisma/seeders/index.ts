@@ -3,24 +3,19 @@ import { pino } from 'pino';
 import { hashPassword } from '../../src/core/security/passwords.js';
 import { PrismaClient } from '../../src/generated/prisma/client.js';
 import { seedConfig } from './config.js';
-import { accessPlansSeeder } from './access-plans.seeder.js';
 import { categoriesSeeder } from './categories.seeder.js';
 import { contentSeeder } from './content.seeder.js';
 import { couriersSeeder } from './couriers.seeder.js';
 import { customersSeeder } from './customers.seeder.js';
 import { deliveryZonesSeeder } from './delivery-zones.seeder.js';
-import { loyaltyMovementsSeeder } from './loyalty-movements.seeder.js';
 import { ordersSeeder } from './orders.seeder.js';
 import { productsSeeder } from './products.seeder.js';
 import { promoCodesSeeder } from './promo-codes.seeder.js';
 import { settingsSeeder } from './settings.seeder.js';
 import { staffSeeder } from './staff.seeder.js';
-import { zoneRequestsSeeder } from './zone-requests.seeder.js';
 import { reviewsSeeder } from './reviews.seeder.js';
-import { assistantSeeder } from './assistant.seeder.js';
 import { shopsSeeder } from './shops.seeder.js';
 import { sellerOrdersSeeder } from './seller-orders.seeder.js';
-import { marketplaceSeeder } from './marketplace.seeder.js';
 import type { Seeder } from './support.js';
 
 const logger = pino({
@@ -33,22 +28,17 @@ const logger = pino({
 const SEEDERS: Seeder[] = [
   settingsSeeder,
   deliveryZonesSeeder,
-  zoneRequestsSeeder,
-  accessPlansSeeder,
   staffSeeder,
   customersSeeder,
   shopsSeeder,
   categoriesSeeder,
-  marketplaceSeeder,
   productsSeeder,
   promoCodesSeeder,
   contentSeeder,
   couriersSeeder,
   ordersSeeder,
   sellerOrdersSeeder,
-  loyaltyMovementsSeeder,
   reviewsSeeder,
-  assistantSeeder,
 ];
 
 /**
@@ -60,10 +50,6 @@ async function main() {
   const seedDemoInProduction = production && seedConfig.ALLOW_PRODUCTION_DEMO_SEED;
   if (seedDemoInProduction && !seedConfig.SEED_DEMO_PASSWORD)
     throw new Error('SEED_DEMO_PASSWORD is mandatory when ALLOW_PRODUCTION_DEMO_SEED=true');
-  if (seedConfig.SEED_DEMO_BACKUP_CODES && process.env['RENDER'] === 'true')
-    throw new Error('SEED_DEMO_BACKUP_CODES must only be used from a trusted local terminal, never on Render');
-  if (production && seedConfig.SEED_DEMO_BACKUP_CODES && !seedDemoInProduction)
-    throw new Error('ALLOW_PRODUCTION_DEMO_SEED=true is required to seed demo backup codes in production');
   const seeders = SEEDERS.filter((s) => !production || seedDemoInProduction || !s.demo);
   if (production && !seedDemoInProduction)
     logger.warn('Production : données de démonstration ignorées, données de référence seules');
@@ -79,21 +65,13 @@ async function main() {
     return hash;
   };
 
-  const reportDemoBackupCodes = seedConfig.SEED_DEMO_BACKUP_CODES
-    ? (email: string, codes: string[]) => {
-        process.stdout.write(
-          `\nCodes de secours de démonstration pour ${email} (affichés une seule fois) :\n${codes.join('\n')}\n\n`,
-        );
-      }
-    : undefined;
-
   // Connexion directe quand elle existe : elle convient mieux que le pooler de Neon aux gros envois du seed
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: seedConfig.DIRECT_DATABASE_URL ?? seedConfig.DATABASE_URL }),
   });
   try {
     for (const seeder of seeders) {
-      const created = await seeder.run({ prisma, demoPasswordHash, reportDemoBackupCodes });
+      const created = await seeder.run({ prisma, demoPasswordHash });
       logger.info({ seeder: seeder.name, created }, 'Seed appliqué');
     }
   } finally {

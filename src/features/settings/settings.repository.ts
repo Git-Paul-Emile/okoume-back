@@ -9,12 +9,6 @@ export interface ShopInformationRecord {
   support: z.infer<typeof supportContacts>;
   social: Record<string, string>;
   legal: z.infer<typeof legalNotice>;
-  supportSlaHigh: number;
-  supportSlaNormal: number;
-  alertEscalationHours: number;
-  reviewAmount: number;
-  cashPreparationAlertHours: number;
-  assistantMonthlyBudget: number;
 }
 
 export const EMPTY_SUPPORT = { whatsapp: '', phone: '', email: '', hours: '', address: '' } as const;
@@ -32,12 +26,6 @@ export const toInformation = (row: Prisma.ShopInformationGetPayload<object>): Sh
   support: parsed(supportContacts, row.support, { ...EMPTY_SUPPORT }),
   social: parsed(socialLinks, row.social, {}),
   legal: parsed(legalNotice, row.legal, { ...EMPTY_LEGAL }),
-  supportSlaHigh: row.supportSlaHigh,
-  supportSlaNormal: row.supportSlaNormal,
-  alertEscalationHours: row.alertEscalationHours,
-  reviewAmount: row.reviewAmount,
-  cashPreparationAlertHours: row.cashPreparationAlertHours,
-  assistantMonthlyBudget: row.assistantMonthlyBudget,
 });
 
 /** Contrat des informations de la boutique (ligne unique, créée par la migration). */

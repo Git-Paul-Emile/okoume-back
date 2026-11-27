@@ -5,10 +5,6 @@ import { validate } from '../../core/middlewares/validate.js';
 import { idParam } from '../../core/validation/common.schemas.js';
 import { createStaffOrdersController } from './staff-orders.controller.js';
 import {
-  cancellationDecisionBody,
-  deliveryCostBody,
-  reviewClearanceBody,
-  disputeResolutionBody,
   listStaffOrdersQuery,
   transitionBody,
 } from './staff-orders.schemas.js';
@@ -29,25 +25,5 @@ export const createStaffOrdersRoutes = (
   router.get('/', validate({ query: listStaffOrdersQuery }), asyncHandler(c.list));
   router.get('/:id', validate({ params: idParam }), asyncHandler(c.get));
   router.post('/:id/transitions', validate({ params: idParam, body: transitionBody }), asyncHandler(c.transition));
-  router.post(
-    '/:id/review-clearances',
-    validate({ params: idParam, body: reviewClearanceBody }),
-    asyncHandler(c.clearReview),
-  );
-  router.put(
-    '/:id/delivery-cost',
-    validate({ params: idParam, body: deliveryCostBody }),
-    asyncHandler(c.setDeliveryCost),
-  );
-  router.patch(
-    '/:id/delivery-dispute',
-    validate({ params: idParam, body: disputeResolutionBody }),
-    asyncHandler(c.resolveDispute),
-  );
-  router.patch(
-    '/:id/cancellation-request',
-    validate({ params: idParam, body: cancellationDecisionBody }),
-    asyncHandler(c.decideCancellation),
-  );
   return router;
 };

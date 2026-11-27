@@ -26,7 +26,6 @@ export function createMemoryStaffTeam(now: () => Date) {
         id: randomUUID(),
         status: 'invited',
         lastLoginAt: null,
-        backupCodesLeft: 0,
         createdAt: now(),
         sessionsRevokedAt: null,
       };
@@ -44,12 +43,6 @@ export function createMemoryStaffTeam(now: () => Date) {
       if (!m) return null;
       Object.assign(m, changes);
       return view(m);
-    },
-    async resetBackupCodes(id, at) {
-      const m = members.find((x) => x.id === id);
-      if (!m) return false;
-      Object.assign(m, { backupCodesLeft: 0, sessionsRevokedAt: at });
-      return true;
     },
     countActiveStaff: async () => members.filter((m) => m.status === 'active').length,
   };

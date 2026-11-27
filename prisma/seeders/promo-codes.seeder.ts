@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { logger } from './logger.js';
 import { categoryId } from './categories.seeder.js';
 import { productId } from './products.seeder.js';
 import { isoDate, legacyUuid, readData, type Seeder } from './support.js';
@@ -14,13 +13,10 @@ const schema = z.array(
     minAmount: z.number().int().min(0),
     productIds: z.array(z.string()),
     categoryIds: z.array(z.string()),
-    newCustomersOnly: z.boolean(),
     freeDelivery: z.boolean(),
-    tiers: z.array(z.enum(['bronze', 'argent', 'or'])),
     startsAt: isoDate,
     endsAt: isoDate,
     maxUses: z.number().int().positive().nullable(),
-    perCustomer: z.number().int().positive().nullable(),
     uses: z.number().int().min(0),
     active: z.boolean(),
   }),
@@ -34,11 +30,7 @@ export const promoCodesSeeder: Seeder = {
   name: 'promo-codes',
   demo: true,
   async run({ prisma }) {
-    const all = loadPromoCodes();
-    // Une valeur de 0 n'est permise que pour un code de livraison offerte (contrainte promo_codes_value_valid)
-    const codes = all.filter((c) => c.value > 0 || c.freeDelivery);
-    for (const skipped of all.filter((c) => c.value <= 0 && !c.freeDelivery))
-      logger.warn({ code: skipped.code }, 'Code promo sans valeur ni livraison offerte ignoré');
+    const codes = loadPromoCodes();
     const id = (legacyId: string) => legacyUuid('promo-code', legacyId);
     const { count } = await prisma.promoCode.createMany({
       data: codes.map((c) => ({
@@ -49,12 +41,9 @@ export const promoCodesSeeder: Seeder = {
         value: c.value,
         minAmount: c.minAmount,
         freeDelivery: c.freeDelivery,
-        newCustomersOnly: c.newCustomersOnly,
-        tiers: c.tiers,
         startsAt: c.startsAt,
         endsAt: c.endsAt,
         maxUses: c.maxUses,
-        perCustomer: c.perCustomer,
         uses: c.uses,
         active: c.active,
       })),

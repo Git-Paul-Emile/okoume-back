@@ -55,7 +55,6 @@ import { createStaffZonesService } from '../src/features/staff-delivery-zones/st
 import { createMemoryStaffCatalog } from './memoryStaffCatalog.js';
 import { createSessionsService } from '../src/features/sessions/sessions.service.js';
 import { createStaffAuthService } from '../src/features/staff-auth/staff-auth.service.js';
-import { createVerificationService } from '../src/features/verification/verification.service.js';
 import { createFakeEmailSender } from '../src/infrastructure/email/fakeEmailSender.js';
 import { createNotificationsService } from '../src/features/notifications/notifications.service.js';
 import { createNotifier } from '../src/features/notifications/notifier.js';
@@ -80,7 +79,6 @@ import {
   createMemoryCustomers,
   createMemorySessions,
   createMemoryStaff,
-  createMemoryVerification,
 } from './memoryRepositories.js';
 
 /** Horloge réglable : les tests avancent le temps sans attendre. */
@@ -99,28 +97,22 @@ export const buildAuthServices = (clock = createClock()) => {
   const { now } = clock;
   const email = createFakeEmailSender();
   const sessionsStore = createMemorySessions(now);
-  const verificationStore = createMemoryVerification();
   const customersStore = createMemoryCustomers();
   const staffStore = createMemoryStaff();
   const sessions = createSessionsService(sessionsStore.repository, now);
-  const verification = createVerificationService(verificationStore.repository, now);
   return {
     clock,
     email,
     sessionsStore,
-    verificationStore,
     customersStore,
     staffStore,
     sessions,
     auth: createAuthService({
       customers: customersStore.repository,
       sessions,
-      verification,
-      email,
-      appUrl: 'http://localhost:5173',
       now,
     }),
-    staffAuth: createStaffAuthService({ staff: staffStore.repository, sessions, verification, email, now }),
+    staffAuth: createStaffAuthService({ staff: staffStore.repository, sessions, now }),
   };
 };
 

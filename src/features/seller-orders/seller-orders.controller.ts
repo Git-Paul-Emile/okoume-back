@@ -15,9 +15,5 @@ export const createSellerOrdersController = (service: SellerOrdersService) => {
       sendSuccess(res, await service.advance(me(req), id(req), req.body.note), 200, 'Commande mise à jour.'),
     handover: async (req: Request, res: Response) =>
       sendSuccess(res, await service.handover(me(req), id(req)), 200, 'Remise au livreur confirmée.'),
-    cancel: async (req: Request, res: Response) =>
-      sendSuccess(res, await service.cancel(me(req), id(req), req.body.reason), 200, 'Commande annulée.'),
-    collect: async (req: Request, res: Response) =>
-      sendSuccess(res, await service.collect(me(req), id(req), req.body), 200, 'Encaissement enregistré.'),
   };
 };

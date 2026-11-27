@@ -36,11 +36,6 @@ const schema = z
     EMAIL_FROM: z.string().min(3),
     // Clé d'API Resend (envoi seul suffit). Obligatoire hors développement et test.
     RESEND_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().startsWith('re_').optional()),
-    // Simulation activée par défaut en développement, activable en test/staging, interdite en production.
-    SIMULATE_CONFIRMATIONS: z.preprocess(
-      (value) => (value === '' ? undefined : value),
-      z.enum(['true', 'false']).optional(),
-    ),
     // Notifications push (Web Push) : clés VAPID générées une fois (npx web-push generate-vapid-keys) et contact.
     // Facultatives : sans elles, les notifications push sont désactivées et seuls les e-mails partent.
     VAPID_PUBLIC_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(20).optional()),
@@ -79,9 +74,6 @@ const schema = z
     ),
     CLOUDINARY_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(5).optional()),
     CLOUDINARY_API_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(10).optional()),
-    // Délais des retours (14.2, 14.6), en jours : un seul délai pour toute la boutique, réglé par l'exploitant
-    RETURN_WINDOW_DAYS: z.coerce.number().int().min(1).max(365).default(14),
-    RETURN_REOPEN_DAYS: z.coerce.number().int().min(1).max(365).default(14),
     // Limitation de débit par adresse IP, sur 15 minutes. Le back-office a son propre compteur, plus large :
     // ses écrans chargent beaucoup de données et l'équipe partage souvent la même connexion.
     RATE_LIMIT_API_MAX: z.coerce.number().int().min(10).max(100_000).default(300),
@@ -108,12 +100,6 @@ const schema = z
         message: 'les trois valeurs Cloudinary vont ensemble',
       });
     if (config.NODE_ENV === 'development' || config.NODE_ENV === 'test') return;
-    if (config.NODE_ENV === 'production' && config.SIMULATE_CONFIRMATIONS === 'true')
-      ctx.addIssue({
-        code: 'custom',
-        path: ['SIMULATE_CONFIRMATIONS'],
-        message: 'les confirmations simulées sont interdites en production',
-      });
     for (const key of REQUIRED_OUTSIDE_DEVELOPMENT)
       if (!config[key]) ctx.addIssue({ code: 'custom', path: [key], message: 'obligatoire hors développement' });
   });
@@ -133,7 +119,3 @@ function loadEnv(): Env {
 
 export const env = loadEnv();
 export const isProduction = env.NODE_ENV === 'production';
-export const simulateConfirmations =
-  env.SIMULATE_CONFIRMATIONS === undefined
-    ? env.NODE_ENV === 'development'
-    : env.SIMULATE_CONFIRMATIONS === 'true';

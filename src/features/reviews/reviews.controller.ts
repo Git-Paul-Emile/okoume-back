@@ -34,11 +34,6 @@ export const createReviewsController = (service: ReviewsService) => ({
     return sendSuccess(res, review, 200, 'Avis enregistré : il sera publié après vérification.');
   },
 
-  async report(req: Request, res: Response) {
-    await service.report(String(req.params.id), req.customer!.id, req.body.reason);
-    return res.status(204).end();
-  },
-
   async list(req: Request, res: Response) {
     res.setHeader('Cache-Control', 'no-store');
     return sendSuccess(res, await service.list(listStaffReviewsQuery.parse(req.query), req.staff!));

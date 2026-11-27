@@ -3,14 +3,10 @@
  * Le navigateur envoie le fichier directement à l'hébergeur avec une autorisation signée par l'API : l'image ne
  * transite pas par le serveur, et seul un membre de l'équipe autorisé obtient une signature.
  */
-/** returns, support : photos jointes par un client à une demande de retour (14.2) ou d'assistance (15) */
 export const MEDIA_FOLDERS = [
   'products',
   'categories',
   'banners',
-  'listings',
-  'returns',
-  'support',
   'reviews',
 ] as const;
 export type MediaFolder = (typeof MEDIA_FOLDERS)[number];

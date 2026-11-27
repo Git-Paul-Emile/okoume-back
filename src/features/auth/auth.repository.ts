@@ -8,11 +8,7 @@ export interface CustomerRecord {
   passwordHash: string;
   firstName: string;
   lastName: string;
-  status: 'pending_verification' | 'active' | 'anonymized';
-  emailVerifiedAt: Date | null;
-  referralCode: string;
-  birthDate: Date | null;
-  birthdayChoice: 'points' | 'code';
+  status: 'active' | 'anonymized';
   createdAt: Date;
 }
 
@@ -25,10 +21,6 @@ export const customerColumns = {
   firstName: true,
   lastName: true,
   status: true,
-  emailVerifiedAt: true,
-  referralCode: true,
-  birthDate: true,
-  birthdayChoice: true,
   createdAt: true,
 } as const;
 const columns = customerColumns;
@@ -40,12 +32,7 @@ export interface NewCustomer {
   passwordHash: string;
   firstName: string;
   lastName: string;
-  referralCode: string;
-  referredById: string | null;
 }
-
-/** Inscription reprise avant vérification : ni l'adresse ni le code parrain ne changent. */
-export type PendingCustomerUpdate = Omit<NewCustomer, 'email' | 'referralCode'>;
 
 export const customersRepository: CustomersRepository = {
   findByEmail: (email: string): Promise<CustomerRecord | null> =>
@@ -57,25 +44,11 @@ export const customersRepository: CustomersRepository = {
   findById: (id: string): Promise<CustomerRecord | null> =>
     prisma.customer.findUnique({ where: { id }, select: columns }),
 
-  create: (data: NewCustomer): Promise<CustomerRecord> => prisma.customer.create({ data, select: columns }),
-
-  /** Inscription reprise avant vérification : nouvelles informations, toujours en attente de vérification. */
-  updatePending: (id: string, data: PendingCustomerUpdate): Promise<CustomerRecord> =>
-    prisma.customer.update({ where: { id }, data, select: columns }),
-
-  activate: (id: string, at: Date): Promise<CustomerRecord> =>
-    prisma.customer.update({ where: { id }, data: { status: 'active', emailVerifiedAt: at }, select: columns }),
+  create: (data: NewCustomer): Promise<CustomerRecord> =>
+    prisma.customer.create({ data: { ...data, status: 'active' }, select: columns }),
 
   touchLogin: (id: string, at: Date) =>
     prisma.customer.update({ where: { id }, data: { lastLoginAt: at }, select: { id: true } }),
-
-  updatePassword: (id: string, passwordHash: string) =>
-    prisma.customer.update({ where: { id }, data: { passwordHash }, select: { id: true } }),
-
-  /** Parrain actif correspondant à ce code. */
-  async findReferrer(code: string) {
-    return prisma.customer.findFirst({ where: { referralCode: code, status: 'active' }, select: { id: true } });
-  },
 
   /** Le numéro est-il déjà utilisé par un autre compte ? */
   async phoneTaken(phoneKey: string, exceptId?: string) {
@@ -100,13 +73,9 @@ export interface CustomersRepository {
   findByPhoneKey(phoneKey: string): Promise<CustomerRecord | null>;
   findById(id: string): Promise<CustomerRecord | null>;
   create(data: NewCustomer): Promise<CustomerRecord>;
-  updatePending(id: string, data: PendingCustomerUpdate): Promise<CustomerRecord>;
-  findReferrer(code: string): Promise<{ id: string } | null>;
-  activate(id: string, at: Date): Promise<CustomerRecord>;
   touchLogin(id: string, at: Date): Promise<unknown>;
-  updatePassword(id: string, passwordHash: string): Promise<unknown>;
   phoneTaken(phoneKey: string, exceptId?: string): Promise<boolean>;
-  /** Nouvelle coordonnée confirmée ; null si elle a été prise par un autre compte entre-temps. */
+  /** Nouvelle coordonnée ; null si elle a été prise par un autre compte entre-temps. */
   updateContact(
     id: string,
     change: { email: string } | { phone: string; phoneKey: string },

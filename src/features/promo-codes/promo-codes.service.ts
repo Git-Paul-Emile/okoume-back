@@ -11,7 +11,6 @@ export const createPublicPromoCodesService = (promoCodes: PromoCodesRepository, 
       value: p.value,
       minAmount: p.minAmount,
       freeDelivery: p.freeDelivery,
-      tiers: [...p.tiers],
       startsAt: p.startsAt.toISOString(),
       endsAt: p.endsAt.toISOString(),
     }));

@@ -6,7 +6,7 @@ import { createSettingsController } from './settings.controller.js';
 import { updateInformationBody } from './settings.schemas.js';
 import type { SettingsService } from './settings.service.js';
 
-/** Réglages publics de la boutique, sous /api/v1/settings : paiement, contacts, fidélité, délais. */
+/** Réglages publics de la boutique : paiement, contacts et informations légales. */
 export const createPublicSettingsRoutes = (service: SettingsService) => {
   const c = createSettingsController(service);
   const router = Router();

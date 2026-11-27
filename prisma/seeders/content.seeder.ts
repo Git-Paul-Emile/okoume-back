@@ -2,22 +2,10 @@ import { z } from 'zod';
 import { productId } from './products.seeder.js';
 import { isoDate, legacyUuid, readData, type Seeder } from './support.js';
 
-const banners = z.array(
-  z.object({
-    id: z.string(),
-    title: z.string().min(1),
-    subtitle: z.string(),
-    cta: z.string().min(1),
-    href: z.string().min(1),
-    image: z.string().min(1),
-    accent: z.enum(['forest', 'mure']),
-  }),
-);
-
 const ads = z.array(
   z.object({
     id: z.string(),
-    placement: z.enum(['home-promo', 'home-promo-side']),
+    placement: z.literal('home-promo'),
     advertiser: z.string().nullable(),
     startsAt: isoDate.nullable(),
     endsAt: isoDate.nullable(),
@@ -42,39 +30,30 @@ const offers = z.array(
   }),
 );
 
-/** Contenu validé de data/banners.json, ads.json et offers.json */
 export const loadContent = () => ({
-  banners: readData('banners.json', banners),
   ads: readData('ads.json', ads),
   offers: readData('offers.json', offers),
 });
 
-/**
- * Bannières, espaces publicitaires et offres exclusives de la boutique. Données de démonstration :
- * les offres et les liens visent le catalogue fictif.
- */
+/** Données gardées pour les promotions éditoriales, offres exclusives et espaces publicitaires. */
 export const contentSeeder: Seeder = {
   name: 'content',
   demo: true,
   async run({ prisma }) {
     const data = loadContent();
-    const banner = await prisma.homeBanner.createMany({
-      data: data.banners.map(({ id, ...b }, position) => ({ id: legacyUuid('banner', id), ...b, position })),
-      skipDuplicates: true,
-    });
     const ad = await prisma.ad.createMany({
-      data: data.ads.map(({ id, ...a }) => ({ id: legacyUuid('ad', id), ...a })),
+      data: data.ads.map(({ id, ...values }) => ({ id: legacyUuid('ad', id), ...values })),
       skipDuplicates: true,
     });
     const offer = await prisma.exclusiveOffer.createMany({
-      data: data.offers.map(({ id, order, productId: legacy, ...o }) => ({
+      data: data.offers.map(({ id, order, productId: legacy, ...values }) => ({
         id: legacyUuid('offer', id),
-        ...o,
+        ...values,
         productId: productId(legacy),
         position: order,
       })),
       skipDuplicates: true,
     });
-    return banner.count + ad.count + offer.count;
+    return ad.count + offer.count;
   },
 };

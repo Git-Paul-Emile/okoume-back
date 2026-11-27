@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-export const AD_PLACEMENTS = ['home-promo', 'home-promo-side'] as const;
+export const AD_PLACEMENTS = ['home-promo'] as const;
 /** Pages légales modifiables : leurs adresses sur le site */
-export const LEGAL_SLUGS = ['cgv', 'confidentialite', 'mentions', 'retours'] as const;
+export const LEGAL_SLUGS = ['cgv', 'confidentialite', 'mentions'] as const;
 
 /** Lien interne (/catalogue…) ou adresse HTTPS : jamais javascript: ni http en clair. */
 const link = z
@@ -12,21 +12,6 @@ const link = z
   .refine((v) => /^\/(?!\/)/.test(v) || /^https:\/\/[^\s]+$/.test(v), 'Lien interne (/…) ou adresse https:// attendu.');
 /** Visuel : fichier du site (/ads/…) ou image hébergée en HTTPS */
 const image = link;
-
-export const updateBannerBody = z
-  .strictObject({
-    title: z.string().trim().min(3).max(80),
-    subtitle: z.string().trim().max(200),
-    cta: z.string().trim().min(2).max(40),
-    href: link,
-    image,
-    accent: z.enum(['forest', 'mure']),
-    position: z.number().int().min(0).max(100),
-    active: z.boolean(),
-  })
-  .partial()
-  .refine((v) => Object.keys(v).length > 0, 'Aucune modification.');
-export type UpdateBannerInput = z.infer<typeof updateBannerBody>;
 
 export const createAdBody = z.strictObject({
   placement: z.enum(AD_PLACEMENTS),

@@ -4,10 +4,10 @@ import { requireCustomer } from '../../core/middlewares/authenticate.js';
 import { validate } from '../../core/middlewares/validate.js';
 import { idParam } from '../../core/validation/common.schemas.js';
 import { createAccountController } from './account.controller.js';
-import { createAddressBody, productIdParam, profileBody, updateAddressBody } from './account.schemas.js';
+import { createAddressBody, profileBody, updateAddressBody } from './account.schemas.js';
 import type { AccountService } from './account.service.js';
 
-/** Compte du client connecté, sous /api/v1/me : identité, adresses de livraison, favoris. */
+/** Compte du client connecté, sous /api/v1/me : identité et adresses de livraison. */
 export const createAccountRoutes = (service: AccountService, now: () => Date) => {
   const c = createAccountController(service);
   const router = Router();
@@ -17,8 +17,5 @@ export const createAccountRoutes = (service: AccountService, now: () => Date) =>
   router.post('/addresses', validate({ body: createAddressBody }), asyncHandler(c.addAddress));
   router.patch('/addresses/:id', validate({ params: idParam, body: updateAddressBody }), asyncHandler(c.updateAddress));
   router.delete('/addresses/:id', validate({ params: idParam }), asyncHandler(c.removeAddress));
-  router.get('/favorites', asyncHandler(c.favorites));
-  router.put('/favorites/:productId', validate({ params: productIdParam }), asyncHandler(c.addFavorite));
-  router.delete('/favorites/:productId', validate({ params: productIdParam }), asyncHandler(c.removeFavorite));
   return router;
 };

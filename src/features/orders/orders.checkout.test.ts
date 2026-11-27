@@ -10,19 +10,6 @@ async function setup() {
   const { catalog } = shop;
   const category = catalog.addCategory({ slug: 'mode', name: 'Mode' });
   const zone = catalog.addZone();
-  const plan = await shop.staffShops.createPlan(
-    {
-      name: 'Accès gratuit',
-      description: '',
-      kind: 'free',
-      price: 0,
-      periodDays: null,
-      trialDays: 0,
-      active: true,
-      position: 0,
-    },
-    owner,
-  );
   const seller = shop.shopsStore.addOwner({ email: 'awa@example.ga' });
   const opened = await shop.shops.open(seller.id, {
     name: 'Pagnes d’Awa',
@@ -32,8 +19,6 @@ async function setup() {
     position: null,
     phone: '077123456',
     acceptedPaymentMethods: ['cash'],
-    handoverModes: ['pickup'],
-    planId: plan.id,
   });
   const okozaProduct = catalog.addProduct({ slug: 'casque', name: 'Casque', categoryId: category.id }, [
     { price: 20_000, stock: 5 },

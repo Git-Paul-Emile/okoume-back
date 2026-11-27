@@ -42,10 +42,6 @@ export const createStaffPromoCodesService = (promoCodes: PromoCodesRepository, n
         ...input,
         code: normalizeCode(input.code),
         startsAt: now(),
-        newCustomersOnly: false,
-        tiers: [],
-        perCustomer: null,
-        customerId: null,
       });
       if (!created) throw new ConflictError(CODE_TAKEN);
       return toDto(created);

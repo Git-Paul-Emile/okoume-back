@@ -18,14 +18,10 @@ import {
 import {
   advancePlan,
   assignCourierPlan,
-  cancelPlan,
-  deliveryRetryPlan,
-  reopenPlan,
   type TransitionPlan,
 } from '../orders/orders.transitions.js';
 import { toStaffOrderDto } from './staff-orders.dto.js';
 import type {
-  CancellationDecisionInput,
   ListStaffOrdersQuery,
   TransitionInput,
 } from './staff-orders.schemas.js';
@@ -37,9 +33,6 @@ const REQUIRED: Record<TransitionInput['action'], Permission> = {
   advance: 'commandes:modifier',
   confirm_collection: 'commandes:modifier',
   assign_courier: 'commandes:modifier',
-  cancel: 'commandes:annuler',
-  reopen: 'commandes:valider',
-  delivery_failed: 'commandes:modifier',
 };
 
 const STALE = 'La commande a changé entre-temps : rechargez-la avant de continuer.';
@@ -99,7 +92,6 @@ export const createStaffOrdersService = ({
       const sort = parseSort(query.sort);
       const { items, total } = await orders.listForStaff({
         status: query.status,
-        review: query.review,
         paymentMethod: query.paymentMethod,
         paymentStatus: query.paymentStatus,
         search: query.search,
@@ -114,15 +106,6 @@ export const createStaffOrdersService = ({
     },
 
     get: async (id: string) => toStaffOrderDto(await load(id)),
-
-    /** Commande signalée vérifiée : la note dit ce qui a été contrôlé ; la préparation devient possible. */
-    async clearReview(id: string, note: string, actor: StaffActor) {
-      if (!can(actor, 'commandes:valider')) throw new ForbiddenError();
-      const order = await load(id);
-      if (!(await orders.clearReview(order.id, { note, staffId: actor.id, at: now() })))
-        throw new ConflictError('Cette commande n’attend pas de vérification.');
-      return toStaffOrderDto(await load(id));
-    },
 
     /**
      * Changement d'état par l'équipe. La règle (orders.transitions.ts) décide de l'état suivant et de
@@ -157,9 +140,6 @@ export const createStaffOrdersService = ({
         case 'advance':
           if (order.fulfilledBy === 'okoza' && order.status === 'courier_assigned')
             throw new ConflictError('Attendez les confirmations de collecte de toutes les boutiques de la tournée.');
-          // Commande signalée : la préparation attend la vérification d'un membre de l'équipe (19.3)
-          if (order.status === 'confirmed' && order.review?.status === 'pending')
-            throw new ConflictError('Commande à vérifier : validez-la avant de commencer la préparation.');
           plan = advancePlan(order, input.note);
           break;
         case 'assign_courier':
@@ -168,34 +148,18 @@ export const createStaffOrdersService = ({
           assigned = await courierFor(order, input.courierId, input.deliveryCost);
           if (order.checkoutNumber) {
             const route = (await orders.findByCheckout(order.checkoutNumber)).filter(
-              (stop) => stop.fulfilledBy === 'okoza' && stop.status !== 'cancelled',
+              (stop) => stop.fulfilledBy === 'okoza',
             );
-            if (
-              route.some((stop) => stop.status !== 'ready' || stop.review?.status === 'pending')
-            )
-              throw new ConflictError('Tous les vendeurs de la tournée doivent avoir une commande prête et validée.');
+            if (route.some((stop) => stop.status !== 'ready'))
+              throw new ConflictError('Toutes les commandes centralisées doivent être prêtes.');
           }
           plan = assignCourierPlan(order, assigned.plan);
-          break;
-        case 'cancel':
-          plan = cancelPlan(order, `Annulée par la boutique : ${input.reason}`);
-          break;
-        case 'reopen':
-          plan = reopenPlan(order, input.reason);
-          break;
-        case 'delivery_failed':
-          plan =
-            input.decision === 'retry'
-              ? deliveryRetryPlan(order, input.reason)
-              : cancelPlan(order, `Annulée par la boutique : échec de livraison (${input.reason})`);
           break;
       }
       const routeTransition =
         order.fulfilledBy === 'okoza' &&
         (input.action === 'assign_courier' ||
-          input.action === 'delivery_failed' ||
-          (input.action === 'advance' && plan.to === 'delivered') ||
-          (input.action === 'cancel' && ['courier_assigned', 'shipping'].includes(order.status)));
+          (input.action === 'advance' && plan.to === 'delivered'));
       const result = routeTransition
         ? await orders.applyCentralRouteTransition(order, plan, { type: 'staff', staffId: actor.id })
         : await orders.applyTransition(order, plan, { type: 'staff', staffId: actor.id });
@@ -224,39 +188,6 @@ export const createStaffOrdersService = ({
       return toStaffOrderDto(updated);
     },
 
-    async setDeliveryCost(id: string, amount: number, actor: StaffActor) {
-      if (!can(actor, 'commandes:modifier')) throw new ForbiddenError();
-      const updated = await orders.setDeliveryCost(id, amount);
-      if (!updated) throw new NotFoundError('Commande introuvable.');
-      return toStaffOrderDto(updated);
-    },
-
-    async resolveDispute(id: string, resolution: string, actor: StaffActor) {
-      if (!can(actor, 'commandes:modifier')) throw new ForbiddenError();
-      const order = await load(id);
-      if (order.fulfilledBy === 'seller')
-        throw new UnprocessableError('La plateforme ne traite pas les différends concernant une livraison organisée par le vendeur.');
-      if (!(await orders.resolveDispute(id, resolution, actor.id, now())))
-        throw new ConflictError('Aucune contestation ouverte sur cette commande.');
-      return toStaffOrderDto(await load(id));
-    },
-
-    /** Décision sur une demande d'annulation du client ; acceptée, l'annulation suit la règle habituelle. */
-    async decideCancellation(id: string, input: CancellationDecisionInput, actor: StaffActor) {
-      if (!can(actor, 'commandes:annuler')) throw new ForbiddenError();
-      const order = await load(id);
-      if (order.cancellation?.status !== 'pending') throw new ConflictError('Aucune demande d’annulation en attente.');
-      const accept = input.status === 'accepted';
-      const plan = accept ? cancelPlan(order, `Annulée à la demande du client (${order.cancellation.reason})`) : null;
-      const result = await orders.decideCancellation(
-        order,
-        { accept, reason: input.decisionReason, staffId: actor.id, at: now() },
-        plan,
-      );
-      if (result.outcome === 'stale') throw new ConflictError(STALE);
-      if (accept) await notifyCustomer(result.order);
-      return toStaffOrderDto(result.order);
-    },
   };
 };
 

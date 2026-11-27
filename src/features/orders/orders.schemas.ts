@@ -58,30 +58,6 @@ export const listOrdersQuery = listQuery(['createdAt'])
 
 export type ListOrdersQuery = z.infer<typeof listOrdersQuery>;
 
-/** Motifs proposés au client (front/src/features/orders/orders.constants.ts). */
-export const CANCEL_REASONS = [
-  'Changement d’avis',
-  'Erreur dans la commande',
-  'Retard de livraison',
-  'Produit indisponible',
-  'Autre motif',
-] as const;
-
-export const cancellationRequestBody = z.strictObject({
-  reason: z.enum(CANCEL_REASONS, 'Choisissez un motif d’annulation.'),
-  comment: z.string().trim().max(500).default(''),
-});
-
-export const disputeBody = z.strictObject({
-  reason: z.string().trim().min(10, 'Décrivez ce qui s’est passé (10 caractères au moins).').max(1_000),
-});
-
-/** Rattachement d'une commande passée sans compte : numéro et code de suivi reçus par e-mail */
-export const claimOrderBody = z.strictObject({
-  number: z.string().trim().min(5).max(30),
-  code: z.string().trim().min(4).max(12),
-});
-
 export const trackingQuery = z.strictObject({
   number: z.string().trim().min(5).max(30),
   code: z.string().trim().min(4).max(12),

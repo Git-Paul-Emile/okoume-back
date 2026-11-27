@@ -44,12 +44,6 @@ export const updateInformationBody = z
     support: supportContacts,
     social: socialLinks,
     legal: legalNotice,
-    supportSlaHigh: z.int().min(1).max(168),
-    supportSlaNormal: z.int().min(1).max(336),
-    alertEscalationHours: z.int().min(1).max(168),
-    reviewAmount: z.int().min(0).max(1_000_000_000),
-    cashPreparationAlertHours: z.int().min(1).max(168),
-    assistantMonthlyBudget: z.int().min(0).max(10_000_000),
   })
   .partial()
   .refine((p) => Object.keys(p).length > 0, { message: 'Aucune modification envoyée.' });

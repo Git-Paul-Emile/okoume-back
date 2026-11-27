@@ -1,18 +1,20 @@
 import type { Permission } from '../../core/security/permissions.js';
-import type { PushMessage } from '../../infrastructure/push/pushSender.js';
-import type { NotificationTopic } from './notifications.rules.js';
 
-/**
- * Dépôt des notifications push dans la file, pour les autres services : ils ne connaissent ni le protocole
- * ni les appareils. Le dépôt ne fait jamais échouer l'action métier qui l'a déclenché (10.1).
- */
+export type NotificationTopic = 'orders' | 'shop';
+export interface PushMessage {
+  title: string;
+  body: string;
+  url: string;
+  tag?: string;
+}
+
 export interface Notifier {
   notifyCustomer(customerId: string, topic: NotificationTopic, message: PushMessage): Promise<void>;
   notifyStaff(permission: Permission, message: PushMessage, urgent?: boolean): Promise<void>;
 }
 
-/** Notifications push retirées du MVP. Les e-mails transactionnels restent actifs. */
-export const createNotifier = (_queue: unknown): Notifier => ({
-  notifyCustomer: async (_customerId, _topic, _message) => undefined,
-  notifyStaff: async (_permission, _message, _urgent = false) => undefined,
+/** Les notifications push sont hors MVP ; les e-mails transactionnels restent actifs. */
+export const createNotifier = (_queue?: unknown): Notifier => ({
+  notifyCustomer: async () => undefined,
+  notifyStaff: async () => undefined,
 });

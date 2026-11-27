@@ -27,18 +27,4 @@ export const createAccountController = (service: AccountService) => ({
     return res.status(204).end();
   },
 
-  async favorites(req: Request, res: Response) {
-    res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, await service.favorites(req.customer!.id));
-  },
-
-  async addFavorite(req: Request, res: Response) {
-    await service.addFavorite(req.customer!.id, String(req.params.productId));
-    return res.status(204).end();
-  },
-
-  async removeFavorite(req: Request, res: Response) {
-    await service.removeFavorite(req.customer!.id, String(req.params.productId));
-    return res.status(204).end();
-  },
 });

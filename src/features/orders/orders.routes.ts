@@ -5,15 +5,7 @@ import { createAuthLimiter, createOrderLimiter } from '../../core/middlewares/ra
 import { validate } from '../../core/middlewares/validate.js';
 import { idParam } from '../../core/validation/common.schemas.js';
 import { createOrdersController } from './orders.controller.js';
-import {
-  cancellationRequestBody,
-  claimOrderBody,
-  createOrderBody,
-  disputeBody,
-  listOrdersQuery,
-  quoteBody,
-  trackingQuery,
-} from './orders.schemas.js';
+import { createOrderBody, listOrdersQuery, quoteBody, trackingQuery } from './orders.schemas.js';
 import type { OrdersService } from './orders.service.js';
 
 /** Commandes, sous /api/v1/orders : passage de commande (avec ou sans compte), historique du client. */
@@ -28,27 +20,7 @@ export const createOrdersRoutes = (service: OrdersService, now: () => Date) => {
     asyncHandler(c.create),
   );
   router.get('/', requireCustomer(now), validate({ query: listOrdersQuery }), asyncHandler(c.list));
-  // Rattachement d'une commande passée sans compte : limite stricte, le code de suivi ne se devine pas par essais
-  router.post(
-    '/claims',
-    createAuthLimiter(),
-    requireCustomer(now),
-    validate({ body: claimOrderBody }),
-    asyncHandler(c.claim),
-  );
   router.get('/:id', requireCustomer(now), validate({ params: idParam }), asyncHandler(c.get));
-  router.post(
-    '/:id/delivery-disputes',
-    requireCustomer(now),
-    validate({ params: idParam, body: disputeBody }),
-    asyncHandler(c.disputeDelivery),
-  );
-  router.post(
-    '/:id/cancellation-requests',
-    requireCustomer(now),
-    validate({ params: idParam, body: cancellationRequestBody }),
-    asyncHandler(c.cancel),
-  );
   return router;
 };
 

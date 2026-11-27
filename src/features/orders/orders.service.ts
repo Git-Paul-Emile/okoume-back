@@ -4,8 +4,6 @@ import { randomReadableCode, safeEqual } from '../../core/security/secrets.js';
 import type { EmailSender } from '../../infrastructure/email/emailSender.js';
 import type { Notifier } from '../notifications/notifier.js';
 import { newOrderMessage, sellerOrderMessage } from '../notifications/notifications.rules.js';
-import { phoneKey } from '../../core/text/phoneKey.js';
-import { suspicionReasons } from './orders.risk.js';
 import { logger } from '../../lib/logger.js';
 import { ancestry, type CategoriesService } from '../categories/categories.service.js';
 import type { DeliveryZoneRecord, DeliveryZonesRepository } from '../delivery-zones/delivery-zones.repository.js';
@@ -18,7 +16,6 @@ import type { NewOrder, OrderRecord, OrdersRepository } from './orders.repositor
 import type { CreateOrderInput, ListOrdersQuery, QuoteInput } from './orders.schemas.js';
 import { priceOrder, type PricedTotals } from './orders.pricing.js';
 import type { SellerTerms, SellerTermsRepository } from './orders.sellers.repository.js';
-import { cancelPlan } from './orders.transitions.js';
 
 /** Fenêtre opérationnelle (cahier des charges, 19.5) : 3 ans de commandes visibles dans le compte. */
 export const ACCOUNT_HISTORY_MS = 3 * 365 * 24 * 60 * 60_000;
@@ -44,8 +41,6 @@ export interface OrdersDependencies {
   sellers: SellerTermsRepository;
   email: EmailSender;
   notifier: Notifier;
-  /** Adresse e-mail d'un compte client : rattachement d'une commande passée sans compte */
-  accounts: { emailOf(customerId: string): Promise<string | null> };
   appUrl: string;
   now: () => Date;
 }
@@ -59,7 +54,6 @@ export const createOrdersService = ({
   sellers,
   email,
   notifier,
-  accounts,
   appUrl,
   now,
 }: OrdersDependencies) => {
@@ -160,8 +154,6 @@ export const createOrdersService = ({
       const priced = priceOrder(lines, {
         deliveryFee: fee,
         promo: okoza ? promo : null,
-        pointsRequested: 0,
-        customer: null,
         maxDiscountRate: 1,
         now: at,
       });
@@ -175,22 +167,17 @@ export const createOrdersService = ({
         : !promo
           ? 'Ce code n’existe pas.'
           : (main?.codeError ?? null);
-    const pointsError: string | null = null;
-    const sum = (key: Exclude<keyof PricedTotals, 'codeError' | 'pointsError'>) =>
+    const sum = (key: Exclude<keyof PricedTotals, 'codeError'>) =>
       shipments.reduce((total, s) => total + s.priced[key], 0);
     const totals = {
       baseSubtotal: sum('baseSubtotal'),
       subtotal: sum('subtotal'),
       productDiscount: sum('productDiscount'),
       codeDiscount: sum('codeDiscount'),
-      pointsUsed: sum('pointsUsed'),
-      pointsDiscount: sum('pointsDiscount'),
       deliveryFee: sum('deliveryFee'),
       deliveryDiscount: sum('deliveryDiscount'),
       total: sum('total'),
-      pointsEarned: sum('pointsEarned'),
       codeError,
-      pointsError,
     };
     return { shipments, promo: codeError ? null : promo, totals };
   }
@@ -228,29 +215,10 @@ export const createOrdersService = ({
       );
       // La commande ne passe qu'au prix annoncé : un code refusé bloque la commande.
       if (totals.codeError) throw new AppError(totals.codeError, 422, 'PROMO_CODE_REJECTED');
-      // Signaux anti-fraude (19.3) : la commande passe, mais attend une vérification avant la préparation
-      const key = phoneKey(input.delivery.phone);
-      const [history, reviewAmount] = await Promise.all([
-        orders.riskHistory(key, input.delivery.email, at),
-        orders.reviewThreshold(),
-      ]);
       const checkoutNumber = shipments.length > 1 ? `PAN-${at.getUTCFullYear()}-${randomReadableCode(6)}` : null;
       const trackingCode = randomReadableCode(6);
       const drafts = shipments.map(({ shopId, fulfilledBy, lines, priced }, index): Omit<NewOrder, 'number'> => {
-        const reviewReasons = suspicionReasons(
-          {
-            total: priced.total,
-            subtotal: priced.subtotal,
-            discounts: priced.codeDiscount + priced.pointsDiscount,
-            quantities: lines.map((l) => l.quantity),
-          },
-          history,
-          reviewAmount,
-        );
         return {
-          phoneKey: key,
-          reviewReasons,
-          reviewStatus: reviewReasons.length ? 'pending' : null,
           trackingCode,
           customerId,
           // La première commande garde la clé envoyée : un renvoi retrouve tout le passage en caisse
@@ -262,14 +230,12 @@ export const createOrdersService = ({
             subtotal: priced.subtotal,
             productDiscount: priced.productDiscount,
             codeDiscount: priced.codeDiscount,
-            pointsDiscount: priced.pointsDiscount,
             deliveryFee: priced.deliveryFee,
             deliveryDiscount: priced.deliveryDiscount,
             total: priced.total,
           },
           promoCode: shopId === null ? (promo?.code ?? null) : null,
           promoCodeId: shopId === null ? (promo?.id ?? null) : null,
-          pointsUsed: priced.pointsUsed,
           paymentMethod: input.paymentMethod,
           // Paiement à la réception, quel que soit le moyen (cahier des charges, 8.4 à 8.6)
           paymentStatus: 'awaiting_payment',
@@ -350,62 +316,6 @@ export const createOrdersService = ({
      * Annulation par le client (6.5). Tant que la commande est confirmée, elle est annulée tout de suite
      * et la réservation libérée. Une fois la préparation commencée, c'est une demande que l'équipe tranche.
      */
-    async cancelOwn(customerId: string, orderId: string, request: { reason: string; comment: string }) {
-      const order = await ownOrder(customerId, orderId);
-      if (order.status === 'confirmed') {
-        const plan = cancelPlan(order, `Annulée par le client : ${request.reason}`);
-        const result = await orders.applyTransition(order, plan, { type: 'customer' });
-        if (result.outcome === 'stale')
-          throw new ConflictError('La commande a changé entre-temps : rechargez la page.');
-        return { order: toOrderDto(result.order), direct: true };
-      }
-      if (!CANCELLABLE_ON_REQUEST.includes(order.status))
-        throw new ConflictError('Cette commande ne peut plus être annulée.');
-      if (!(await orders.requestCancellation(order.id, request)))
-        throw new ConflictError('Une demande d’annulation existe déjà pour cette commande.');
-      return { order: toOrderDto((await orders.findById(order.id)) ?? order), direct: false };
-    },
-
-    /**
-     * Contestation d'une livraison marquée « Livrée » (9.6) : la réclamation est ouverte sans effacer ce statut ;
-     * l'enquête et sa résolution sont suivies à part.
-     */
-    async disputeDelivery(customerId: string, orderId: string, reason: string) {
-      const order = await ownOrder(customerId, orderId);
-      if (order.fulfilledBy === 'seller')
-        throw new UnprocessableError(
-          'La plateforme ne traite pas les différends concernant une livraison organisée par le vendeur. Contactez directement la boutique.',
-        );
-      if (order.status !== 'delivered')
-        throw new ConflictError('Seule une commande marquée livrée peut être contestée.');
-      if (!(await orders.openDispute(order.id, reason)))
-        throw new ConflictError('Une contestation est déjà ouverte pour cette commande.');
-      return toOrderDto((await orders.findById(order.id)) ?? order);
-    },
-
-    /**
-     * Rattachement au compte d'une commande passée sans compte : numéro et code de suivi, et même adresse e-mail
-     * que le compte. Le code seul ne suffit pas : le compte verrait ensuite les coordonnées du destinataire.
-     */
-    async claim(customerId: string, number: string, code: string) {
-      const lookup = number.trim().toUpperCase();
-      const order = await orders.findByNumber(lookup);
-      const route = order ? await checkoutOf(order) : await orders.findByCheckout(lookup);
-      const unknown = new NotFoundError('Aucune commande ne correspond à ce numéro et ce code.');
-      if (!route.length || !route.some((stop) => safeEqual(stop.trackingCode, code.trim().toUpperCase()))) throw unknown;
-      if (route.every((stop) => stop.customerId === customerId))
-        throw new ConflictError('Cette commande est déjà dans votre compte.');
-      if (route.some((stop) => stop.customerId)) throw unknown;
-      const first = route[0]!;
-      const accountEmail = await accounts.emailOf(customerId);
-      if (!accountEmail || accountEmail.toLowerCase() !== first.email.toLowerCase())
-        throw new UnprocessableError(
-          'Cette commande a été passée avec une autre adresse e-mail que celle de votre compte.',
-        );
-      if (!(await orders.claimCheckout(route, customerId))) throw unknown;
-      return toOrderDto((await orders.findById(first.id)) ?? first);
-    },
-
     /**
      * Suivi sans compte : numéro et code de suivi reçus par e-mail. Une réponse unique pour « inconnu » et
      * « mauvais code » ; aucune coordonnée du client dans la réponse.
@@ -429,8 +339,5 @@ export const createOrdersService = ({
     return order;
   }
 };
-
-/** Après le début de la préparation et avant la livraison, l'annulation passe par une demande. */
-const CANCELLABLE_ON_REQUEST: readonly OrderRecord['status'][] = ['preparing', 'ready', 'courier_assigned', 'shipping'];
 
 export type OrdersService = ReturnType<typeof createOrdersService>;

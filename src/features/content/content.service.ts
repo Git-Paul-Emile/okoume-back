@@ -9,7 +9,6 @@ import type {
   CreateAdInput,
   LegalPageInput,
   UpdateAdInput,
-  UpdateBannerInput,
 } from './content.schemas.js';
 
 export const toAdDto = (a: AdRecord) => a;
@@ -22,7 +21,7 @@ export const toLegalPageDto = (p: LegalPageRecord) => ({
 });
 
 /**
- * Contenus du site : bannières, espaces publicitaires, offres exclusives et pages légales.
+ * Contenus du site : espaces publicitaires, offres exclusives et pages légales.
  * Lecture catalogue:consulter ; modifications catalogue:modifier ; publication catalogue:publier.
  */
 export const createContentService = (deps: { content: ContentRepository }) => {
@@ -33,22 +32,9 @@ export const createContentService = (deps: { content: ContentRepository }) => {
   }
 
   return {
-    banners: () => content.banners(true),
     ads: async (placement: string | undefined) => (await content.ads({ placement, activeOnly: true })).map(toAdDto),
     offers: () => content.offers(),
     legalPages: async () => (await content.legalPages()).map(toLegalPageDto),
-
-    async staffBanners(actor: Grantee) {
-      require(actor, 'catalogue:consulter');
-      return content.banners(false);
-    },
-
-    async updateBanner(id: string, input: UpdateBannerInput, actor: Grantee) {
-      require(actor, 'catalogue:modifier');
-      const updated = await content.updateBanner(id, input);
-      if (!updated) throw new NotFoundError('Bannière introuvable.');
-      return updated;
-    },
 
     async staffAds(actor: Grantee) {
       require(actor, 'catalogue:consulter');

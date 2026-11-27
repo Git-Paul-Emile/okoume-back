@@ -28,27 +28,6 @@ export const createOrdersController = (service: OrdersService) => ({
     return sendSuccess(res, await service.getForCustomer(req.customer!.id, String(req.params.id)));
   },
 
-  /** 200 si la commande est annulée tout de suite, 202 si la demande attend la décision de l'équipe. */
-  async cancel(req: Request, res: Response) {
-    const { order, direct } = await service.cancelOwn(req.customer!.id, String(req.params.id), req.body);
-    return sendSuccess(
-      res,
-      order,
-      direct ? 200 : 202,
-      direct ? 'Commande annulée.' : 'Demande d’annulation envoyée : la boutique vous répondra rapidement.',
-    );
-  },
-
-  async disputeDelivery(req: Request, res: Response) {
-    const order = await service.disputeDelivery(req.customer!.id, String(req.params.id), req.body.reason);
-    return sendSuccess(res, order, 201, 'Réclamation ouverte : la boutique vous recontacte rapidement.');
-  },
-
-  async claim(req: Request, res: Response) {
-    const order = await service.claim(req.customer!.id, req.body.number, req.body.code);
-    return sendSuccess(res, order, 200, 'Commande ajoutée à votre compte.');
-  },
-
   /** Devis du panier, avec ou sans compte : les erreurs de code ou de points sont dans la réponse. */
   async quote(req: Request, res: Response) {
     res.setHeader('Cache-Control', 'no-store');

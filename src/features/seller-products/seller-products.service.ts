@@ -9,7 +9,6 @@ import {
 import type { MediaStorage } from '../../infrastructure/media/mediaStorage.js';
 import { paginate } from '../../core/http/apiResponse.js';
 import { slugify } from '../../core/text/slugify.js';
-import type { JobQueue } from '../../infrastructure/queue/jobQueue.js';
 import type { ShopRecord, ShopsRepository } from '../shops/shops.repository.js';
 import { toStaffProductDto } from '../staff-catalog/staff-catalog.dto.js';
 import type { StaffCatalogRepository, StaffProductRecord } from '../staff-catalog/staff-catalog.repository.js';
@@ -28,7 +27,6 @@ export interface SellerProductsDeps {
   catalog: StaffCatalogRepository;
   shops: ShopsRepository;
   stock: StockRepository;
-  queue: JobQueue;
   /** null : envoi de photos non configuré (aucune clé de stockage) */
   media: MediaStorage | null;
   now: () => Date;
@@ -82,7 +80,7 @@ const variantSku = (productSku: string, label: string) => `${productSku}-${slugi
  * boutique du compte connecté. Une boutique ne voit et ne modifie que ses produits (IDOR) ; un produit n'est en
  * vente qu'après une vérification favorable, et toute modification de son contenu repasse cette vérification.
  */
-export const createSellerProductsService = ({ catalog, shops, stock, queue, media, now }: SellerProductsDeps) => {
+export const createSellerProductsService = ({ catalog, shops, stock, media, now }: SellerProductsDeps) => {
   async function myShop(customerId: string) {
     const shop = await shops.findByOwner(customerId);
     if (!shop) throw new ForbiddenError('Ouvrez d’abord votre boutique pour vendre sur OKOZA.');
@@ -105,12 +103,11 @@ export const createSellerProductsService = ({ catalog, shops, stock, queue, medi
     if (!(await catalog.isAssignableCategory(id))) throw new UnprocessableError('Choisissez une catégorie existante.');
   }
 
-  /** Soumet à la vérification et met la vérification en file ; le produit sort de la vente jusqu'à l'avis. */
+  /** Soumet le produit à l'administrateur avant publication. */
   async function submit(product: StaffProductRecord) {
     if (!product.images.length) throw new UnprocessableError('Ajoutez au moins une photo avant de soumettre.');
     if (!product.variants.length) throw new UnprocessableError('Ajoutez au moins une variante avant de soumettre.');
-    const version = await catalog.submitForReview(product.id);
-    await queue.send('products.review', { productId: product.id, version });
+    await catalog.submitForReview(product.id);
     return (await catalog.findById(product.id))!;
   }
 

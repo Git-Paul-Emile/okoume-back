@@ -9,12 +9,11 @@ import {
   listProductReviewsQuery,
   listStaffReviewsQuery,
   productIdParam,
-  reportBody,
   reviewBody,
 } from './reviews.schemas.js';
 import type { ReviewsService } from './reviews.service.js';
 
-/** Avis sous /api/v1/reviews : lecture publique des avis publiés, dépôt et signalement par un compte. */
+/** Avis sous /api/v1/reviews : lecture publique et dépôt par un compte. */
 export const createReviewsRoutes = (service: ReviewsService, now: () => Date) => {
   const c = createReviewsController(service);
   const customerOnly = requireCustomer(now);
@@ -33,7 +32,6 @@ export const createReviewsRoutes = (service: ReviewsService, now: () => Date) =>
     validate({ params: productIdParam, body: reviewBody }),
     asyncHandler(c.save),
   );
-  router.post('/:id/reports', customerOnly, validate({ params: idParam, body: reportBody }), asyncHandler(c.report));
   return router;
 };
 

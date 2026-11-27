@@ -2,9 +2,6 @@ import { z } from 'zod';
 import { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
 
-const isUniqueViolation = (error: unknown) =>
-  error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
-
 export type ReviewStatus = 'pending' | 'approved' | 'rejected';
 
 /** Type et non interface : une étape doit pouvoir s'enregistrer telle quelle en JSON. */
@@ -22,8 +19,6 @@ export interface ReviewRecord {
   status: ReviewStatus;
   rejectionReason: string | null;
   history: ReviewEvent[];
-  /** Motifs des signalements en attente de décision */
-  reports: string[];
   createdAt: Date;
 }
 
@@ -41,7 +36,6 @@ export interface RatingRecord {
 
 export interface StaffReviewFilters {
   status?: ReviewStatus | undefined;
-  reported?: boolean | undefined;
   page: number;
   limit: number;
 }
@@ -66,8 +60,6 @@ export interface ReviewsRepository {
     content: ReviewContent,
     event: ReviewEvent,
   ): Promise<ReviewRecord>;
-  /** false : ce client a déjà signalé cet avis. */
-  report(reviewId: string, customerId: string, reason: string): Promise<boolean>;
   list(filters: StaffReviewFilters): Promise<{ items: ReviewRecord[]; total: number }>;
   /** Décision de l'équipe : les signalements de l'avis sont clos avec elle. */
   decide(
@@ -84,7 +76,6 @@ const historyDto = z.array(
 
 const include = {
   product: { select: { name: true } },
-  reports: { select: { reason: true }, orderBy: { createdAt: 'asc' } },
 } satisfies Prisma.ProductReviewInclude;
 type Row = Prisma.ProductReviewGetPayload<{ include: typeof include }>;
 
@@ -101,7 +92,6 @@ const toRecord = (r: Row): ReviewRecord => ({
   rejectionReason: r.rejectionReason,
   // Écrit uniquement par ce dépôt : une forme inattendue est une erreur à signaler, pas à masquer
   history: historyDto.parse(r.history),
-  reports: r.reports.map((x) => x.reason),
   createdAt: r.createdAt,
 });
 
@@ -182,20 +172,9 @@ export const reviewsRepository: ReviewsRepository = {
       );
     }),
 
-  async report(reviewId, customerId, reason) {
-    try {
-      await prisma.reviewReport.create({ data: { reviewId, customerId, reason } });
-      return true;
-    } catch (error) {
-      if (isUniqueViolation(error)) return false;
-      throw error;
-    }
-  },
-
-  async list({ status, reported, page, limit }) {
+  async list({ status, page, limit }) {
     const where: Prisma.ProductReviewWhereInput = {
       ...(status ? { status } : {}),
-      ...(reported ? { reports: { some: {} } } : {}),
     };
     const [rows, total] = await prisma.$transaction([
       prisma.productReview.findMany({
@@ -214,7 +193,6 @@ export const reviewsRepository: ReviewsRepository = {
     prisma.$transaction(async (tx) => {
       const current = await tx.productReview.findUnique({ where: { id }, select: { history: true } });
       if (!current) return null;
-      await tx.reviewReport.deleteMany({ where: { reviewId: id } });
       return toRecord(
         await tx.productReview.update({
           where: { id },

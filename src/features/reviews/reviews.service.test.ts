@@ -23,7 +23,6 @@ function setup() {
       firstName,
       lastName: 'Ndong',
       status: 'active',
-      emailVerifiedAt: at,
       referralCode: id.toUpperCase(),
       birthDate: null,
       birthdayChoice: 'points',

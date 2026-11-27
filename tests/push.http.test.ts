@@ -19,9 +19,7 @@ const subscription = {
 async function signedIn() {
   const app = buildApp();
   const agent = request(app);
-  await agent.post('/api/v1/auth/registrations').send(customer).expect(202);
-  const code = /\b(\d{6})\b/.exec(app.services.email.last(customer.email)?.text ?? '')?.[1] ?? '';
-  const res = await agent.post('/api/v1/auth/verifications').send({ email: customer.email, code }).expect(200);
+  const res = await agent.post('/api/v1/auth/registrations').send(customer).expect(201);
   const raw = ([] as string[]).concat(res.headers['set-cookie'] ?? []);
   const cookie = (name: string) => raw.find((c) => c.startsWith(`${name}=`))?.split(';')[0] ?? '';
   const csrf = cookie('ok_csrf').split('=')[1] ?? '';

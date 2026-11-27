@@ -5,34 +5,10 @@ import { sendSuccess } from '../../core/http/apiResponse.js';
 import type { StaffAuthService } from './staff-auth.service.js';
 
 export const createStaffAuthController = (service: StaffAuthService) => ({
-  async requestPasswordReset(req: Request, res: Response) {
-    await service.requestPasswordReset(req.body.email);
-    return sendSuccess(
-      res,
-      null,
-      202,
-      'Si cette adresse correspond à un membre actif, un code vient de lui être envoyé.',
-    );
-  },
-
-  async confirmPasswordReset(req: Request, res: Response) {
-    const { email, code, backupCode, password } = req.body as Record<string, string>;
-    await service.confirmPasswordReset(email!, code!, backupCode!, password!);
-    return sendSuccess(res, null, 200, 'Mot de passe changé : reconnectez-vous.');
-  },
-
-  async startLogin(req: Request, res: Response) {
-    const challenge = await service.startLogin(req.body.email, req.body.password);
-    return sendSuccess(res, challenge, 202, 'Un code de connexion vous a été envoyé par e-mail.');
-  },
-
-  async completeLogin(req: Request, res: Response) {
-    const { member, backupCodesLeft, tokens } = await service.completeLogin(req.body.challengeId, {
-      code: req.body.code,
-      backupCode: req.body.backupCode,
-    });
+  async login(req: Request, res: Response) {
+    const { member, tokens } = await service.login(req.body.email, req.body.password);
     setAuthCookies(res, 'staff', tokens, req);
-    return sendSuccess(res, { member, backupCodesLeft }, 200, 'Vous êtes connecté.');
+    return sendSuccess(res, { member }, 200, 'Vous êtes connecté.');
   },
 
   async refresh(req: Request, res: Response) {
@@ -61,20 +37,9 @@ export const createStaffAuthController = (service: StaffAuthService) => ({
     return sendSuccess(res, await service.me(req.staff!.id));
   },
 
-  async regenerateBackupCodes(req: Request, res: Response) {
-    const result = await service.regenerateBackupCodes(req.staff!.id);
-    res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, result, 201, 'Nouveaux codes de secours : notez-les, ils ne seront plus affichés.');
-  },
-
-  async startInvitation(req: Request, res: Response) {
-    const result = await service.startInvitation(String(req.params.token));
-    return sendSuccess(res, result, 202, 'Un code vous a été envoyé par e-mail.');
-  },
-
   async acceptInvitation(req: Request, res: Response) {
-    const result = await service.acceptInvitation(String(req.params.token), req.body.code, req.body.password);
+    await service.acceptInvitation(String(req.params.token), req.body.password);
     res.setHeader('Cache-Control', 'no-store');
-    return sendSuccess(res, result, 200, 'Votre accès est prêt. Notez vos codes de secours.');
+    return sendSuccess(res, null, 200, 'Votre compte est activé. Vous pouvez vous connecter.');
   },
 });

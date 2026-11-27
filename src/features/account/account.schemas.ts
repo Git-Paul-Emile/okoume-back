@@ -35,8 +35,6 @@ export const updateAddressBody = z
   })
   .refine((v) => Object.values(v).some((x) => x !== undefined), 'Indiquez au moins un champ à modifier.');
 
-export const productIdParam = z.strictObject({ productId: z.uuid('Identifiant de produit invalide.') });
-
 export type ProfileInput = z.infer<typeof profileBody>;
 export type CreateAddressInput = z.infer<typeof createAddressBody>;
 export type UpdateAddressInput = z.infer<typeof updateAddressBody>;

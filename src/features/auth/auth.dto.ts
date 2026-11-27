@@ -1,33 +1,25 @@
-/** Compte client tel qu'exposé au front : jamais d'empreinte de mot de passe ni de champ interne. */
+/** Public customer profile; password and internal account fields are never returned. */
 export interface CustomerDto {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   phone: string | null;
-  emailVerified: boolean;
-  emailVerifiedAt: string | null;
   createdAt: string;
 }
 
-export const toCustomerDto = (c: {
+export const toCustomerDto = (customer: {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   phone: string | null;
-  emailVerifiedAt: Date | null;
-  referralCode: string;
-  birthDate: Date | null;
-  birthdayChoice: 'points' | 'code';
   createdAt: Date;
 }): CustomerDto => ({
-  id: c.id,
-  email: c.email,
-  firstName: c.firstName,
-  lastName: c.lastName,
-  phone: c.phone,
-  emailVerified: !!c.emailVerifiedAt,
-  emailVerifiedAt: c.emailVerifiedAt?.toISOString() ?? null,
-  createdAt: c.createdAt.toISOString(),
+  id: customer.id,
+  email: customer.email,
+  firstName: customer.firstName,
+  lastName: customer.lastName,
+  phone: customer.phone,
+  createdAt: customer.createdAt.toISOString(),
 });

@@ -94,19 +94,14 @@ export const productInclude = {
  * Produit visible : boutique OKOZA, ou boutique de vendeur active dont l'accès court encore (délai de grâce
  * compris, 32.2). En SQL pour la recherche, en filtre Prisma pour les lectures unitaires.
  */
-const visibleShopSql = (now: Date) => Prisma.sql`(p.shop_id IS NULL OR EXISTS (
-    SELECT 1 FROM shops s JOIN access_plans ap ON ap.id = s.plan_id
-    WHERE s.id = p.shop_id AND s.status = 'active'
-      AND (ap.kind = 'free' OR s.access_ends_at > ${now}::timestamp
-        - make_interval(days => (SELECT grace_days FROM marketplace_settings WHERE id = 1)))))`;
+const visibleShopSql = () => Prisma.sql`(p.shop_id IS NULL OR EXISTS (
+    SELECT 1 FROM shops s WHERE s.id = p.shop_id AND s.status = 'active'))`;
 
-async function visibleShopWhere(now: Date): Promise<Prisma.ProductWhereInput> {
-  const settings = await prisma.marketplaceSettings.findUnique({ where: { id: 1 }, select: { graceDays: true } });
-  const cutoff = new Date(now.getTime() - (settings?.graceDays ?? 0) * 86_400_000);
+function visibleShopWhere(): Prisma.ProductWhereInput {
   return {
     OR: [
       { shopId: null },
-      { shop: { status: 'active', OR: [{ plan: { kind: 'free' } }, { accessEndsAt: { gt: cutoff } }] } },
+      { shop: { status: 'active' } },
     ],
   };
 }
@@ -185,7 +180,7 @@ function searchQuery(c: ProductSearch, now: Date) {
            ELSE GREATEST(0, v.price - p.promotion_value) END
     ELSE v.price END`;
 
-  const where: Prisma.Sql[] = [Prisma.sql`p.status = 'published'`, visibleShopSql(now)];
+  const where: Prisma.Sql[] = [Prisma.sql`p.status = 'published'`, visibleShopSql()];
   if (c.shop === 'okoza') where.push(Prisma.sql`p.shop_id IS NULL`);
   else if (c.shop) where.push(Prisma.sql`p.shop_id = (SELECT id FROM shops WHERE slug = ${c.shop})`);
   if (c.categorySlug) where.push(Prisma.sql`p.category_id IN (SELECT id FROM tree)`);
@@ -260,23 +255,23 @@ export const productsRepository: ProductsRepository = {
     return ids.flatMap((id) => byId.get(id) ?? []);
   },
 
-  async findPublishedBySlug(slug, now) {
+  async findPublishedBySlug(slug, _now) {
     const row = await prisma.product.findFirst({
-      where: { slug, status: 'published', ...(await visibleShopWhere(now)) },
+      where: { slug, status: 'published', ...visibleShopWhere() },
       include: productInclude,
     });
     return row ? toProductRecord(row) : null;
   },
 
-  async findSellableVariants(variantIds, now) {
+  async findSellableVariants(variantIds, _now) {
     if (!variantIds.length) return [];
     const [rows, visible] = await Promise.all([
       prisma.variant.findMany({
         where: { id: { in: variantIds } },
         include: { product: { include: { images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } } } } },
       }),
-      // Un produit d'une boutique suspendue ou sans accès ne se vend plus, même s'il est encore publié
-      visibleShopWhere(now).then((where) =>
+      // Les produits d'une boutique suspendue ne sont plus vendables.
+      Promise.resolve(visibleShopWhere()).then((where) =>
         prisma.variant.findMany({ where: { id: { in: variantIds }, product: where }, select: { id: true } }),
       ),
     ]);

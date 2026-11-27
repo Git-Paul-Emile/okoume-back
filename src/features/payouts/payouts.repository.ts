@@ -33,12 +33,6 @@ export interface PayoutFilters {
 export interface PayoutsRepository {
   /** Reversements du plus récent au plus ancien, avec le total encore dû pour les mêmes critères de boutique */
   list(filters: PayoutFilters): Promise<{ items: PayoutRecord[]; total: number; due: number }>;
-  findById(id: string): Promise<PayoutRecord | null>;
-  /** Reversement fait : seulement s'il est encore dû ; null sinon (déjà payé ou annulé entre-temps). */
-  markPaid(
-    id: string,
-    payment: { method: 'cash' | 'airtel' | 'moov'; reference: string | null; staffId: string; at: Date },
-  ): Promise<PayoutRecord | null>;
 }
 
 const include = {
@@ -82,18 +76,5 @@ export const payoutsRepository: PayoutsRepository = {
       }),
     ]);
     return { items: rows.map(toRecord), total, due: due._sum.amount?.toNumber() ?? 0 };
-  },
-
-  async findById(id) {
-    const row = await prisma.sellerPayout.findUnique({ where: { id }, include });
-    return row ? toRecord(row) : null;
-  },
-
-  async markPaid(id, { method, reference, staffId, at }) {
-    const updated = await prisma.sellerPayout.updateMany({
-      where: { id, status: 'pending' },
-      data: { status: 'paid', method, reference, paidById: staffId, paidAt: at },
-    });
-    return updated.count === 1 ? payoutsRepository.findById(id) : null;
   },
 };

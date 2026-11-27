@@ -2,7 +2,6 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { buildApp } from './factories.js';
 
-const codeIn = (text: string | undefined) => /\b(\d{6})\b/.exec(text ?? '')?.[1] ?? '';
 const csrfIn = (res: request.Response) =>
   ([] as string[])
     .concat(res.headers['set-cookie'] ?? [])
@@ -15,12 +14,10 @@ type App = ReturnType<typeof buildApp>;
 /** Client inscrit et connecté : le navigateur simulé garde les cookies, l'en-tête CSRF est fourni à part. */
 async function signIn(app: App, email: string) {
   const agent = request.agent(app);
-  await agent
+  const res = await agent
     .post('/api/v1/auth/registrations')
     .send({ firstName: 'Awa', lastName: 'Ndong', email, password: 'motdepasse1', acceptTerms: true })
-    .expect(202);
-  const code = codeIn(app.services.email.last(email)?.text);
-  const res = await agent.post('/api/v1/auth/verifications').send({ email, code }).expect(200);
+    .expect(201);
   return { agent, csrf: csrfIn(res) };
 }
 
@@ -55,7 +52,7 @@ describe('compte client HTTP', () => {
     const { app } = account();
     const { agent, csrf } = await signIn(app, 'awa@example.ga');
     const res = await agent.patch('/api/v1/me').set('X-CSRF-Token', csrf).send({ lastName: 'Mba' }).expect(200);
-    expect(res.body.data).toMatchObject({ firstName: 'Awa', lastName: 'Mba', emailVerified: true, birthDate: null });
+    expect(res.body.data).toMatchObject({ firstName: 'Awa', lastName: 'Mba', birthDate: null });
     expect(res.body.data.referralCode).toEqual(expect.any(String));
     expect(res.body.data).not.toHaveProperty('passwordHash');
     await agent.patch('/api/v1/me').set('X-CSRF-Token', csrf).send({}).expect(400);

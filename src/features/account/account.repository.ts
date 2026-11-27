@@ -35,7 +35,7 @@ const addressOrder = [{ isDefault: 'desc' as const }, { createdAt: 'asc' as cons
 /** Résultat d'un ajout soumis au plafond d'adresses, décidé sous verrou. */
 export type CreateAddressResult = { created: AddressRecord } | { limitReached: number };
 
-/** Contrat de stockage du compte client : identité, adresses, favoris. */
+/** Contrat de stockage du compte client : identité et adresses. */
 export interface AccountRepository {
   updateProfile(customerId: string, data: { firstName?: string; lastName?: string }): Promise<CustomerRecord>;
   listAddresses(customerId: string): Promise<AddressRecord[]>;
@@ -43,11 +43,6 @@ export interface AccountRepository {
   updateAddress(customerId: string, id: string, data: UpdateAddressInput): Promise<AddressRecord | null>;
   deleteAddress(customerId: string, id: string): Promise<boolean>;
   zoneExists(zoneId: string): Promise<boolean>;
-  listFavorites(customerId: string): Promise<string[]>;
-  /** Ajoute le favori s'il n'y est pas déjà ; false si le plafond est atteint. */
-  addFavorite(customerId: string, productId: string, max: number): Promise<boolean>;
-  removeFavorite(customerId: string, productId: string): Promise<void>;
-  productPublished(productId: string): Promise<boolean>;
 }
 
 export const accountRepository: AccountRepository = {
@@ -110,32 +105,4 @@ export const accountRepository: AccountRepository = {
 
   zoneExists: async (zoneId) =>
     !!(await prisma.deliveryZone.findUnique({ where: { id: zoneId }, select: { id: true } })),
-
-  /** Favoris encore en vente, du plus récent au plus ancien. */
-  listFavorites: async (customerId) => {
-    const rows = await prisma.customerFavorite.findMany({
-      where: { customerId, product: { status: 'published' } },
-      orderBy: { createdAt: 'desc' },
-      select: { productId: true },
-    });
-    return rows.map((r) => r.productId);
-  },
-
-  /** Sous verrou de la ligne du client : deux ajouts simultanés ne dépassent pas le plafond. */
-  addFavorite: (customerId, productId, max) =>
-    prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM customers WHERE id = ${customerId}::uuid FOR UPDATE`;
-      const key = { customerId_productId: { customerId, productId } };
-      if (await tx.customerFavorite.findUnique({ where: key, select: { productId: true } })) return true;
-      if ((await tx.customerFavorite.count({ where: { customerId } })) >= max) return false;
-      await tx.customerFavorite.create({ data: { customerId, productId }, select: { productId: true } });
-      return true;
-    }),
-
-  removeFavorite: async (customerId, productId) => {
-    await prisma.customerFavorite.deleteMany({ where: { customerId, productId } });
-  },
-
-  productPublished: async (productId) =>
-    !!(await prisma.product.findFirst({ where: { id: productId, status: 'published' }, select: { id: true } })),
 };

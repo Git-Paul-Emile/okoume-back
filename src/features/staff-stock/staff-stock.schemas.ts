@@ -22,10 +22,6 @@ const MOVEMENT_TYPES = [
   'reception',
   'ajustement',
   'commande',
-  'annulation',
-  'retour',
-  'non_vendable',
-  'mise_au_rebut',
 ] as const;
 
 /** Journal général : pagination et type de mouvement facultatif */

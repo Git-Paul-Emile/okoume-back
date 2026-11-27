@@ -10,7 +10,6 @@ import {
   legalSlugParam,
   listAdsQuery,
   updateAdBody,
-  updateBannerBody,
 } from './content.schemas.js';
 import type { ContentService } from './content.service.js';
 
@@ -18,7 +17,6 @@ import type { ContentService } from './content.service.js';
 export const createContentRoutes = (service: ContentService) => {
   const c = createContentController(service);
   const router = Router();
-  router.get('/banners', asyncHandler(c.banners));
   router.get('/ads', validate({ query: listAdsQuery }), asyncHandler(c.ads));
   router.get('/offers', asyncHandler(c.offers));
   router.get('/legal-pages', asyncHandler(c.legalPages));
@@ -34,8 +32,6 @@ export const createStaffContentRoutes = (
   const c = createContentController(service);
   const router = Router();
   router.use(requireStaff(authenticator, now));
-  router.get('/banners', asyncHandler(c.staffBanners));
-  router.patch('/banners/:id', validate({ params: idParam, body: updateBannerBody }), asyncHandler(c.updateBanner));
   router.get('/ads', asyncHandler(c.staffAds));
   router.post('/ads', validate({ body: createAdBody }), asyncHandler(c.createAd));
   router.patch('/ads/:id', validate({ params: idParam, body: updateAdBody }), asyncHandler(c.updateAd));

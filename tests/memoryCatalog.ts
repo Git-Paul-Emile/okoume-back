@@ -45,7 +45,7 @@ export interface CustomerProfile {
   referredById: string | null;
   birthDate: Date | null;
   birthdayChoice: 'points' | 'code';
-  status: 'active' | 'pending_verification' | 'anonymized';
+  status: 'active' | 'anonymized';
 }
 
 export function createMemoryCatalog(now: () => Date) {

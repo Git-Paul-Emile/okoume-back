@@ -27,20 +27,12 @@ export const reviewBody = z.strictObject({
 });
 export type ReviewInput = z.infer<typeof reviewBody>;
 
-export const reportBody = z.strictObject({
-  reason: z.string().trim().min(3, 'Indiquez le motif du signalement.').max(200),
-});
-
 export const listProductReviewsQuery = listQuery(['createdAt']).pick({ page: true, limit: true }).strict();
 
 export const listStaffReviewsQuery = listQuery(['createdAt'])
   .pick({ page: true, limit: true })
   .extend({
     status: z.enum(['pending', 'approved', 'rejected']).optional(),
-    reported: z
-      .enum(['true', 'false'])
-      .transform((v) => v === 'true')
-      .optional(),
   })
   .strict();
 export type ListStaffReviewsQuery = z.infer<typeof listStaffReviewsQuery>;

@@ -1,8 +1,9 @@
+import { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../lib/prisma.js';
 
 export interface StockMovementRecord {
   id: string;
-  type: 'reception' | 'ajustement' | 'commande' | 'annulation' | 'retour' | 'non_vendable' | 'mise_au_rebut';
+  type: 'reception' | 'ajustement' | 'commande';
   before: number;
   after: number;
   delta: number;
@@ -105,11 +106,15 @@ export const stockRepository: StockRepository = {
   },
 
   async listJournal({ page, limit, type }) {
-    const where = type ? { type } : {};
+    const where: Prisma.StockMovementWhereInput = type ? { type } : {};
+    const journalInclude = {
+      ...include,
+      variant: { select: { label: true, product: { select: { id: true, name: true } } } },
+    } satisfies Prisma.StockMovementInclude;
     const [rows, total] = await prisma.$transaction([
       prisma.stockMovement.findMany({
         where,
-        include: { ...include, variant: { select: { label: true, product: { select: { id: true, name: true } } } } },
+        include: journalInclude,
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         skip: (page - 1) * limit,
         take: limit,

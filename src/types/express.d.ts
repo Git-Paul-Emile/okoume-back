@@ -5,7 +5,7 @@ declare global {
   namespace Express {
     interface Request {
       customer?: { id: string };
-      staff?: Grantee & { id: string; sessionIssuedAt: Date; refundLimit: number | null };
+      staff?: Grantee & { id: string; sessionIssuedAt: Date };
     }
   }
 }

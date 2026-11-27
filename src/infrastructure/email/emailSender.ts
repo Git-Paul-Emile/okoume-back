@@ -8,7 +8,7 @@ export interface EmailMessage {
   to: string;
   subject: string;
   text: string;
-  /** Contient un code de vérification ou un lien d'accès : le texte n'est jamais conservé ni renvoyé. */
+  /** Contient parfois un lien d'accès : le texte n'est jamais conservé ni renvoyé. */
   sensitive?: boolean;
 }
 

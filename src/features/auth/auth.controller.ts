@@ -4,24 +4,11 @@ import { clearAuthCookies, readRefreshToken, setAuthCookies } from '../../core/h
 import { sendSuccess } from '../../core/http/apiResponse.js';
 import type { AuthService } from './auth.service.js';
 
-const ACCEPTED = 'Si les informations sont correctes, un code vous a été envoyé par e-mail.';
-
-/** Traduit HTTP vers le service et inversement ; aucune règle métier ici. */
 export const createAuthController = (service: AuthService) => ({
   async register(req: Request, res: Response) {
-    await service.register(req.body);
-    return sendSuccess(res, null, 202, ACCEPTED);
-  },
-
-  async resendVerification(req: Request, res: Response) {
-    await service.resendVerification(req.body.email);
-    return sendSuccess(res, null, 202, ACCEPTED);
-  },
-
-  async verifyEmail(req: Request, res: Response) {
-    const { customer, tokens } = await service.verifyEmail(req.body.email, req.body.code);
+    const { customer, tokens } = await service.register(req.body);
     setAuthCookies(res, 'customer', tokens, req);
-    return sendSuccess(res, customer, 200, 'Adresse e-mail confirmée.');
+    return sendSuccess(res, customer, 201, 'Compte créé.');
   },
 
   async login(req: Request, res: Response) {
@@ -45,28 +32,12 @@ export const createAuthController = (service: AuthService) => ({
     return res.status(204).end();
   },
 
-  async requestContactChange(req: Request, res: Response) {
-    await service.requestContactChange(req.customer!.id, req.body);
-    return sendSuccess(res, null, 202, 'Code envoyé : saisissez-le pour confirmer.');
-  },
-
-  async confirmContactChange(req: Request, res: Response) {
-    const customer = await service.confirmContactChange(req.customer!.id, req.body.code);
+  async changeContact(req: Request, res: Response) {
+    const customer = await service.changeContact(req.customer!.id, req.body);
     return sendSuccess(res, customer, 200, 'Coordonnées mises à jour.');
   },
 
   async me(req: Request, res: Response) {
     return sendSuccess(res, await service.me(req.customer!.id));
-  },
-
-  async requestPasswordReset(req: Request, res: Response) {
-    await service.requestPasswordReset(req.body.identifier);
-    return sendSuccess(res, null, 202, ACCEPTED);
-  },
-
-  async confirmPasswordReset(req: Request, res: Response) {
-    await service.confirmPasswordReset(req.body.identifier, req.body.code, req.body.password);
-    clearAuthCookies(res, 'customer', req);
-    return sendSuccess(res, null, 200, 'Mot de passe modifié. Connectez-vous avec le nouveau.');
   },
 });

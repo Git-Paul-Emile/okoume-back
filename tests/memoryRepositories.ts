@@ -7,11 +7,6 @@ import type {
   SessionsRepository,
 } from '../src/features/sessions/sessions.repository.js';
 import type { StaffRecord, StaffRepository } from '../src/features/staff-auth/staff-auth.repository.js';
-import type {
-  VerificationPurpose,
-  VerificationRecord,
-  VerificationRepository,
-} from '../src/features/verification/verification.repository.js';
 
 /** Dépôts en mémoire pour les tests unitaires : mêmes contrats que Prisma, même atomicité des usages uniques. */
 
@@ -62,37 +57,6 @@ export function createMemorySessions(now: () => Date) {
   return { repository, sessions, logins };
 }
 
-export function createMemoryVerification() {
-  const codes: Array<VerificationRecord & { purpose: VerificationPurpose; createdAt: number }> = [];
-  let sequence = 0;
-  const repository: VerificationRepository = {
-    async replace(data, at) {
-      for (const c of codes)
-        if (c.subjectId === data.subjectId && c.purpose === data.purpose && !c.consumedAt) c.consumedAt = at;
-      const record = { ...data, id: randomUUID(), attempts: 0, consumedAt: null, createdAt: sequence++ };
-      codes.push(record);
-      return record;
-    },
-    findActive: async (subjectId, purpose) =>
-      codes
-        .filter((c) => c.subjectId === subjectId && c.purpose === purpose && !c.consumedAt)
-        .sort((a, b) => b.createdAt - a.createdAt)[0] ?? null,
-    findById: async (id, purpose) => codes.find((c) => c.id === id && c.purpose === purpose) ?? null,
-    async incrementAttempts(id) {
-      const code = codes.find((c) => c.id === id);
-      if (!code) throw new Error(`Code inconnu : ${id}`);
-      code.attempts += 1;
-      return { attempts: code.attempts };
-    },
-    async consume(id, at) {
-      const code = codes.find((c) => c.id === id && !c.consumedAt);
-      if (code) code.consumedAt = at;
-      return !!code;
-    },
-  };
-  return { repository, codes };
-}
-
 export function createMemoryCustomers() {
   const customers: Array<CustomerRecord & { phoneKey: string | null; lastLoginAt: Date | null }> = [];
   const byId = (id: string) => {
@@ -108,8 +72,7 @@ export function createMemoryCustomers() {
       const record = {
         ...data,
         id: randomUUID(),
-        status: 'pending_verification' as const,
-        emailVerifiedAt: null,
+        status: 'active' as const,
         lastLoginAt: null,
         birthDate: null,
         birthdayChoice: 'points' as const,
@@ -118,10 +81,7 @@ export function createMemoryCustomers() {
       customers.push(record);
       return record;
     },
-    updatePending: async (id, data) => Object.assign(byId(id), data),
-    activate: async (id, at) => Object.assign(byId(id), { status: 'active' as const, emailVerifiedAt: at }),
     touchLogin: async (id, at) => Object.assign(byId(id), { lastLoginAt: at }),
-    updatePassword: async (id, passwordHash) => Object.assign(byId(id), { passwordHash }),
     phoneTaken: async (key, exceptId) => customers.some((c) => c.phoneKey === key && c.id !== exceptId),
     async updateContact(id, change) {
       const taken =
@@ -140,33 +100,19 @@ export function createMemoryCustomers() {
 
 export function createMemoryStaff() {
   const members: Array<StaffRecord & { inviteTokenHash: string | null }> = [];
-  const backupCodes: Array<{ staffId: string; codeHash: string; usedAt: Date | null }> = [];
   const byId = (id: string) => {
     const member = members.find((m) => m.id === id);
     if (!member) throw new Error(`Membre inconnu : ${id}`);
     return member;
-  };
-  const setCodes = (staffId: string, hashes: string[]) => {
-    for (let i = backupCodes.length - 1; i >= 0; i--) if (backupCodes[i]?.staffId === staffId) backupCodes.splice(i, 1);
-    backupCodes.push(...hashes.map((codeHash) => ({ staffId, codeHash, usedAt: null })));
   };
   const repository: StaffRepository = {
     findByEmail: async (email) => members.find((m) => m.email === email) ?? null,
     findById: async (id) => members.find((m) => m.id === id) ?? null,
     findByInviteTokenHash: async (hash) => members.find((m) => m.inviteTokenHash === hash) ?? null,
     touchLogin: async () => undefined,
-    async acceptInvitation(id, passwordHash, hashes) {
-      setCodes(id, hashes);
+    async acceptInvitation(id, passwordHash) {
       Object.assign(byId(id), { passwordHash, status: 'active', inviteTokenHash: null, inviteExpiresAt: null });
     },
-    updatePassword: async (staffId, passwordHash) => Object.assign(byId(staffId), { passwordHash }),
-    async useBackupCode(staffId, codeHash, at) {
-      const code = backupCodes.find((c) => c.staffId === staffId && c.codeHash === codeHash && !c.usedAt);
-      if (code) code.usedAt = at;
-      return !!code;
-    },
-    replaceBackupCodes: async (staffId, hashes) => setCodes(staffId, hashes),
-    countUnusedBackupCodes: async (staffId) => backupCodes.filter((c) => c.staffId === staffId && !c.usedAt).length,
   };
   const add = (member: Partial<StaffRecord> & Pick<StaffRecord, 'email'> & { inviteTokenHash?: string | null }) => {
     const record = {
@@ -185,5 +131,5 @@ export function createMemoryStaff() {
     members.push(record);
     return record;
   };
-  return { repository, members, backupCodes, add };
+  return { repository, members, add };
 }

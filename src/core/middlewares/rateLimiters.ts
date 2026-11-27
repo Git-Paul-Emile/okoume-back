@@ -55,12 +55,12 @@ export const createOrderLimiter = () =>
 /** Compte visé par une tentative : adresse, identifiant, défi de connexion ou numéro de commande. */
 function targetOf(req: Request) {
   const source = { ...(req.query as Record<string, unknown>), ...((req.body ?? {}) as Record<string, unknown>) };
-  const value = source.email ?? source.identifier ?? source.challengeId ?? source.number;
+  const value = source.email ?? source.identifier ?? source.number;
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
 /**
- * Limite stricte pour connexion, inscription, mot de passe oublié et suivi sans compte (security.md) : 10 essais
+ * Limite stricte pour connexion, inscription et suivi sans compte (security.md) : 10 essais
  * par adresse IP ET par compte visé, plus 100 par adresse IP tous comptes confondus. Une équipe qui partage la
  * connexion de la boutique n'est pas bloquée par ses propres connexions ; le compte visé reste protégé (et
  * verrouillé par l'API après plusieurs échecs).

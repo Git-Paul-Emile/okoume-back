@@ -4,18 +4,14 @@ import { CSRF_HEADER, hasSessionCookie, readCsrfCookie } from '../http/authCooki
 import { safeEqual } from '../security/secrets.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const PUBLIC_REGISTRATION_PATHS = new Set([
-  '/auth/registrations',
-  '/auth/verifications',
-  '/auth/verification-codes',
-]);
+const PUBLIC_REGISTRATION_PATHS = new Set(['/auth/registrations']);
 
 /**
  * Protection CSRF par double jeton : toute modification faite avec un cookie de session doit renvoyer,
  * dans l'en-tête X-CSRF-Token, la valeur du cookie ok_csrf. Un site tiers ne peut pas lire ce cookie.
  */
 export const csrfProtection: RequestHandler = (req, _res, next) => {
-  // Ces étapes publiques ne lisent aucune session : un ancien cookie de navigateur ne doit pas bloquer une inscription.
+  // L'inscription est publique : un ancien cookie ne doit pas bloquer la création du compte.
   if (req.method === 'POST' && PUBLIC_REGISTRATION_PATHS.has(req.path)) return next();
   if (SAFE_METHODS.has(req.method) || !hasSessionCookie(req)) return next();
   const cookie = readCsrfCookie(req);

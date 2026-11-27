@@ -19,60 +19,30 @@
     "payoutStatus": "pending",
     "createdAt": "2026-10-10T08:00:00.000Z",
     "history": [
-      { "status": "confirmed", "at": "2026-10-10T08:00:00.000Z" },
-      { "status": "preparing", "at": "2026-10-10T09:00:00.000Z" },
-      { "status": "ready", "at": "2026-10-10T12:00:00.000Z" },
-      { "status": "courier_assigned", "at": "2026-10-10T13:00:00.000Z" },
-      { "status": "shipping", "at": "2026-10-10T14:00:00.000Z" },
-      { "status": "delivered", "at": "2026-10-10T16:00:00.000Z" }
-    ]
-  },
-  {
-    "id": "seller-o2",
-    "number": "CMD-VEN-2026-00002",
-    "trackingCode": "VEND02",
-    "checkoutNumber": "CHK-DEMO-2026-01",
-    "customerId": "u8",
-    "shopId": "shop-ndossy-market",
-    "productId": "seller-p2",
-    "variantId": "seller-v2",
-    "quantity": 1,
-    "zoneId": "1",
-    "deliveryFee": 1500,
-    "deliveryCost": null,
-    "paymentMethod": "airtel",
-    "paymentStatus": "awaiting_verification",
-    "status": "preparing",
-    "fulfilledBy": "seller",
-    "createdAt": "2026-10-10T08:00:00.000Z",
-    "history": [
-      { "status": "confirmed", "at": "2026-10-10T08:00:00.000Z" },
-      { "status": "preparing", "at": "2026-10-10T09:15:00.000Z" }
-    ]
-  },
-  {
-    "id": "seller-o3",
-    "number": "CMD-VEN-2026-00003",
-    "trackingCode": "VEND03",
-    "checkoutNumber": "CHK-DEMO-2026-02",
-    "customerId": "u10",
-    "shopId": "shop-mabouja",
-    "productId": "seller-p1",
-    "variantId": "seller-v1",
-    "quantity": 1,
-    "zoneId": "3",
-    "deliveryFee": 1500,
-    "deliveryCost": 1000,
-    "paymentMethod": "moov",
-    "paymentStatus": "refunded",
-    "status": "cancelled",
-    "fulfilledBy": "okoza",
-    "payoutStatus": "cancelled",
-    "createdAt": "2026-10-11T08:00:00.000Z",
-    "history": [
-      { "status": "confirmed", "at": "2026-10-11T08:00:00.000Z" },
-      { "status": "preparing", "at": "2026-10-11T08:30:00.000Z" },
-      { "status": "cancelled", "at": "2026-10-11T10:00:00.000Z" }
+      {
+        "status": "confirmed",
+        "at": "2026-10-10T08:00:00.000Z"
+      },
+      {
+        "status": "preparing",
+        "at": "2026-10-10T09:00:00.000Z"
+      },
+      {
+        "status": "ready",
+        "at": "2026-10-10T12:00:00.000Z"
+      },
+      {
+        "status": "courier_assigned",
+        "at": "2026-10-10T13:00:00.000Z"
+      },
+      {
+        "status": "shipping",
+        "at": "2026-10-10T14:00:00.000Z"
+      },
+      {
+        "status": "delivered",
+        "at": "2026-10-10T16:00:00.000Z"
+      }
     ]
   },
   {
@@ -95,12 +65,30 @@
     "payoutStatus": "paid",
     "createdAt": "2026-10-12T08:00:00.000Z",
     "history": [
-      { "status": "confirmed", "at": "2026-10-12T08:00:00.000Z" },
-      { "status": "preparing", "at": "2026-10-12T09:00:00.000Z" },
-      { "status": "ready", "at": "2026-10-12T11:00:00.000Z" },
-      { "status": "courier_assigned", "at": "2026-10-12T12:00:00.000Z" },
-      { "status": "shipping", "at": "2026-10-12T13:00:00.000Z" },
-      { "status": "delivered", "at": "2026-10-12T15:00:00.000Z" }
+      {
+        "status": "confirmed",
+        "at": "2026-10-12T08:00:00.000Z"
+      },
+      {
+        "status": "preparing",
+        "at": "2026-10-12T09:00:00.000Z"
+      },
+      {
+        "status": "ready",
+        "at": "2026-10-12T11:00:00.000Z"
+      },
+      {
+        "status": "courier_assigned",
+        "at": "2026-10-12T12:00:00.000Z"
+      },
+      {
+        "status": "shipping",
+        "at": "2026-10-12T13:00:00.000Z"
+      },
+      {
+        "status": "delivered",
+        "at": "2026-10-12T15:00:00.000Z"
+      }
     ]
   }
 ]

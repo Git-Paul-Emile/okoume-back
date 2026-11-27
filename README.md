@@ -314,35 +314,30 @@ Limitation de débit par adresse IP, sur 15 minutes (`src/core/middlewares/rateL
 - boutique et API publique : `RATE_LIMIT_API_MAX` (300 par défaut) ;
 - back-office (`/api/v1/staff`) : compteur à part, `RATE_LIMIT_STAFF_MAX` (3 000 par défaut), car ses écrans
   chargent beaucoup de données et l'équipe partage souvent la même connexion ;
-- connexion, inscription, mot de passe oublié, suivi sans compte : 10 essais, valeur fixe ;
+- connexion, inscription et suivi sans compte : 10 essais, valeur fixe ;
 - passage de commande : 20, valeur fixe.
 
 Clients, sous `/api/v1/auth` :
 
-| Route                                 | Rôle                                                                                     |
-| ------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `POST /registrations`                 | Inscription ; réponse identique que l'adresse soit libre ou non (202)                    |
-| `POST /verifications`                 | Code reçu par e-mail : le compte devient actif et la session s'ouvre                     |
-| `POST /verification-codes`            | Nouveau code de confirmation                                                             |
-| `POST /sessions`                      | Connexion par e-mail ou téléphone ; même erreur pour compte inconnu ou mot de passe faux |
-| `POST /sessions/refresh`              | Renouvellement : jeton remplacé à chaque usage, réutilisation = famille révoquée         |
-| `DELETE /sessions/current`            | Déconnexion                                                                              |
-| `GET /me`                             | Compte connecté                                                                          |
-| `POST /password-resets`               | Demande de nouveau mot de passe (réponse identique dans tous les cas)                    |
-| `POST /password-resets/confirmations` | Nouveau mot de passe ; toutes les sessions sont fermées                                  |
+| Route                    | Rôle                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------- |
+| `POST /registrations`   | Création du compte et ouverture immédiate d'une session                                  |
+| `POST /sessions`         | Connexion par e-mail ou téléphone ; même erreur pour compte inconnu ou mot de passe faux |
+| `POST /sessions/refresh` | Renouvellement : jeton remplacé à chaque usage, réutilisation = famille révoquée         |
+| `DELETE /sessions/current` | Déconnexion                                                                            |
+| `GET /me`                | Compte connecté                                                                          |
+| `PATCH /contact-changes` | Modification directe de l'e-mail ou du téléphone depuis la session                      |
 
 Équipe, sous `/api/v1/staff/auth` :
 
-| Route                                 | Rôle                                                              |
-| ------------------------------------- | ----------------------------------------------------------------- |
-| `POST /challenges`                    | Étape 1 : mot de passe, un code est envoyé par e-mail             |
-| `POST /sessions`                      | Étape 2 : code reçu ou code de secours (usage unique)             |
-| `POST /sessions/refresh`              | Renouvellement (session de 60 minutes d'inactivité)               |
-| `DELETE /sessions/current`            | Déconnexion                                                       |
-| `GET /me`                             | Membre connecté, rôles et droits                                  |
-| `POST /backup-codes`                  | Nouveaux codes de secours, affichés une seule fois                |
-| `POST /invitations/:token/codes`      | Invitation, étape 1 : code envoyé à l'adresse invitée             |
-| `POST /invitations/:token/acceptance` | Invitation, étape 2 : mot de passe choisi, codes de secours remis |
+| Route                                  | Rôle                                                         |
+| -------------------------------------- | ------------------------------------------------------------ |
+| `POST /sessions`                       | Connexion directe par e-mail et mot de passe                 |
+| `POST /sessions/refresh`               | Renouvellement (session de 60 minutes d'inactivité)          |
+| `DELETE /sessions/current`             | Déconnexion                                                  |
+| `DELETE /sessions/others`               | Fermer les autres sessions du membre connecté                |
+| `GET /me`                              | Membre connecté, rôles et droits                             |
+| `POST /invitations/:token/acceptance`  | Invitation : choix du mot de passe depuis le lien reçu       |
 
 Compte du client connecté, sous `/api/v1/me` (2.2, 3.6) :
 
@@ -358,8 +353,8 @@ Compte du client connecté, sous `/api/v1/me` (2.2, 3.6) :
 | `DELETE /favorites/:productId` | Retrait idempotent                                                                    |
 
 La date et le cadeau d'anniversaire passent par `PUT /api/v1/loyalty/preferences`, les notifications par
-`/api/v1/notification-preferences`. Les coordonnées se modifient dans le compte avec vérification de la nouvelle
-adresse ou du nouveau numéro. Pas encore dans l'API : produits récemment consultés et rattachement d'une commande
+`/api/v1/notification-preferences`. Les coordonnées se modifient directement depuis le compte connecté. Pas encore
+dans l'API : produits récemment consultés et rattachement d'une commande
 passée sans compte. Les demandes d'export, de correction ou de suppression des données ne sont pas proposées.
 
 **Cookie anti-CSRF entre sous-domaines.** Le cookie `ok_csrf` est posé par l'API ; le site doit pouvoir le lire
@@ -541,7 +536,7 @@ enregistrée une seule fois.
 
 - Chaque e-mail mis en file reçoit un identifiant d'envoi, clé d'idempotence chez Resend et clé du suivi, qui reste
   le même quand le job passe en file d'échec. Le worker inscrit chaque essai ; le texte n'est gardé que tant que
-  l'e-mail n'est pas parti, et jamais pour un code de vérification ou un lien d'invitation (`sensitive`), qui ne se
+  l'e-mail n'est pas parti, et jamais pour un lien d'invitation (`sensitive`), qui ne se
   relance pas. Un échec définitif déclenche l'alerte critique « E-mails non délivrés ».
 - Resend : renseigner `RESEND_API_KEY` (clé « Sending access ») et un `EMAIL_FROM` dont le domaine est vérifié dans
   la console Resend. Sans clé, en développement, les e-mails partent dans les logs du worker.
@@ -639,8 +634,7 @@ lancer en local : `npm run lint`, `npm test`, `npm run build` (et `npm run test:
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
 | `POST /orders/:id/payment-declarations`, `POST /order-tracking/payment-declarations` | Paiement Mobile Money déclaré par le client (référence) : commande « à vérifier »       |
 | `POST /orders/claims`                                                                | Rattache une commande passée sans compte : numéro, code de suivi et même adresse e-mail |
-| `POST /auth/contact-changes`, `POST /auth/contact-changes/confirmations`             | Changement d'e-mail ou de téléphone : mot de passe, puis code                           |
-| `POST /staff/auth/password-resets`, `.../confirmations`                              | Mot de passe oublié de l'équipe : code par e-mail et code de secours                    |
+| `PATCH /auth/contact-changes`                                                         | Changement direct d'e-mail ou de téléphone depuis le compte connecté                    |
 | `GET /staff/team/directory`                                                          | Membres actifs (prénom, nom), lisibles par toute l'équipe                               |
 | `GET /staff/stock-movements`                                                         | Journal général du stock (`stock:consulter`)                                            |
 | `GET /staff/price-changes`                                                           | Historique des prix (`catalogue:consulter`) ; `priceReason` exigé quand un prix change  |

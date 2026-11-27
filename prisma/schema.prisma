@@ -1,5 +1,5 @@
-// Schéma de la base de la boutique. Les modèles métier sont ajoutés fonctionnalité par fonctionnalité,
-// chacun avec sa migration versionnée. Dates en UTC, identifiants UUID (pas d'auto-incrément qui révèle le volume).
+// SchÃ©ma de la base de la boutique. Les modÃ¨les mÃ©tier sont ajoutÃ©s fonctionnalitÃ© par fonctionnalitÃ©,
+// chacun avec sa migration versionnÃ©e. Dates en UTC, identifiants UUID (pas d'auto-incrÃ©ment qui rÃ©vÃ¨le le volume).
 
 generator client {
   provider            = "prisma-client"
@@ -15,64 +15,38 @@ datasource db {
 // ---------------------------------------------------------------- Comptes clients
 
 enum CustomerStatus {
-  pending_verification
   active
   anonymized
 }
 
 model Customer {
-  id                String         @id @default(uuid()) @db.Uuid
-  /// Toujours enregistré en minuscules
-  email             String         @unique
-  /// 8 derniers chiffres du numéro gabonais, pour retrouver un compte par téléphone
-  phoneKey          String?        @unique @map("phone_key")
-  phone             String?
-  passwordHash      String         @map("password_hash")
-  firstName         String         @map("first_name")
-  lastName          String         @map("last_name")
-  status            CustomerStatus @default(pending_verification)
-  emailVerifiedAt   DateTime?      @map("email_verified_at")
-  lastLoginAt       DateTime?      @map("last_login_at")
-  /// Code à partager pour parrainer (12.5)
-  referralCode      String         @unique @map("referral_code")
-  /// Parrain, indiqué à l'inscription
-  referredById      String?        @map("referred_by_id") @db.Uuid
-  /// Date d'anniversaire facultative, pour la récompense d'anniversaire (12.5)
-  birthDate         DateTime?      @map("birth_date") @db.Date
-  birthdayChoice    BirthdayChoice @default(points) @map("birthday_choice")
-  /// Préférences de notification par sujet et par canal : { "orders": { "push": false }, ... } (26)
-  notificationPrefs Json           @default("{}") @map("notification_prefs")
-  /// Date de l’anonymisation (19.5) : le compte ne permet plus d’identifier la personne
-  anonymizedAt      DateTime?      @map("anonymized_at")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
+  id              String         @id @default(uuid()) @db.Uuid
+  /// Toujours enregistrÃ© en minuscules
+  email           String         @unique
+  /// 8 derniers chiffres du numÃ©ro gabonais, pour retrouver un compte par tÃ©lÃ©phone
+  phoneKey        String?        @unique @map("phone_key")
+  phone           String?
+  passwordHash    String         @map("password_hash")
+  firstName       String         @map("first_name")
+  lastName        String         @map("last_name")
+  status          CustomerStatus @default(active)
+  lastLoginAt     DateTime?      @map("last_login_at")
+  /// PrÃ©fÃ©rences de notification par sujet et par canal : { "orders": { "push": false }, ... } (26)
+  /// Date de lâ€™anonymisation (19.5) : le compte ne permet plus dâ€™identifier la personne
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
 
-  sessions          Session[]
-  orders            Order[]
-  loyaltyMovements  LoyaltyMovement[]
-  promoCodes        PromoCode[]
-  referredBy        Customer?          @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referees          Customer[]         @relation("Referrals")
-  referralsGiven    ReferralReward[]   @relation("Referrer")
-  referralReceived  ReferralReward?    @relation("Referee")
-  birthdayRewards   BirthdayReward[]
-  pushSubscriptions PushSubscription[]
-  shop              Shop?
-  addresses         CustomerAddress[]
-  supportTickets    SupportTicket[]
-  privacyRequests   PrivacyRequest[]
-  reviews           ProductReview[]
-  reviewReports     ReviewReport[]
-  favorites         CustomerFavorite[]
-  listingReports    ListingReport[]
-  listingRequests   ListingRequest[]
-  conversations     Conversation[]
+  sessions  Session[]
+  orders    Order[]
+  shop      Shop?
+  addresses CustomerAddress[]
+  reviews   ProductReview[]
 
   @@index([status, lastLoginAt])
   @@map("customers")
 }
 
-// ---------------------------------------------------------------- Équipe et droits
+// ---------------------------------------------------------------- Ã‰quipe et droits
 
 enum StaffStatus {
   invited
@@ -83,16 +57,14 @@ enum StaffStatus {
 model StaffMember {
   id                String      @id @default(uuid()) @db.Uuid
   email             String      @unique
-  /// Absent tant que l'invitation n'est pas acceptée
+  /// Absent tant que l'invitation n'est pas acceptÃ©e
   passwordHash      String?     @map("password_hash")
   firstName         String      @map("first_name")
   lastName          String      @map("last_name")
-  /// Rôle unique de l'équipe back-office
+  /// RÃ´le unique de l'Ã©quipe back-office
   role              String      @default("super_admin")
   status            StaffStatus @default(invited)
-  /// Plafond de remboursement délégué, en FCFA (absent : pas de délégation)
-  refundLimit       Decimal?    @map("refund_limit") @db.Decimal(12, 0)
-  /// Toute session ouverte avant cette date est refusée
+  /// Toute session ouverte avant cette date est refusÃ©e
   sessionsRevokedAt DateTime?   @map("sessions_revoked_at")
   inviteTokenHash   String?     @unique @map("invite_token_hash")
   inviteExpiresAt   DateTime?   @map("invite_expires_at")
@@ -100,48 +72,23 @@ model StaffMember {
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
 
-  backupCodes       BackupCode[]
-  sessions          Session[]
-  stockMovements    StockMovement[]
-  priceChanges      PriceChange[]
-  orderEvents       OrderEvent[]
-  cancellations     CancellationRequest[]
-  payments          Payment[]
-  returnEvents      ReturnEvent[]
-  writeOffs         StockWriteOff[]
-  loyaltyMovements  LoyaltyMovement[]
-  pushSubscriptions PushSubscription[]
-  suspendedShops    Shop[]                @relation("ShopSuspendedBy")
-  verifiedShops     Shop[]                @relation("ShopVerifiedBy")
-  shopPayments      ShopPayment[]
-  listingReviews    ListingReview[]
-  listingReports    ListingReport[]       @relation("ListingReportDecidedBy")
-  boostDecisions    ListingBoost[]
-  assignedTickets   SupportTicket[]       @relation("TicketAssignee")
-  supportMessages   SupportMessage[]
-  activities        StaffActivity[]
-  assignedAlerts    StaffAlert[]
-  sellerPayouts     SellerPayout[]
+  sessions       Session[]
+  stockMovements StockMovement[]
+  priceChanges   PriceChange[]
+  orderEvents    OrderEvent[]
+  payments       Payment[]
+  suspendedShops Shop[]          @relation("ShopSuspendedBy")
+  verifiedShops  Shop[]          @relation("ShopVerifiedBy")
+  sellerPayouts  SellerPayout[]
 
   @@map("staff_members")
 }
 
-/// Codes de secours de la double vérification : seule l'empreinte est conservée
-model BackupCode {
-  id       String    @id @default(uuid()) @db.Uuid
-  staffId  String    @map("staff_id") @db.Uuid
-  codeHash String    @map("code_hash")
-  usedAt   DateTime? @map("used_at")
-
-  staff StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
-
-  @@index([staffId])
-  @@map("backup_codes")
+enum LoginSubject {
+  customer
+  staff
 }
 
-// ---------------------------------------------------------------- Sessions et vérifications
-
-/// Jeton de renouvellement : empreinte seule, rotation à chaque usage, famille pour détecter une réutilisation
 model Session {
   id         String    @id @default(uuid()) @db.Uuid
   familyId   String    @map("family_id") @db.Uuid
@@ -162,43 +109,13 @@ model Session {
   @@map("sessions")
 }
 
-enum VerificationPurpose {
-  email_verification
-  password_reset
-  staff_login
-  contact_change
-}
-
-/// Code à usage unique envoyé par e-mail ou SMS : empreinte, essais comptés, expiration courte
-model VerificationCode {
-  id         String              @id @default(uuid()) @db.Uuid
-  purpose    VerificationPurpose
-  /// Compte concerné (client ou membre de l'équipe)
-  subjectId  String              @map("subject_id") @db.Uuid
-  /// Adresse ou numéro qui reçoit le code
-  target     String
-  codeHash   String              @map("code_hash")
-  attempts   Int                 @default(0)
-  expiresAt  DateTime            @map("expires_at")
-  consumedAt DateTime?           @map("consumed_at")
-  createdAt  DateTime            @default(now()) @map("created_at")
-
-  @@index([subjectId, purpose])
-  @@map("verification_codes")
-}
-
-enum LoginSubject {
-  customer
-  staff
-}
-
-/// Journal des connexions (conservé 12 mois)
+/// Journal des connexions (conservÃ© 12 mois)
 model LoginEvent {
   id          String       @id @default(uuid()) @db.Uuid
   subjectType LoginSubject @map("subject_type")
   subjectId   String?      @map("subject_id") @db.Uuid
   success     Boolean
-  /// Motif d'échec, sans donnée sensible
+  /// Motif d'Ã©chec, sans donnÃ©e sensible
   reason      String?
   createdAt   DateTime     @default(now()) @map("created_at")
 
@@ -214,7 +131,7 @@ enum ImageFit {
   contain
 }
 
-/// Catégorie de l'arborescence, ou collection transversale (isCollection) qui regroupe des catégories.
+/// CatÃ©gorie de l'arborescence, ou collection transversale (isCollection) qui regroupe des catÃ©gories.
 model Category {
   id           String   @id @default(uuid()) @db.Uuid
   slug         String   @unique
@@ -235,7 +152,6 @@ model Category {
   memberOf   CollectionMember[]  @relation("CollectionMemberOf")
   products   Product[]
   promoCodes PromoCodeCategory[]
-  listings   Listing[]
 
   @@index([parentId, position])
   @@map("categories")
@@ -264,7 +180,7 @@ enum PromotionType {
   fixed
 }
 
-/// Prix TTC en francs CFA, sans décimale. La promotion est portée par le produit et vaut pour toutes ses variantes.
+/// Prix TTC en francs CFA, sans dÃ©cimale. La promotion est portÃ©e par le produit et vaut pour toutes ses variantes.
 model Product {
   id                String             @id @default(uuid()) @db.Uuid
   slug              String             @unique
@@ -290,13 +206,13 @@ model Product {
   promotionEndsAt   DateTime?          @map("promotion_ends_at")
   /// Boutique du vendeur (32.3) ; vide pour un produit de la boutique OKOZA
   shopId            String?            @map("shop_id") @db.Uuid
-  /// État d'un produit de vendeur (32.3) ; neuf pour la boutique OKOZA, renseigné par le vendeur sinon
   condition         ListingCondition?
-  /// Vérification d'un produit de vendeur avant publication (32.3) ; vide pour la boutique OKOZA
+  /// Ã‰tat d'un produit de vendeur (32.3) ; neuf pour la boutique OKOZA, renseignÃ© par le vendeur sinon
+  /// VÃ©rification d'un produit de vendeur avant publication (32.3) ; vide pour la boutique OKOZA
   moderation        ProductModeration?
   moderationIssues  String[]           @default([]) @map("moderation_issues")
   moderationNote    String?            @map("moderation_note")
-  /// Version examinée : un avis rendu sur une version modifiée depuis est ignoré
+  /// Version examinÃ©e : un avis rendu sur une version modifiÃ©e depuis est ignorÃ©
   moderationVersion Int                @default(0) @map("moderation_version")
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
@@ -306,7 +222,6 @@ model Product {
   images     ProductImage[]
   variants   Variant[]
   promoCodes PromoCodeProduct[]
-  favoredBy  CustomerFavorite[]
   reviews    ProductReview[]
   offers     ExclusiveOffer[]
 
@@ -317,7 +232,7 @@ model Product {
   @@map("products")
 }
 
-/// Photos d'un produit dans l'ordre d'affichage ; la première sert de vignette.
+/// Photos d'un produit dans l'ordre d'affichage ; la premiÃ¨re sert de vignette.
 model ProductImage {
   id        String @id @default(uuid()) @db.Uuid
   productId String @map("product_id") @db.Uuid
@@ -331,7 +246,7 @@ model ProductImage {
   @@map("product_images")
 }
 
-/// Variante vendue. Disponible à la vente : stock moins reserved. Le stock non revendable est à part, jamais vendu.
+/// Variante vendue. Disponible Ã  la vente : stock moins reserved. Le stock non revendable est Ã  part, jamais vendu.
 model Variant {
   id                String   @id @default(uuid()) @db.Uuid
   productId         String   @map("product_id") @db.Uuid
@@ -340,7 +255,7 @@ model Variant {
   /// Attributs de la variante, par exemple { Taille: M, Couleur: Bleu }
   attributes        Json     @default("{}")
   price             Decimal  @db.Decimal(12, 0)
-  /// Coût d'achat, donnée interne jamais exposée au public ; obligatoire pour publier (28.1)
+  /// CoÃ»t d'achat, donnÃ©e interne jamais exposÃ©e au public ; obligatoire pour publier (28.1)
   cost              Decimal? @db.Decimal(12, 0)
   stock             Int      @default(0)
   reserved          Int      @default(0)
@@ -356,8 +271,6 @@ model Variant {
   stockMovements StockMovement[]
   priceChanges   PriceChange[]
   orderItems     OrderItem[]
-  returnItems    ReturnItem[]
-  writeOffs      StockWriteOff[]
 
   @@index([productId, position])
   @@map("variants")
@@ -367,14 +280,9 @@ enum StockMovementType {
   reception
   ajustement
   commande
-  annulation
-  retour
-  non_vendable
-  /// Sortie définitive d'un article non revendable, décidée par l'administrateur principal
-  mise_au_rebut
 }
 
-/// Journal de chaque changement du stock physique : avant, après, motif, auteur.
+/// Journal de chaque changement du stock physique : avant, aprÃ¨s, motif, auteur.
 model StockMovement {
   id        String            @id @default(uuid()) @db.Uuid
   variantId String            @map("variant_id") @db.Uuid
@@ -446,109 +354,80 @@ enum OrderStatus {
   courier_assigned
   shipping
   delivered
-  cancelled
-  claim
 }
 
 enum PaymentStatus {
   awaiting_payment
-  awaiting_verification
   paid
-  refund_due
-  refunded
 }
 
-/// Vérification humaine d'une commande signalée par les règles anti-fraude (19.3)
-enum OrderReviewStatus {
-  pending
-  cleared
-}
-
+/// VÃ©rification humaine d'une commande signalÃ©e par les rÃ¨gles anti-fraude (19.3)
 enum PaymentMethod {
   cash
   airtel
   moov
 }
 
-/// Commande : prix, frais et coordonnées figés au moment de l'achat. Montants TTC en francs CFA.
+/// Commande : prix, frais et coordonnÃ©es figÃ©s au moment de l'achat. Montants TTC en francs CFA.
 model Order {
-  id                String        @id @default(uuid()) @db.Uuid
-  number            String        @unique
-  trackingCode      String        @map("tracking_code")
-  customerId        String?       @map("customer_id") @db.Uuid
-  /// Clé envoyée par le client : un double envoi renvoie la même commande
-  idempotencyKey    String        @unique @map("idempotency_key")
-  recipient         String
-  phone             String
-  /// 8 derniers chiffres du téléphone : rapproche les commandes d'un même numéro, quelle que soit sa saisie
-  phoneKey          String?       @map("phone_key")
-  email             String
-  zoneId            String        @map("zone_id") @db.Uuid
-  zoneName          String        @map("zone_name")
-  landmark          String
-  /// Consignes pour le livreur saisies à la commande (étage, portail, horaires)
-  instructions      String        @default("")
-  subtotal          Decimal       @db.Decimal(12, 0)
-  productDiscount   Decimal       @default(0) @map("product_discount") @db.Decimal(12, 0)
-  codeDiscount      Decimal       @default(0) @map("code_discount") @db.Decimal(12, 0)
-  pointsDiscount    Decimal       @default(0) @map("points_discount") @db.Decimal(12, 0)
-  deliveryFee       Decimal       @map("delivery_fee") @db.Decimal(12, 0)
-  deliveryDiscount  Decimal       @default(0) @map("delivery_discount") @db.Decimal(12, 0)
-  total             Decimal       @db.Decimal(12, 0)
-  promoCode         String?       @map("promo_code")
-  promoCodeId       String?       @map("promo_code_id") @db.Uuid
-  /// Livreur affecté (9.4)
-  courierId         String?       @map("courier_id") @db.Uuid
-  /// Coût réel de la course pour la boutique, distinct des frais facturés au client (9.5)
-  deliveryCost      Decimal?      @map("delivery_cost") @db.Decimal(12, 0)
-  pointsUsed        Int           @default(0) @map("points_used")
-  paymentMethod     PaymentMethod @map("payment_method")
-  paymentStatus     PaymentStatus @map("payment_status")
-  /// Inutilisées depuis le paiement à la livraison pour tous les moyens (ancienne déclaration par le client)
-  paymentReference  String?       @map("payment_reference")
-  paymentDeclaredAt DateTime?     @map("payment_declared_at")
-  status            OrderStatus   @default(confirmed)
-  /// Boutique du vendeur qui reçoit la commande (32.4) ; vide pour la boutique OKOZA
-  shopId            String?       @map("shop_id") @db.Uuid
-  /// Passage en caisse commun aux commandes issues d'un même panier (une commande par boutique)
-  checkoutNumber    String?       @map("checkout_number")
-  /// Qui livre, figé à la commande (32.5) : les livreurs OKOZA ou ceux du vendeur
-  fulfilledBy       Fulfillment   @default(okoza) @map("fulfilled_by")
+  id                    String        @id @default(uuid()) @db.Uuid
+  number                String        @unique
+  trackingCode          String        @map("tracking_code")
+  customerId            String?       @map("customer_id") @db.Uuid
+  /// ClÃ© envoyÃ©e par le client : un double envoi renvoie la mÃªme commande
+  idempotencyKey        String        @unique @map("idempotency_key")
+  recipient             String
+  phone                 String
+  /// 8 derniers chiffres du tÃ©lÃ©phone : rapproche les commandes d'un mÃªme numÃ©ro, quelle que soit sa saisie
+  email                 String
+  zoneId                String        @map("zone_id") @db.Uuid
+  zoneName              String        @map("zone_name")
+  landmark              String
+  /// Consignes pour le livreur saisies Ã  la commande (Ã©tage, portail, horaires)
+  instructions          String        @default("")
+  subtotal              Decimal       @db.Decimal(12, 0)
+  productDiscount       Decimal       @default(0) @map("product_discount") @db.Decimal(12, 0)
+  codeDiscount          Decimal       @default(0) @map("code_discount") @db.Decimal(12, 0)
+  deliveryFee           Decimal       @map("delivery_fee") @db.Decimal(12, 0)
+  deliveryDiscount      Decimal       @default(0) @map("delivery_discount") @db.Decimal(12, 0)
+  total                 Decimal       @db.Decimal(12, 0)
+  promoCode             String?       @map("promo_code")
+  promoCodeId           String?       @map("promo_code_id") @db.Uuid
+  /// Livreur affectÃ© (9.4)
+  courierId             String?       @map("courier_id") @db.Uuid
+  /// CoÃ»t rÃ©el de la course pour la boutique, distinct des frais facturÃ©s au client (9.5)
+  deliveryCost          Decimal?      @map("delivery_cost") @db.Decimal(12, 0)
+  paymentMethod         PaymentMethod @map("payment_method")
+  paymentStatus         PaymentStatus @map("payment_status")
+  /// InutilisÃ©es depuis le paiement Ã  la livraison pour tous les moyens (ancienne dÃ©claration par le client)
+  status                OrderStatus   @default(confirmed)
+  /// Boutique du vendeur qui reÃ§oit la commande (32.4) ; vide pour la boutique OKOZA
+  shopId                String?       @map("shop_id") @db.Uuid
+  /// Passage en caisse commun aux commandes issues d'un mÃªme panier (une commande par boutique)
+  checkoutNumber        String?       @map("checkout_number")
+  /// Qui livre, figÃ© Ã  la commande (32.5) : les livreurs OKOZA ou ceux du vendeur
+  fulfilledBy           Fulfillment   @default(okoza) @map("fulfilled_by")
   /// Confirmation de remise de ce lot au livreur central.
-  collectionConfirmedAt DateTime? @map("collection_confirmed_at")
-  collectionConfirmedBy String?  @map("collection_confirmed_by")
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
+  collectionConfirmedAt DateTime?     @map("collection_confirmed_at")
+  collectionConfirmedBy String?       @map("collection_confirmed_by")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
 
-  customer         Customer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  zone             DeliveryZone         @relation(fields: [zoneId], references: [id], onDelete: Restrict)
-  promo            PromoCode?           @relation(fields: [promoCodeId], references: [id], onDelete: Restrict)
-  items            OrderItem[]
-  events           OrderEvent[]
-  cancellation     CancellationRequest?
-  payments         Payment[]
-  returnRequest    ReturnRequest?
-  loyaltyMovements LoyaltyMovement[]
-  invoices         Invoice[]
-  courier          Courier?             @relation(fields: [courierId], references: [id], onDelete: Restrict)
-  shop             Shop?                @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  payout           SellerPayout?
-  feeChanges       DeliveryFeeChange[]
-  disputes         DeliveryDispute[]
-  stockMovements   StockMovement[]
-  referralReward   ReferralReward?
+  customer       Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  zone           DeliveryZone    @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+  promo          PromoCode?      @relation(fields: [promoCodeId], references: [id], onDelete: Restrict)
+  items          OrderItem[]
+  events         OrderEvent[]
+  payments       Payment[]
+  courier        Courier?        @relation(fields: [courierId], references: [id], onDelete: Restrict)
+  shop           Shop?           @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  payout         SellerPayout?
+  stockMovements StockMovement[]
 
-  /// Signaux anti-fraude levés à la création ; la préparation attend la vérification d'un membre de l'équipe
-  reviewReasons String[]           @default([]) @map("review_reasons")
-  reviewStatus  OrderReviewStatus? @map("review_status")
-  reviewNote    String?            @map("review_note")
-  reviewedBy    String?            @map("reviewed_by")
-  reviewedAt    DateTime?          @map("reviewed_at")
+  /// Signaux anti-fraude levÃ©s Ã  la crÃ©ation ; la prÃ©paration attend la vÃ©rification d'un membre de l'Ã©quipe
 
   @@index([customerId, createdAt])
   @@index([status, createdAt])
-  @@index([phoneKey, createdAt])
-  @@index([reviewStatus])
   @@index([shopId, status, createdAt])
   @@index([checkoutNumber])
   @@map("orders")
@@ -579,11 +458,11 @@ enum OrderActor {
   customer
   staff
   system
-  /// Vendeur de la boutique qui a reçu la commande (32.4)
+  /// Vendeur de la boutique qui a reÃ§u la commande (32.4)
   seller
 }
 
-/// Étapes de la commande : nouvel état, état précédent, auteur, motif.
+/// Ã‰tapes de la commande : nouvel Ã©tat, Ã©tat prÃ©cÃ©dent, auteur, motif.
 model OrderEvent {
   id         String       @id @default(uuid()) @db.Uuid
   orderId    String       @map("order_id") @db.Uuid
@@ -601,54 +480,23 @@ model OrderEvent {
   @@map("order_events")
 }
 
-enum RequestStatus {
-  pending
-  accepted
-  refused
-}
-
-/// Demande d'annulation du client après le début de la préparation : l'équipe l'accepte ou la refuse.
-model CancellationRequest {
-  id             String        @id @default(uuid()) @db.Uuid
-  orderId        String        @unique @map("order_id") @db.Uuid
-  reason         String
-  comment        String        @default("")
-  status         RequestStatus @default(pending)
-  decisionReason String?       @map("decision_reason")
-  decidedById    String?       @map("decided_by_id") @db.Uuid
-  decidedAt      DateTime?     @map("decided_at")
-  createdAt      DateTime      @default(now()) @map("created_at")
-
-  order     Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  decidedBy StaffMember? @relation(fields: [decidedById], references: [id], onDelete: SetNull)
-
-  @@index([status, createdAt])
-  @@map("cancellation_requests")
-}
 
 enum PaymentKind {
   payment
-  refund
 }
 
-/// Encaissement vérifié ou remboursement effectué, toujours enregistré par une personne autorisée (8.4, 14.4).
 model Payment {
-  id                String        @id @default(uuid()) @db.Uuid
-  orderId           String        @map("order_id") @db.Uuid
-  kind              PaymentKind
-  amount            Decimal       @db.Decimal(12, 0)
-  method            PaymentMethod
-  /// Date de réception des fonds ou de l'opération de remboursement
-  occurredAt        DateTime      @map("occurred_at")
-  /// Référence de la transaction ; unique parmi les encaissements (index partiel dans la migration)
-  reference         String?
-  /// Remboursement sans référence : exception justifiée
-  noReferenceReason String?       @map("no_reference_reason")
-  /// Remboursement par un autre moyen que le paiement initial : accord du client
-  clientAgreed      Boolean       @default(false) @map("client_agreed")
-  /// null : encaissement déclaré par le vendeur qui a livré lui-même (32.6)
-  staffId           String?       @map("staff_id") @db.Uuid
-  createdAt         DateTime      @default(now()) @map("created_at")
+  id         String        @id @default(uuid()) @db.Uuid
+  orderId    String        @map("order_id") @db.Uuid
+  kind       PaymentKind
+  amount     Decimal       @db.Decimal(12, 0)
+  method     PaymentMethod
+  occurredAt DateTime      @map("occurred_at")
+  /// RÃ©fÃ©rence de la transaction ; unique parmi les encaissements (index partiel dans la migration)
+  reference  String?
+  /// null : encaissement dÃ©clarÃ© par le vendeur qui a livrÃ© lui-mÃªme (32.6)
+  staffId    String?       @map("staff_id") @db.Uuid
+  createdAt  DateTime      @default(now()) @map("created_at")
 
   order Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
   staff StaffMember? @relation(fields: [staffId], references: [id], onDelete: Restrict)
@@ -657,153 +505,31 @@ model Payment {
   @@map("payments")
 }
 
-// ---------------------------------------------------------------- Retours
 
-enum ReturnStatus {
-  pending
-  refused
-  expected
-  received
-  refund_due
-  refunded
-  closed
-}
+// ---------------------------------------------------------------- Codes promo
 
-enum RestockStatus {
-  none
-  pending
-  done
-}
-
-enum ReturnShippingPayer {
-  shop
-  customer
-}
-
-/// Dossier de retour d'une commande livrée (cahier des charges, 14.2 à 14.6). Un dossier par commande, réouvrable.
-model ReturnRequest {
-  id                String               @id @default(uuid()) @db.Uuid
-  orderId           String               @unique @map("order_id") @db.Uuid
-  status            ReturnStatus         @default(pending)
-  reason            String
-  comment           String               @default("")
-  /// Justificatifs (produit endommagé, défectueux ou non conforme) : adresses HTTPS
-  evidenceUrls      String[]             @map("evidence_urls")
-  decisionReason    String?              @map("decision_reason")
-  shippingPaidBy    ReturnShippingPayer? @map("shipping_paid_by")
-  shippingReason    String?              @map("shipping_reason")
-  inspectionNote    String?              @map("inspection_note")
-  /// Montant à rembourser, fixé à l'inspection : prix payé des articles, remises réparties au prorata
-  refundAmount      Decimal?             @map("refund_amount") @db.Decimal(12, 0)
-  refundedAmount    Decimal              @default(0) @map("refunded_amount") @db.Decimal(12, 0)
-  restockStatus     RestockStatus        @default(none) @map("restock_status")
-  reopenRequestedAt DateTime?            @map("reopen_requested_at")
-  createdAt         DateTime             @default(now()) @map("created_at")
-  updatedAt         DateTime             @updatedAt @map("updated_at")
-
-  order  Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  items  ReturnItem[]
-  events ReturnEvent[]
-
-  @@index([status, createdAt])
-  @@map("return_requests")
-}
-
-model ReturnItem {
-  id         String @id @default(uuid()) @db.Uuid
-  returnId   String @map("return_id") @db.Uuid
-  variantId  String @map("variant_id") @db.Uuid
-  quantity   Int
-  /// Résultat de l'inspection
-  resaleable Int?
-  unsellable Int?
-
-  returnRequest ReturnRequest @relation(fields: [returnId], references: [id], onDelete: Cascade)
-  variant       Variant       @relation(fields: [variantId], references: [id], onDelete: Restrict)
-
-  @@unique([returnId, variantId])
-  @@map("return_items")
-}
-
-/// Journal du dossier : chaque étape, son auteur et son motif (14.5).
-model ReturnEvent {
-  id        String       @id @default(uuid()) @db.Uuid
-  returnId  String       @map("return_id") @db.Uuid
-  status    ReturnStatus
-  note      String?
-  actor     OrderActor
-  staffId   String?      @map("staff_id") @db.Uuid
-  createdAt DateTime     @default(now()) @map("created_at")
-
-  returnRequest ReturnRequest @relation(fields: [returnId], references: [id], onDelete: Cascade)
-  staff         StaffMember?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
-
-  @@index([returnId, createdAt])
-  @@map("return_events")
-}
-
-/// Sortie définitive du stock non revendable (14.3) : motif, quantité, valeur de référence, date, auteur.
-model StockWriteOff {
-  id             String   @id @default(uuid()) @db.Uuid
-  variantId      String   @map("variant_id") @db.Uuid
-  quantity       Int
-  reason         String
-  referenceValue Decimal  @map("reference_value") @db.Decimal(12, 0)
-  occurredAt     DateTime @map("occurred_at")
-  staffId        String   @map("staff_id") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  variant Variant     @relation(fields: [variantId], references: [id], onDelete: Restrict)
-  staff   StaffMember @relation(fields: [staffId], references: [id], onDelete: Restrict)
-
-  @@index([variantId, createdAt])
-  @@map("stock_write_offs")
-}
-
-// ---------------------------------------------------------------- Codes promo et fidélité
-
-enum LoyaltyTier {
-  bronze
-  argent
-  or
-}
-
-/// Code promotionnel (cahier des charges, 11.2). Code stocké en majuscules ; un seul code par commande.
-enum PromoKind {
-  standard
-  /// Code personnel de bienvenue après la première commande livrée et payée (12.5)
-  welcome
-  /// Code personnel d'anniversaire (12.5)
-  birthday
-}
-
+/// Code promotionnel (cahier des charges, 11.2). Code stockÃ© en majuscules ; un seul code par commande.
 model PromoCode {
-  id               String        @id @default(uuid()) @db.Uuid
-  kind             PromoKind     @default(standard)
-  code             String        @unique
-  label            String
-  type             PromotionType
-  value            Decimal       @db.Decimal(12, 0)
-  minAmount        Decimal       @default(0) @map("min_amount") @db.Decimal(12, 0)
-  freeDelivery     Boolean       @default(false) @map("free_delivery")
-  newCustomersOnly Boolean       @default(false) @map("new_customers_only")
-  /// Niveaux de fidélité autorisés ; vide : tous les clients
-  tiers            LoyaltyTier[]
-  startsAt         DateTime      @map("starts_at")
-  endsAt           DateTime      @map("ends_at")
+  id           String        @id @default(uuid()) @db.Uuid
+  code         String        @unique
+  label        String
+  type         PromotionType
+  value        Decimal       @db.Decimal(12, 0)
+  minAmount    Decimal       @default(0) @map("min_amount") @db.Decimal(12, 0)
+  freeDelivery Boolean       @default(false) @map("free_delivery")
+  /// Niveaux de fidÃ©litÃ© autorisÃ©s ; vide : tous les clients
+  startsAt     DateTime      @map("starts_at")
+  endsAt       DateTime      @map("ends_at")
   /// Limite totale ; null : sans limite
-  maxUses          Int?          @map("max_uses")
+  maxUses      Int?          @map("max_uses")
   /// Limite par client ; null : sans limite
-  perCustomer      Int?          @map("per_customer")
-  /// Commandes non annulées qui utilisent le code, tenu à jour dans la transaction de commande
-  uses             Int           @default(0)
-  active           Boolean       @default(true)
+  /// Commandes non annulÃ©es qui utilisent le code, tenu Ã  jour dans la transaction de commande
+  uses         Int           @default(0)
+  active       Boolean       @default(true)
   /// Code personnel : utilisable seulement par ce client
-  customerId       String?       @map("customer_id") @db.Uuid
-  createdAt        DateTime      @default(now()) @map("created_at")
-  updatedAt        DateTime      @updatedAt @map("updated_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
 
-  customer   Customer?           @relation(fields: [customerId], references: [id], onDelete: Cascade)
   products   PromoCodeProduct[]
   categories PromoCodeCategory[]
   orders     Order[]
@@ -833,122 +559,20 @@ model PromoCodeCategory {
   @@map("promo_code_categories")
 }
 
-enum LoyaltyMovementType {
-  /// Commande livrée et payée
-  earn
-  /// Points utilisés sur une commande
-  redeem
-  /// Points utilisés rendus quand la commande est annulée
-  restore
-  /// Points retirés après un remboursement ou un retour
-  reversal
-  /// Correction manuelle de l'administrateur principal
-  adjust
-  /// Parrainage récompensé (12.5)
-  referral
-  /// Récompense d'anniversaire en points (12.5)
-  birthday
-}
 
-/// Historique des points, en ajout seul : le solde est la somme des mouvements (12.3).
-model LoyaltyMovement {
-  id         String              @id @default(uuid()) @db.Uuid
-  customerId String              @map("customer_id") @db.Uuid
-  points     Int
-  type       LoyaltyMovementType
-  label      String
-  orderId    String?             @map("order_id") @db.Uuid
-  staffId    String?             @map("staff_id") @db.Uuid
-  createdAt  DateTime            @default(now()) @map("created_at")
-
-  customer Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  order    Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  staff    StaffMember? @relation(fields: [staffId], references: [id], onDelete: SetNull)
-
-  @@index([customerId, createdAt])
-  @@index([orderId])
-  @@map("loyalty_movements")
-}
-
-/// Réglages de la boutique, une seule ligne (id = 1), modifiables par l'administrateur principal.
+/// RÃ©glages de la boutique, une seule ligne (id = 1), modifiables par l'administrateur principal.
 model ShopSettings {
-  id                Int      @id @default(1)
-  /// Plafond du cumul des réductions (promotion, code, points), en part du sous-total avant réductions
-  maxDiscountRate   Decimal  @default(0.5) @map("max_discount_rate") @db.Decimal(3, 2)
-  /// Seuils des niveaux en FCFA d'achats livrés et payés, nets des remboursements (12.4)
-  silverThreshold   Decimal  @default(300000) @map("silver_threshold") @db.Decimal(12, 0)
-  goldThreshold     Decimal  @default(1000000) @map("gold_threshold") @db.Decimal(12, 0)
-  /// Taux de TVA de la livraison (25.4), à faire valider avant le lancement
-  deliveryVatRate   Decimal  @default(18) @map("delivery_vat_rate") @db.Decimal(5, 2)
-  /// Points du parrain à la première commande livrée et payée du filleul (12.5)
-  referralReward    Int      @default(300) @map("referral_reward")
-  welcomeEnabled    Boolean  @default(true) @map("welcome_enabled")
-  welcomePercent    Int      @default(10) @map("welcome_percent")
-  welcomeValidDays  Int      @default(30) @map("welcome_valid_days")
-  birthdayEnabled   Boolean  @default(true) @map("birthday_enabled")
-  birthdayPoints    Int      @default(200) @map("birthday_points")
-  birthdayPercent   Int      @default(10) @map("birthday_percent")
-  birthdayValidDays Int      @default(30) @map("birthday_valid_days")
-  /// Nombre d'adresses de livraison enregistrables par client (2.2)
-  maxAddresses      Int      @default(5) @map("max_addresses")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id           Int      @id @default(1)
+  maxAddresses Int      @default(5) @map("max_addresses")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("shop_settings")
 }
 
-// ---------------------------------------------------------------- Factures et avoirs
 
-enum DocumentType {
-  invoice
-  credit_note
-}
+/// Compteur d'une sÃ©rie de documents (type et annÃ©e) : numÃ©rotation continue, attribuÃ©e dans une transaction.
 
-/// Compteur d'une série de documents (type et année) : numérotation continue, attribuée dans une transaction.
-model DocumentSequence {
-  type DocumentType
-  year Int
-  last Int          @default(0)
-
-  @@id([type, year])
-  @@map("document_sequences")
-}
-
-/// Facture ou avoir (25.4) : document figé à l'émission, jamais modifié ni supprimé (déclencheur en base).
-/// Archive comptable conservée 10 ans (19.5) : aucune clé vers le compte client, qui peut être anonymisé.
-model Invoice {
-  id            String        @id @default(uuid()) @db.Uuid
-  number        String        @unique
-  type          DocumentType
-  orderId       String        @map("order_id") @db.Uuid
-  orderNumber   String        @map("order_number")
-  /// Compte du client à l'émission, sans clé étrangère : l'archive survit à l'anonymisation du compte
-  customerId    String?       @map("customer_id") @db.Uuid
-  issuedAt      DateTime      @map("issued_at")
-  customerName  String        @map("customer_name")
-  customerPhone String        @map("customer_phone")
-  customerEmail String        @map("customer_email")
-  address       String
-  paymentMethod PaymentMethod @map("payment_method")
-  /// Lignes figées : libellé, détail, quantité, prix unitaire TTC, taux de TVA, montant TTC
-  lines         Json
-  /// Ventilation par taux : base hors taxe, TVA, TTC
-  vatBreakdown  Json          @map("vat_breakdown")
-  totalHt       Decimal       @map("total_ht") @db.Decimal(12, 0)
-  totalVat      Decimal       @map("total_vat") @db.Decimal(12, 0)
-  totalTtc      Decimal       @map("total_ttc") @db.Decimal(12, 0)
-  /// Avoir : facture d'origine et motif
-  relatedId     String?       @map("related_id") @db.Uuid
-  reason        String?
-  createdAt     DateTime      @default(now()) @map("created_at")
-
-  order   Order     @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  related Invoice?  @relation("CreditNotes", fields: [relatedId], references: [id], onDelete: Restrict)
-  credits Invoice[] @relation("CreditNotes")
-
-  @@index([orderId, issuedAt])
-  @@index([type, issuedAt])
-  @@map("invoices")
-}
+/// Archive comptable conservÃ©e 10 ans (19.5) : aucune clÃ© vers le compte client, qui peut Ãªtre anonymisÃ©.
 
 // ---------------------------------------------------------------- Livreurs
 
@@ -959,7 +583,7 @@ enum CourierVehicle {
   a_pied
 }
 
-/// Livreur du répertoire (9.3) : identification et contact, sans compte sur la plateforme.
+/// Livreur du rÃ©pertoire (9.3) : identification et contact, sans compte sur la plateforme.
 model Courier {
   id        String         @id @default(uuid()) @db.Uuid
   firstName String         @map("first_name")
@@ -990,163 +614,20 @@ model CourierZone {
   @@map("courier_zones")
 }
 
-/// Changement des frais facturés après la commande (9.5) : appliqué seulement avec l'accord du client.
-model DeliveryFeeChange {
-  id        String        @id @default(uuid()) @db.Uuid
-  orderId   String        @map("order_id") @db.Uuid
-  fromFee   Decimal       @map("from_fee") @db.Decimal(12, 0)
-  toFee     Decimal       @map("to_fee") @db.Decimal(12, 0)
-  reason    String
-  status    RequestStatus @default(pending)
-  staffId   String?       @map("staff_id") @db.Uuid
-  createdAt DateTime      @default(now()) @map("created_at")
-  decidedAt DateTime?     @map("decided_at")
+/// Changement des frais facturÃ©s aprÃ¨s la commande (9.5) : appliquÃ© seulement avec l'accord du client.
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+/// Contestation d'une livraison marquÃ©e Â« LivrÃ©e Â» (9.6) : la commande garde son statut pendant l'enquÃªte.
 
-  @@index([orderId, createdAt])
-  @@map("delivery_fee_changes")
-}
 
-enum DisputeStatus {
-  open
-  resolved
-}
 
-/// Contestation d'une livraison marquée « Livrée » (9.6) : la commande garde son statut pendant l'enquête.
-model DeliveryDispute {
-  id         String        @id @default(uuid()) @db.Uuid
-  orderId    String        @map("order_id") @db.Uuid
-  reason     String
-  status     DisputeStatus @default(open)
-  resolution String?
-  staffId    String?       @map("staff_id") @db.Uuid
-  createdAt  DateTime      @default(now()) @map("created_at")
-  resolvedAt DateTime?     @map("resolved_at")
-
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([status, createdAt])
-  @@map("delivery_disputes")
-}
-
-// ---------------------------------------------------------------- Parrainage et anniversaire
-
-enum RewardStatus {
-  pending
-  granted
-  rejected
-}
-
-enum BirthdayChoice {
-  points
-  code
-}
-
-/// Récompense de parrainage (12.5) : une par filleul et par commande ; suspecte, elle attend une vérification humaine.
-model ReferralReward {
-  id           String       @id @default(uuid()) @db.Uuid
-  referrerId   String       @map("referrer_id") @db.Uuid
-  refereeId    String       @unique @map("referee_id") @db.Uuid
-  orderId      String       @unique @map("order_id") @db.Uuid
-  points       Int
-  status       RewardStatus
-  /// Motifs de suspicion relevés à l'attribution
-  signals      String[]
-  decisionNote String?      @map("decision_note")
-  decidedById  String?      @map("decided_by_id") @db.Uuid
-  decidedAt    DateTime?    @map("decided_at")
-  createdAt    DateTime     @default(now()) @map("created_at")
-
-  referrer Customer @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referee  Customer @relation("Referee", fields: [refereeId], references: [id], onDelete: Cascade)
-  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@index([status, createdAt])
-  @@index([referrerId, createdAt])
-  @@map("referral_rewards")
-}
-
-/// Récompense d'anniversaire (12.5) : une par client et par an, points ou code selon son choix.
-model BirthdayReward {
-  id          String         @id @default(uuid()) @db.Uuid
-  customerId  String         @map("customer_id") @db.Uuid
-  year        Int
-  choice      BirthdayChoice
-  promoCodeId String?        @map("promo_code_id") @db.Uuid
-  createdAt   DateTime       @default(now()) @map("created_at")
-
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  @@unique([customerId, year])
-  @@map("birthday_rewards")
-}
 
 // ---------------------------------------------------------------- Notifications push
 
-/// Appareil abonné aux notifications push (10.2, 26) : client ou membre de l'équipe, jamais les deux.
-model PushSubscription {
-  id         String    @id @default(uuid()) @db.Uuid
-  /// Adresse fournie par le service push du navigateur ; un appareil, une adresse
-  endpoint   String    @unique
-  p256dh     String
-  auth       String
-  customerId String?   @map("customer_id") @db.Uuid
-  staffId    String?   @map("staff_id") @db.Uuid
-  userAgent  String?   @map("user_agent")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  lastSentAt DateTime? @map("last_sent_at")
+/// Appareil abonnÃ© aux notifications push (10.2, 26) : client ou membre de l'Ã©quipe, jamais les deux.
 
-  customer   Customer?      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  staff      StaffMember?   @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  deliveries PushDelivery[]
+/// Notification dÃ©jÃ  remise Ã  un appareil : une reprise du traitement ne la renvoie pas (10.4).
 
-  @@index([customerId])
-  @@index([staffId])
-  @@map("push_subscriptions")
-}
-
-/// Notification déjà remise à un appareil : une reprise du traitement ne la renvoie pas (10.4).
-model PushDelivery {
-  notificationId String   @map("notification_id")
-  subscriptionId String   @map("subscription_id") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  subscription PushSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-
-  @@id([notificationId, subscriptionId])
-  @@map("push_deliveries")
-}
-
-// Place de marché hybride (cahier des charges, section 32) : boutiques de vendeurs tiers et offres d'accès
-
-enum AccessPlanKind {
-  free
-  paid
-}
-
-/// Offre d'accès des boutiques (32.2), configurée par l'administration. Jamais supprimée : désactivée.
-model AccessPlan {
-  id          String         @id @default(uuid()) @db.Uuid
-  name        String         @unique
-  description String         @default("")
-  kind        AccessPlanKind
-  price       Decimal        @default(0) @db.Decimal(12, 0)
-  /// Durée d'une période payée ; null pour une offre gratuite
-  periodDays  Int?           @map("period_days")
-  /// Essai offert à l'ouverture de la boutique, avant le premier paiement
-  trialDays   Int            @default(0) @map("trial_days")
-  active      Boolean        @default(true)
-  position    Int            @default(0)
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-
-  shops    Shop[]
-  payments ShopPayment[]
-
-  @@index([active, position])
-  @@map("access_plans")
-}
+// Place de marchÃ© hybride (cahier des charges, section 32) : boutiques de vendeurs tiers et offres d'accÃ¨s
 
 enum ShopStatus {
   active
@@ -1162,47 +643,34 @@ model Shop {
   description            String          @default("")
   city                   String
   district               String
-  /// Position de la boutique, pour le tri par proximité (32.4) ; jamais affichée telle quelle
+  /// Position de la boutique, pour le tri par proximitÃ© (32.4) ; jamais affichÃ©e telle quelle
   latitude               Decimal?        @db.Decimal(8, 6)
   longitude              Decimal?        @db.Decimal(9, 6)
   phone                  String
-  planId                 String          @map("plan_id") @db.Uuid
-  /// Fin de la période en cours (essai ou période payée) ; null pour une offre gratuite ou en attente de paiement
-  accessEndsAt           DateTime?       @map("access_ends_at")
-  inTrial                Boolean         @default(false) @map("in_trial")
+  /// Fin de la pÃ©riode en cours (essai ou pÃ©riode payÃ©e) ; null pour une offre gratuite ou en attente de paiement
   status                 ShopStatus      @default(active)
   suspensionReason       String?         @map("suspension_reason")
   suspendedAt            DateTime?       @map("suspended_at")
   suspendedById          String?         @map("suspended_by_id") @db.Uuid
   verifiedAt             DateTime?       @map("verified_at")
   verifiedById           String?         @map("verified_by_id") @db.Uuid
-  /// Échéance pour laquelle le rappel de fin d'accès est parti : un seul rappel par échéance
-  reminderSentFor        DateTime?       @map("reminder_sent_for")
-  /// Moyens de paiement acceptés par le vendeur, hors plateforme (32.7)
+  /// Ã‰chÃ©ance pour laquelle le rappel de fin d'accÃ¨s est parti : un seul rappel par Ã©chÃ©ance
+  /// Moyens de paiement acceptÃ©s par le vendeur, hors plateforme (32.7)
   acceptedPaymentMethods PaymentMethod[] @default([cash]) @map("accepted_payment_methods")
-  /// Modes de remise proposés : retrait sur place ou livraison par le vendeur lui-même
-  handoverModes          HandoverMode[]  @default([pickup]) @map("handover_modes")
+  /// Modes de remise proposÃ©s : retrait sur place ou livraison par le vendeur lui-mÃªme
   /// Qui livre les commandes de la boutique (32.5)
   deliveryMode           Fulfillment     @default(okoza) @map("delivery_mode")
   createdAt              DateTime        @default(now()) @map("created_at")
   updatedAt              DateTime        @updatedAt @map("updated_at")
 
-  owner         Customer         @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  plan          AccessPlan       @relation(fields: [planId], references: [id], onDelete: Restrict)
-  suspendedBy   StaffMember?     @relation("ShopSuspendedBy", fields: [suspendedById], references: [id], onDelete: SetNull)
-  verifiedBy    StaffMember?     @relation("ShopVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
-  payments      ShopPayment[]
-  requests      ListingRequest[]
-  conversations Conversation[]
-  boosts        ListingBoost[]
-  listings      Listing[]
-  products      Product[]
-  orders        Order[]
-  zoneFees      ShopZoneFee[]
-  payouts       SellerPayout[]
+  owner       Customer       @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  suspendedBy StaffMember?   @relation("ShopSuspendedBy", fields: [suspendedById], references: [id], onDelete: SetNull)
+  verifiedBy  StaffMember?   @relation("ShopVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+  products    Product[]
+  orders      Order[]
+  zoneFees    ShopZoneFee[]
+  payouts     SellerPayout[]
 
-  @@index([status, accessEndsAt])
-  @@index([planId])
   @@map("shops")
 }
 
@@ -1212,7 +680,7 @@ enum Fulfillment {
   seller
 }
 
-/// Frais d'un quartier pour un vendeur qui livre lui-même (32.5). Quartiers communs à toute la plateforme.
+/// Frais d'un quartier pour un vendeur qui livre lui-mÃªme (32.5). Quartiers communs Ã  toute la plateforme.
 model ShopZoneFee {
   id        String   @id @default(uuid()) @db.Uuid
   shopId    String   @map("shop_id") @db.Uuid
@@ -1230,7 +698,7 @@ model ShopZoneFee {
   @@map("shop_zone_fees")
 }
 
-/// Vérification d'un produit de vendeur (32.3) : l'IA publie, demande une correction ou transmet à une personne.
+/// VÃ©rification d'un produit de vendeur (32.3) : l'IA publie, demande une correction ou transmet Ã  une personne.
 enum ProductModeration {
   in_review
   changes_requested
@@ -1245,8 +713,8 @@ enum PayoutStatus {
   cancelled
 }
 
-/// Reversement au vendeur de ce qu'un livreur OKOZA a encaissé pour lui (32.6) : un par commande.
-/// Montants figés à la création : encaissé = sous-total + livraison ; reversé = encaissé - livraison - commission.
+/// Reversement au vendeur de ce qu'un livreur OKOZA a encaissÃ© pour lui (32.6) : un par commande.
+/// Montants figÃ©s Ã  la crÃ©ation : encaissÃ© = sous-total + livraison ; reversÃ© = encaissÃ© - livraison - commission.
 model SellerPayout {
   id             String         @id @default(uuid()) @db.Uuid
   shopId         String         @map("shop_id") @db.Uuid
@@ -1273,63 +741,7 @@ model SellerPayout {
   @@map("seller_payouts")
 }
 
-enum ShopPaymentStatus {
-  pending
-  validated
-  refused
-}
-
-/// Paiement d'une période d'accès, déclaré par le vendeur et vérifié par l'administration (32.2, 8.4).
-model ShopPayment {
-  id             String            @id @default(uuid()) @db.Uuid
-  shopId         String            @map("shop_id") @db.Uuid
-  planId         String            @map("plan_id") @db.Uuid
-  amount         Decimal           @db.Decimal(12, 0)
-  method         PaymentMethod
-  reference      String
-  status         ShopPaymentStatus @default(pending)
-  decisionReason String?           @map("decision_reason")
-  decidedById    String?           @map("decided_by_id") @db.Uuid
-  decidedAt      DateTime?         @map("decided_at")
-  /// Période ouverte par la validation
-  periodStart    DateTime?         @map("period_start")
-  periodEnd      DateTime?         @map("period_end")
-  createdAt      DateTime          @default(now()) @map("created_at")
-
-  shop      Shop         @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  plan      AccessPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
-  decidedBy StaffMember? @relation(fields: [decidedById], references: [id], onDelete: SetNull)
-
-  @@index([status, createdAt])
-  @@index([shopId, createdAt])
-  @@map("shop_payments")
-}
-
-/// Réglages de la place de marché : une seule ligne (id = 1), créée par la migration.
-model MarketplaceSettings {
-  id                     Int      @id @default(1)
-  /// Jours pendant lesquels les annonces restent visibles après la fin de l'accès
-  graceDays              Int      @default(3) @map("grace_days")
-  /// Jours avant l'échéance où le vendeur est prévenu
-  reminderDays           Int      @default(5) @map("reminder_days")
-  /// Plafond mensuel de vérifications par IA (16.6) : au-delà, les annonces vont en modération humaine
-  aiReviewMonthlyLimit   Int      @default(1000) @map("ai_review_monthly_limit")
-  /// Durée de validité d'un prix convenu dans le tchat, en heures (32.5)
-  agreementValidityHours Int      @default(48) @map("agreement_validity_hours")
-  /// Plafond mensuel de réponses du négociateur IA (16.6) ; au-delà, le vendeur répond lui-même
-  aiChatMonthlyLimit     Int      @default(5000) @map("ai_chat_monthly_limit")
-  /// Commission d'OKOZA sur les ventes des vendeurs, en pourcentage du sous-total (32.6)
-  commissionRate         Decimal  @default(0) @map("commission_rate") @db.Decimal(5, 2)
-  updatedAt              DateTime @updatedAt @map("updated_at")
-
-  @@map("marketplace_settings")
-}
-
-enum ListingKind {
-  product
-  service
-}
-
+/// Paiement d'une pÃ©riode d'accÃ¨s, dÃ©clarÃ© par le vendeur et vÃ©rifiÃ© par l'administration (32.2, 8.4).
 enum ListingCondition {
   new
   like_new
@@ -1337,337 +749,25 @@ enum ListingCondition {
   used
 }
 
-/// Cycle d'une annonce (32.3) : brouillon, vérification, correction demandée, modération humaine, publiée,
-/// refusée (décision humaine définitive) ou retirée par le vendeur.
-enum ListingStatus {
-  draft
-  in_review
-  changes_requested
-  pending_moderation
-  published
-  rejected
-  withdrawn
-  /// Quantité épuisée par les ventes conclues : hors de la recherche, fiche toujours consultable
-  sold
-}
+/// refusÃ©e (dÃ©cision humaine dÃ©finitive) ou retirÃ©e par le vendeur.
 
-/// Annonce d'un vendeur tiers (32.3). Visible seulement publiée, et pendant l'accès de sa boutique.
-model Listing {
-  id          String            @id @default(uuid()) @db.Uuid
-  shopId      String            @map("shop_id") @db.Uuid
-  slug        String            @unique
-  title       String
-  description String
-  categoryId  String            @map("category_id") @db.Uuid
-  kind        ListingKind
-  /// État du produit ; null pour un service
-  condition   ListingCondition?
-  price       Decimal           @db.Decimal(12, 0)
-  /// Prix minimum accepté par le vendeur pour la négociation (32.5) ; null : aucune négociation. Jamais public
-  minPrice    Decimal?          @map("min_price") @db.Decimal(12, 0)
-  /// Consignes du vendeur pour le tchat (remise en main propre, horaires...). Jamais publiques
-  sellerNotes String            @default("") @map("seller_notes")
-  /// Quantité disponible ; null pour un service
-  quantity    Int?
-  city        String
-  district    String
-  status      ListingStatus     @default(draft)
-  /// Incrémentée à chaque soumission : un résultat de vérification ne s'applique qu'à la version examinée
-  version     Int               @default(0)
-  submittedAt DateTime?         @map("submitted_at")
-  publishedAt DateTime?         @map("published_at")
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
 
-  shop          Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  category      Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  photos        ListingPhoto[]
-  reviews       ListingReview[]
-  reports       ListingReport[]
-  requests      ListingRequest[]
-  conversations Conversation[]
-  views         ListingView[]
-  boosts        ListingBoost[]
 
-  @@index([shopId, status])
-  @@index([status, categoryId, publishedAt])
-  @@map("listings")
-}
 
-model ListingPhoto {
-  id        String @id @default(uuid()) @db.Uuid
-  listingId String @map("listing_id") @db.Uuid
-  url       String
-  position  Int
 
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+/// Cycle d'une demande de commande (32.7) : envoyÃ©e, acceptÃ©e ou refusÃ©e, annulÃ©e par l'acheteur, conclue ou non
+/// conclue (dÃ©clarÃ©es par le vendeur). Le paiement se fait hors plateforme : aucun statut Â« payÃ©e Â».
 
-  @@unique([listingId, position])
-  @@map("listing_photos")
-}
 
-enum ReviewSource {
-  ai
-  staff
-}
+/// Historique d'une demande : chaque changement de statut, qui l'a fait et pourquoi. Jamais modifiÃ©.
 
-enum ReviewOutcome {
-  approved
-  changes_requested
-  moderation
-  rejected
-}
 
-/// Historique des vérifications d'une annonce (IA puis humain) : jamais modifié, toujours consultable.
-model ListingReview {
-  id        String        @id @default(uuid()) @db.Uuid
-  listingId String        @map("listing_id") @db.Uuid
-  version   Int
-  source    ReviewSource
-  outcome   ReviewOutcome
-  /// Points relevés, un par ligne : champ concerné et explication pour le vendeur
-  issues    Json          @default("[]")
-  reason    String?
-  /// Modèle d'IA utilisé, pour la traçabilité (17.7)
-  model     String?
-  staffId   String?       @map("staff_id") @db.Uuid
-  createdAt DateTime      @default(now()) @map("created_at")
 
-  listing Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  staff   StaffMember? @relation(fields: [staffId], references: [id], onDelete: SetNull)
 
-  @@index([listingId, createdAt])
-  @@index([source, createdAt])
-  @@map("listing_reviews")
-}
 
-enum ListingReportReason {
-  prohibited
-  scam
-  misleading
-  offensive
-  personal_data
-  inappropriate_photos
-  spam
-  other
-}
+/// Mise en avant payÃ©e hors plateforme et vÃ©rifiÃ©e par l'administration (32.10, 8.4) : active de startsAt Ã  endsAt.
 
-enum ListingReportStatus {
-  open
-  dismissed
-  upheld
-}
-
-/// Signalement d'une annonce par un client connecté (32.3, 13.4) : il déclenche un examen humain.
-model ListingReport {
-  id          String              @id @default(uuid()) @db.Uuid
-  listingId   String              @map("listing_id") @db.Uuid
-  reporterId  String              @map("reporter_id") @db.Uuid
-  reason      ListingReportReason
-  comment     String              @default("")
-  status      ListingReportStatus @default(open)
-  decidedById String?             @map("decided_by_id") @db.Uuid
-  decidedAt   DateTime?           @map("decided_at")
-  createdAt   DateTime            @default(now()) @map("created_at")
-
-  listing   Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  reporter  Customer     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  decidedBy StaffMember? @relation("ListingReportDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
-
-  @@index([status, createdAt])
-  @@index([listingId])
-  @@map("listing_reports")
-}
-
-enum HandoverMode {
-  pickup
-  seller_delivery
-}
-
-/// Cycle d'une demande de commande (32.7) : envoyée, acceptée ou refusée, annulée par l'acheteur, conclue ou non
-/// conclue (déclarées par le vendeur). Le paiement se fait hors plateforme : aucun statut « payée ».
-enum ListingRequestStatus {
-  sent
-  accepted
-  refused
-  cancelled
-  concluded
-  not_concluded
-}
-
-/// Demande de commande d'un acheteur sur une annonce de vendeur tiers (32.7).
-model ListingRequest {
-  id            String               @id @default(uuid()) @db.Uuid
-  number        String               @unique
-  listingId     String               @map("listing_id") @db.Uuid
-  shopId        String               @map("shop_id") @db.Uuid
-  buyerId       String               @map("buyer_id") @db.Uuid
-  /// Titre de l'annonce au moment de la demande, pour l'historique
-  listingTitle  String               @map("listing_title")
-  /// Quantité demandée ; null pour un service
-  quantity      Int?
-  unitPrice     Decimal              @map("unit_price") @db.Decimal(12, 0)
-  total         Decimal              @db.Decimal(12, 0)
-  paymentMethod PaymentMethod        @map("payment_method")
-  handover      HandoverMode
-  /// Téléphone de l'acheteur, montré au vendeur seulement après acceptation
-  contactPhone  String               @map("contact_phone")
-  message       String               @default("")
-  status        ListingRequestStatus @default(sent)
-  /// Motif d'un refus, d'une annulation ou d'une vente non conclue
-  reason        String?
-  createdAt     DateTime             @default(now()) @map("created_at")
-  updatedAt     DateTime             @updatedAt @map("updated_at")
-
-  listing Listing               @relation(fields: [listingId], references: [id], onDelete: Restrict)
-  shop    Shop                  @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  buyer   Customer              @relation(fields: [buyerId], references: [id], onDelete: Restrict)
-  events  ListingRequestEvent[]
-
-  @@index([shopId, status, createdAt])
-  @@index([buyerId, createdAt])
-  @@index([listingId])
-  @@map("listing_requests")
-}
-
-enum RequestActor {
-  buyer
-  seller
-}
-
-/// Historique d'une demande : chaque changement de statut, qui l'a fait et pourquoi. Jamais modifié.
-model ListingRequestEvent {
-  id        String               @id @default(uuid()) @db.Uuid
-  requestId String               @map("request_id") @db.Uuid
-  status    ListingRequestStatus
-  actor     RequestActor
-  note      String?
-  createdAt DateTime             @default(now()) @map("created_at")
-
-  request ListingRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
-
-  @@index([requestId, createdAt])
-  @@map("listing_request_events")
-}
-
-enum ConversationStatus {
-  open
-  closed
-}
-
-/// Tchat OKOZA sur une annonce (32.5) : un par acheteur et par annonce, rouvert si l'acheteur écrit de nouveau.
-model Conversation {
-  id                 String             @id @default(uuid()) @db.Uuid
-  listingId          String             @map("listing_id") @db.Uuid
-  shopId             String             @map("shop_id") @db.Uuid
-  buyerId            String             @map("buyer_id") @db.Uuid
-  status             ConversationStatus @default(open)
-  /// Une question attend la réponse du vendeur (l'assistant n'a pas pu répondre de façon fiable)
-  needsSeller        Boolean            @default(false) @map("needs_seller")
-  /// Prix convenu, utilisable par une demande de commande jusqu'à son expiration
-  agreedPrice        Decimal?           @map("agreed_price") @db.Decimal(12, 0)
-  agreementExpiresAt DateTime?          @map("agreement_expires_at")
-  lastMessageAt      DateTime           @default(now()) @map("last_message_at")
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
-
-  listing  Listing       @relation(fields: [listingId], references: [id], onDelete: Restrict)
-  shop     Shop          @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  buyer    Customer      @relation(fields: [buyerId], references: [id], onDelete: Restrict)
-  messages ChatMessage[]
-
-  @@unique([listingId, buyerId])
-  @@index([shopId, needsSeller, lastMessageAt])
-  @@index([buyerId, lastMessageAt])
-  @@map("conversations")
-}
-
-enum ChatAuthor {
-  buyer
-  assistant
-  seller
-  system
-}
-
-/// Message du tchat. Une réponse de l'assistant cite le message de l'acheteur auquel elle répond : une seule.
-model ChatMessage {
-  id             String     @id @default(uuid()) @db.Uuid
-  conversationId String     @map("conversation_id") @db.Uuid
-  author         ChatAuthor
-  body           String
-  replyToId      String?    @unique @map("reply_to_id") @db.Uuid
-  /// Modèle d'IA qui a rédigé la réponse, pour la traçabilité (17.7)
-  model          String?
-  createdAt      DateTime   @default(now()) @map("created_at")
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  replyTo      ChatMessage? @relation("ChatReply", fields: [replyToId], references: [id], onDelete: SetNull)
-  reply        ChatMessage? @relation("ChatReply")
-
-  @@index([conversationId, createdAt])
-  @@map("chat_messages")
-}
-
-/// Visites d'une annonce par jour (32.8, 32.10) : un compteur, aucune donnée sur le visiteur.
-model ListingView {
-  listingId String   @map("listing_id") @db.Uuid
-  day       DateTime @db.Date
-  count     Int      @default(0)
-
-  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
-
-  @@id([listingId, day])
-  @@index([day])
-  @@map("listing_views")
-}
-
-/// Offre de mise en avant d'une annonce dans OKOZA (32.10), configurée par l'administration. Désactivée, jamais supprimée.
-model BoostPlan {
-  id           String   @id @default(uuid()) @db.Uuid
-  name         String   @unique
-  description  String   @default("")
-  durationDays Int      @map("duration_days")
-  price        Decimal  @db.Decimal(12, 0)
-  active       Boolean  @default(true)
-  position     Int      @default(0)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  boosts ListingBoost[]
-
-  @@index([active, position])
-  @@map("boost_plans")
-}
-
-/// Mise en avant payée hors plateforme et vérifiée par l'administration (32.10, 8.4) : active de startsAt à endsAt.
-model ListingBoost {
-  id             String            @id @default(uuid()) @db.Uuid
-  listingId      String            @map("listing_id") @db.Uuid
-  shopId         String            @map("shop_id") @db.Uuid
-  planId         String            @map("plan_id") @db.Uuid
-  amount         Decimal           @db.Decimal(12, 0)
-  method         PaymentMethod
-  reference      String
-  status         ShopPaymentStatus @default(pending)
-  decisionReason String?           @map("decision_reason")
-  decidedById    String?           @map("decided_by_id") @db.Uuid
-  decidedAt      DateTime?         @map("decided_at")
-  startsAt       DateTime?         @map("starts_at")
-  endsAt         DateTime?         @map("ends_at")
-  createdAt      DateTime          @default(now()) @map("created_at")
-
-  listing   Listing      @relation(fields: [listingId], references: [id], onDelete: Restrict)
-  shop      Shop         @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  plan      BoostPlan    @relation(fields: [planId], references: [id], onDelete: Restrict)
-  decidedBy StaffMember? @relation(fields: [decidedById], references: [id], onDelete: SetNull)
-
-  @@index([status, createdAt])
-  @@index([shopId, createdAt])
-  @@index([listingId, status, endsAt])
-  @@map("listing_boosts")
-}
-
-/// Adresse de livraison enregistrée dans le compte (2.2). Une seule adresse par défaut par client (index partiel).
+/// Adresse de livraison enregistrÃ©e dans le compte (2.2). Une seule adresse par dÃ©faut par client (index partiel).
 model CustomerAddress {
   id           String   @id @default(uuid()) @db.Uuid
   customerId   String   @map("customer_id") @db.Uuid
@@ -1688,169 +788,17 @@ model CustomerAddress {
   @@map("customer_addresses")
 }
 
-/// Produit mis en favori par un client (3.6).
-model CustomerFavorite {
-  customerId String   @map("customer_id") @db.Uuid
-  productId  String   @map("product_id") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at")
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+/// Informations publiques et rÃ©glages d'exploitation de la boutique (ligne unique, id 1) : coordonnÃ©es du paiement
+/// Mobile Money, contacts, rÃ©seaux, mentions lÃ©gales, dÃ©lais. ModifiÃ©s par l'administrateur principal.
 
-  @@id([customerId, productId])
-  @@index([productId])
-  @@map("customer_favorites")
-}
 
-/// Informations publiques et réglages d'exploitation de la boutique (ligne unique, id 1) : coordonnées du paiement
-/// Mobile Money, contacts, réseaux, mentions légales, délais. Modifiés par l'administrateur principal.
-model ShopInformation {
-  id                        Int      @id @default(1)
-  /// Comptes Mobile Money où payer : [{ method, label, number, beneficiary, instructions }]
-  mobileMoney               Json     @default("[]") @map("mobile_money")
-  /// Délai de paiement d'une commande Mobile Money avant annulation, en heures (8.7)
-  mobileMoneyExpiryHours    Int      @default(24) @map("mobile_money_expiry_hours")
-  /// Contacts de l'assistance : { whatsapp, phone, email, hours, address }
-  support                   Json     @default("{}")
-  /// Réseaux sociaux : { facebook: url, ... }
-  social                    Json     @default("{}")
-  /// Mentions légales des factures : { companyName, nif, rccm, vatNote }
-  legal                     Json     @default("{}")
-  /// Délais de première réponse de l'assistance, en heures (15.3)
-  supportSlaHigh            Int      @default(4) @map("support_sla_high")
-  supportSlaNormal          Int      @default(24) @map("support_sla_normal")
-  /// Réglages internes à l'équipe, jamais publiés
-  alertEscalationHours      Int      @default(4) @map("alert_escalation_hours")
-  reviewAmount              Int      @default(500000) @map("review_amount")
-  cashPreparationAlertHours Int      @default(24) @map("cash_preparation_alert_hours")
-  assistantMonthlyBudget    Int      @default(0) @map("assistant_monthly_budget")
-  updatedAt                 DateTime @updatedAt @map("updated_at")
+/// Message d'une demande ; les piÃ¨ces jointes sont des images envoyÃ©es chez l'hÃ©bergeur.
 
-  @@map("shop_information")
-}
+// ---------------------------------------------------------------- DonnÃ©es personnelles
 
-enum TicketCategory {
-  commande
-  livraison
-  retour
-  produit
-  compte
-  publicite
-}
-
-enum TicketStatus {
-  /// À traiter par l'équipe
-  open
-  /// Réponse envoyée, en attente du client
-  pending
-  resolved
-  closed
-}
-
-enum TicketPriority {
-  normal
-  high
-}
-
-enum TicketAuthor {
-  customer
-  support
-}
-
-/// Demande d'assistance (15) : depuis le compte ou le formulaire de contact (sans compte, réponse par e-mail).
-model SupportTicket {
-  id            String         @id @default(uuid()) @db.Uuid
-  /// SAV-2026-XXXXXX, communiqué au client
-  number        String         @unique
-  customerId    String?        @map("customer_id") @db.Uuid
-  email         String
-  name          String
-  category      TicketCategory
-  orderNumber   String?        @map("order_number")
-  subject       String
-  status        TicketStatus   @default(open)
-  priority      TicketPriority @default(normal)
-  /// Note de satisfaction de 1 à 5, donnée après la résolution
-  satisfaction  Int?
-  assigneeId    String?        @map("assignee_id") @db.Uuid
-  /// Solution retenue ou motif de clôture, communiqué au client
-  closureReason String?        @map("closure_reason")
-  resolvedAt    DateTime?      @map("resolved_at")
-  reopenedAt    DateTime?      @map("reopened_at")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-
-  customer Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  assignee StaffMember?     @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  messages SupportMessage[]
-
-  @@index([customerId, createdAt])
-  @@index([status, priority, createdAt])
-  @@map("support_tickets")
-}
-
-/// Message d'une demande ; les pièces jointes sont des images envoyées chez l'hébergeur.
-model SupportMessage {
-  id          String       @id @default(uuid()) @db.Uuid
-  ticketId    String       @map("ticket_id") @db.Uuid
-  author      TicketAuthor
-  /// Membre de l'équipe auteur d'une réponse
-  staffId     String?      @map("staff_id") @db.Uuid
-  body        String
-  /// Adresses HTTPS des images jointes
-  attachments String[]     @default([])
-  createdAt   DateTime     @default(now()) @map("created_at")
-
-  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  staff  StaffMember?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
-
-  @@index([ticketId, createdAt])
-  @@map("support_messages")
-}
-
-// ---------------------------------------------------------------- Données personnelles
-
-enum PrivacyRequestType {
-  access
-  export
-  correction
-  deletion
-}
-
-enum PrivacyRequestStatus {
-  received
-  in_progress
-  completed
-  refused
-}
-
-/// Archives des anciennes demandes de confidentialité ; aucun parcours API n'en crée ou n'en expose de nouvelles.
-/// Les coordonnées sont effacées lors de l'anonymisation automatique du compte associé.
-model PrivacyRequest {
-  id         String               @id @default(uuid()) @db.Uuid
-  number     String               @unique
-  /// Compte concerné ; conservé après l'anonymisation, qui n'y laisse plus rien d'identifiant
-  customerId String?              @map("customer_id") @db.Uuid
-  /// Nom et adresse au moment de la demande, effacés à l'anonymisation du compte
-  name       String
-  email      String
-  type       PrivacyRequestType
-  details    String               @default("")
-  status     PrivacyRequestStatus @default(received)
-  /// Réponse communiquée au client, obligatoire pour clore la demande
-  response   String?
-  /// Étapes du traitement : [{ at, by, event }]
-  history    Json                 @default("[]")
-  dueAt      DateTime             @map("due_at")
-  createdAt  DateTime             @default(now()) @map("created_at")
-  updatedAt  DateTime             @updatedAt @map("updated_at")
-
-  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-
-  @@index([status, dueAt])
-  @@index([customerId, createdAt])
-  @@map("privacy_requests")
-}
+/// Archives des anciennes demandes de confidentialitÃ© ; aucun parcours API n'en crÃ©e ou n'en expose de nouvelles.
+/// Les coordonnÃ©es sont effacÃ©es lors de l'anonymisation automatique du compte associÃ©.
 
 // ---------------------------------------------------------------- Avis clients
 
@@ -1860,29 +808,40 @@ enum ReviewStatus {
   rejected
 }
 
-/// Avis d'un client sur un produit reçu (13) : un par client et par produit, publié après modération.
+/// Avis d'un client sur un produit reÃ§u (13) : un par client et par produit, publiÃ© aprÃ¨s modÃ©ration.
+model ShopInformation {
+  id                     Int      @id @default(1)
+  mobileMoney            Json     @default("[]") @map("mobile_money")
+  mobileMoneyExpiryHours Int      @default(24) @map("mobile_money_expiry_hours")
+  support                Json     @default("{}")
+  social                 Json     @default("{}")
+  legal                  Json     @default("{}")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("shop_information")
+}
+
 model ProductReview {
   id              String       @id @default(uuid()) @db.Uuid
   productId       String       @map("product_id") @db.Uuid
-  /// Auteur ; l'avis reste publié après la suppression de son compte, sans son nom
+  /// Auteur ; l'avis reste publiÃ© aprÃ¨s la suppression de son compte, sans son nom
   customerId      String?      @map("customer_id") @db.Uuid
-  /// Prénom et initiale du nom au dépôt, « Client » après anonymisation
+  /// PrÃ©nom et initiale du nom au dÃ©pÃ´t, Â« Client Â» aprÃ¨s anonymisation
   authorName      String       @map("author_name")
   rating          Int
   comment         String
-  /// Photos du produit reçu, envoyées chez l'hébergeur avec l'autorisation de l'API
+  /// Photos du produit reÃ§u, envoyÃ©es chez l'hÃ©bergeur avec l'autorisation de l'API
   photos          String[]     @default([])
   status          ReviewStatus @default(pending)
-  /// Motif communiqué au client quand l'avis n'est pas publié (13.3)
+  /// Motif communiquÃ© au client quand l'avis n'est pas publiÃ© (13.3)
   rejectionReason String?      @map("rejection_reason")
-  /// Versions précédentes et décisions : [{ at, event, rating?, comment? }]
+  /// Versions prÃ©cÃ©dentes et dÃ©cisions : [{ at, event, rating?, comment? }]
   history         Json         @default("[]")
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
 
-  product  Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  customer Customer?      @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  reports  ReviewReport[]
+  product  Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@unique([productId, customerId])
   @@index([productId, status, createdAt])
@@ -1890,58 +849,19 @@ model ProductReview {
   @@map("product_reviews")
 }
 
-/// Signalement d'un avis par un client (13.3) : un par client et par avis, effacés par la décision de l'équipe.
-model ReviewReport {
-  id         String   @id @default(uuid()) @db.Uuid
-  reviewId   String   @map("review_id") @db.Uuid
-  customerId String   @map("customer_id") @db.Uuid
-  reason     String
-  createdAt  DateTime @default(now()) @map("created_at")
+/// Signalement d'un avis par un client (13.3) : un par client et par avis, effacÃ©s par la dÃ©cision de l'Ã©quipe.
 
-  review   ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  customer Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+// ---------------------------------------------------------------- Contenus Ã©ditoriaux
 
-  @@unique([reviewId, customerId])
-  @@map("review_reports")
-}
-
-// ---------------------------------------------------------------- Contenus éditoriaux
-
-enum BannerAccent {
-  forest
-  mure
-}
-
-/// Bannière du carrousel de l'accueil (3.1), modifiable par l'équipe catalogue.
-model HomeBanner {
-  id        String       @id @default(uuid()) @db.Uuid
-  title     String
-  subtitle  String
-  cta       String
-  /// Lien interne (/catalogue…) ou adresse HTTPS
-  href      String
-  image     String
-  accent    BannerAccent @default(forest)
-  /// Ordre d'affichage, croissant
-  position  Int          @default(0)
-  active    Boolean      @default(true)
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
-
-  @@index([active, position])
-  @@map("home_banners")
-}
-
-/// Espace publicitaire (3.7) : une campagne d'annonceur ou le visuel « espace disponible » de la boutique.
 model Ad {
   id          String    @id @default(uuid()) @db.Uuid
-  /// Emplacement sur la page : home-promo, home-promo-side
+  /// Emplacement publicitaire unique de la page d'accueil : home-promo
   placement   String
   /// null : visuel de la boutique qui propose l'espace
   advertiser  String?
   startsAt    DateTime? @map("starts_at")
   endsAt      DateTime? @map("ends_at")
-  /// Si plusieurs campagnes sont en cours au même emplacement, la plus prioritaire s'affiche
+  /// Si plusieurs campagnes sont en cours au mÃªme emplacement, la plus prioritaire s'affiche
   priority    Int       @default(0)
   image       String
   imageMobile String?   @map("image_mobile")
@@ -1955,13 +875,13 @@ model Ad {
   @@map("ads")
 }
 
-/// Encart « Offre exclusive » de l'accueil : un produit mis en avant.
+/// Encart Â« Offre exclusive Â» de l'accueil : un produit mis en avant.
 model ExclusiveOffer {
   id        String   @id @default(uuid()) @db.Uuid
   label     String
   title     String
   productId String   @map("product_id") @db.Uuid
-  /// Lien personnalisé ; à défaut, la fiche du produit
+  /// Lien personnalisÃ© ; Ã  dÃ©faut, la fiche du produit
   href      String?
   active    Boolean  @default(true)
   position  Int      @default(0)
@@ -1974,36 +894,9 @@ model ExclusiveOffer {
   @@map("exclusive_offers")
 }
 
-enum ArticleStatus {
-  draft
-  published
-}
+/// Article du blog (3.6). Â« published Â» avec une date future : publication programmÃ©e.
 
-/// Article du blog (3.6). « published » avec une date future : publication programmée.
-model Article {
-  id             String        @id @default(uuid()) @db.Uuid
-  slug           String        @unique
-  title          String
-  category       String
-  excerpt        String
-  cover          String
-  /// Paragraphes et intertitres : [{ type: "p" | "h2", text }]
-  content        Json
-  publishedAt    DateTime      @map("published_at")
-  readingTime    Int           @map("reading_time")
-  status         ArticleStatus @default(draft)
-  seoTitle       String?       @map("seo_title")
-  seoDescription String?       @map("seo_description")
-  /// Versions précédentes : [{ at, by, event, title, excerpt, content, status, publishedAt }]
-  history        Json          @default("[]")
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
-
-  @@index([status, publishedAt])
-  @@map("articles")
-}
-
-/// Page légale modifiée depuis le back-office (cgv, confidentialite…) ; sans ligne, le texte modèle du site s'applique.
+/// Page lÃ©gale modifiÃ©e depuis le back-office (cgv, confidentialiteâ€¦) ; sans ligne, le texte modÃ¨le du site s'applique.
 model LegalPage {
   /// Adresse de la page
   slug      String   @id
@@ -2017,104 +910,15 @@ model LegalPage {
 
 // ---------------------------------------------------------------- Demandes de nouveau quartier
 
-enum ZoneRequestStatus {
-  new
-  added
-  declined
-}
+/// Quartier absent de la liste, demandÃ© par un visiteur (9.1). Le contact sert seulement Ã  lui rÃ©pondre.
 
-/// Quartier absent de la liste, demandé par un visiteur (9.1). Le contact sert seulement à lui répondre.
-model ZoneRequest {
-  id            String            @id @default(uuid()) @db.Uuid
-  neighbourhood String
-  city          String
-  /// Téléphone ou e-mail laissé pour la réponse
-  contact       String
-  status        ZoneRequestStatus @default(new)
-  /// Suite donnée : zone ouverte, ou motif du refus
-  note          String?
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt @map("updated_at")
+// ---------------------------------------------------------------- Journal d'activitÃ©
 
-  @@index([status, createdAt])
-  @@map("zone_requests")
-}
+/// Journal d'activitÃ© de l'Ã©quipe (17.7, 19.4) : chaque Ã©criture rÃ©ussie d'un membre, enregistrÃ©e par l'API
+/// elle-mÃªme. Jamais modifiÃ© (dÃ©clencheur en base).
 
-// ---------------------------------------------------------------- Journal d'activité
 
-/// Journal d'activité de l'équipe (17.7, 19.4) : chaque écriture réussie d'un membre, enregistrée par l'API
-/// elle-même. Jamais modifié (déclencheur en base).
-model StaffActivity {
-  id        String    @id @default(uuid()) @db.Uuid
-  /// Membre ; son nom et son rôle sont figés au moment de l'action
-  staffId   String?   @map("staff_id") @db.Uuid
-  staffName String    @map("staff_name")
-  role      String
-  /// Domaine concerné (Commandes, Stock…) et libellé de l'action
-  area      String
-  action    String
-  method    String
-  path      String
-  status    Int
-  createdAt DateTime  @default(now()) @map("created_at")
-
-  // Un membre n'est jamais supprimé (il est suspendu) : le journal garde sa référence
-  staff StaffMember? @relation(fields: [staffId], references: [id], onDelete: Restrict)
-
-  @@index([createdAt])
-  @@index([staffId, createdAt])
-  @@map("staff_activities")
-}
-
-// ---------------------------------------------------------------- Alertes
-
-enum AlertLevel {
-  info
-  warning
-  critical
-}
-
-enum AlertState {
-  new
-  in_progress
-  resolved
-  closed
-}
-
-/// Dossier d'alerte (17.6) : une situation détectée par le traitement planifié, regroupée par clé. Rien n'est
-/// résolu ni clôturé automatiquement : la clôture exige une justification humaine.
-model StaffAlert {
-  id             String     @id @default(uuid()) @db.Uuid
-  /// Regroupe les répétitions d'une même situation (payments, out, late-support…)
-  key            String     @unique
-  level          AlertLevel
-  title          String
-  detail         String
-  /// Écran du back-office où traiter la situation
-  to             String
-  state          AlertState @default(new)
-  occurrences    Int        @default(1)
-  firstSeenAt    DateTime   @map("first_seen_at")
-  lastSeenAt     DateTime   @map("last_seen_at")
-  /// La situation n'est plus détectée : à résoudre ou clôturer par un humain
-  cleared        Boolean    @default(false)
-  assigneeId     String?    @map("assignee_id") @db.Uuid
-  closureReason  String?    @map("closure_reason")
-  actionTaken    String?    @map("action_taken")
-  /// Épisodes successifs : [{ openedAt, resolvedAt? }]
-  episodes       Json       @default("[]")
-  /// Dernière relance envoyée tant que l'alerte critique attend
-  lastReminderAt DateTime?  @map("last_reminder_at")
-  /// [{ at, by, event }]
-  history        Json       @default("[]")
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-
-  assignee StaffMember? @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
-
-  @@index([state, lastSeenAt])
-  @@map("staff_alerts")
-}
+/// rÃ©solu ni clÃ´turÃ© automatiquement : la clÃ´ture exige une justification humaine.
 
 // ---------------------------------------------------------------- Envois d'e-mails
 
@@ -2125,16 +929,16 @@ enum EmailDeliveryStatus {
   retried
 }
 
-/// Suivi d'un e-mail envoyé par le worker (10.3, 10.4) : un par job de la file. Le texte n'est gardé que tant que
+/// Suivi d'un e-mail envoyÃ© par le worker (10.3, 10.4) : un par job de la file. Le texte n'est gardÃ© que tant que
 /// l'e-mail n'est pas parti (pour une relance manuelle), et jamais pour un e-mail qui contient un code ou un lien
-/// d'accès.
+/// d'accÃ¨s.
 model EmailDelivery {
-  /// Identifiant du job de la file, aussi clé d'idempotence chez Resend
+  /// Identifiant du job de la file, aussi clÃ© d'idempotence chez Resend
   id        String              @id
   to        String
   subject   String
   text      String?
-  /// Code de vérification ou lien d'accès : ni texte gardé, ni relance
+  /// Code de vÃ©rification ou lien d'accÃ¨s : ni texte gardÃ©, ni relance
   sensitive Boolean             @default(false)
   status    EmailDeliveryStatus @default(sending)
   attempts  Int                 @default(0)
@@ -2148,110 +952,11 @@ model EmailDelivery {
   @@map("email_deliveries")
 }
 
-// ---------------------------------------------------------------- Assistant d'administration
 
-enum AssistantDecisionKind {
-  accepted
-  refused
-  postponed
-  executed
-}
 
-/// Décision humaine sur une proposition de l'assistant (17.5) : jamais modifiée, la plus récente fait foi.
-model AssistantDecision {
-  id         String                @id @default(uuid()) @db.Uuid
-  proposalId String                @map("proposal_id")
-  decision   AssistantDecisionKind
-  reason     String?
-  /// Report : la proposition revient à cette date
-  until      DateTime?
-  /// Membre qui décide, nom figé au moment de la décision
-  staffName  String                @map("staff_name")
-  createdAt  DateTime              @default(now()) @map("created_at")
 
-  @@index([proposalId, createdAt])
-  @@map("assistant_decisions")
-}
 
-/// Proposition appliquée aux produits, avec l'état d'origine de chacun pour un retour arrière (17.8).
-model AssistantAction {
-  id             String    @id @default(uuid()) @db.Uuid
-  proposalId     String    @map("proposal_id")
-  title          String
-  /// [{ productId, label, before, after }] : champs « mis en avant » et promotion
-  changes        Json
-  appliedByName  String    @map("applied_by_name")
-  appliedAt      DateTime  @default(now()) @map("applied_at")
-  revertedAt     DateTime? @map("reverted_at")
-  revertedByName String?   @map("reverted_by_name")
 
-  @@index([appliedAt])
-  @@map("assistant_actions")
-}
 
-/// Version des paramètres de l'assistant (17.5) : une modification ou une restauration crée une version.
-model AssistantRulesVersion {
-  id        String   @id @default(uuid()) @db.Uuid
-  version   Int      @unique
-  /// { slowDays, slowDiscount, promoDays, minStock }
-  params    Json
-  note      String
-  staffName String   @map("staff_name")
-  createdAt DateTime @default(now()) @map("created_at")
+/// identifiant de personne ni d'appareil. SupprimÃ© aprÃ¨s 13 mois (19.5).
 
-  @@map("assistant_rules_versions")
-}
-
-/// Question posée à l'assistant et réponse donnée (17.7), coordonnées masquées par l'API avant l'enregistrement.
-model AssistantQuestion {
-  id        String   @id @default(uuid()) @db.Uuid
-  question  String
-  answer    String
-  /// Données de référence utilisées pour répondre
-  source    String
-  staffName String   @map("staff_name")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([createdAt])
-  @@map("assistant_questions")
-}
-
-// ---------------------------------------------------------------- Mesure d'audience
-
-enum AnalyticsEventKind {
-  visit
-  product_view
-  product_click
-  search
-  add_to_cart
-  checkout
-}
-
-/// Événement de mesure d'audience (18.1), anonyme et enregistré seulement avec le consentement (18.2) : aucun
-/// identifiant de personne ni d'appareil. Supprimé après 13 mois (19.5).
-model AnalyticsEvent {
-  id        String             @id @default(uuid()) @db.Uuid
-  kind      AnalyticsEventKind
-  /// Produit consulté, cliqué ou ajouté au panier ; sans clé étrangère : un événement ne bloque rien
-  productId String?            @map("product_id") @db.Uuid
-  /// Recherche : terme normalisé et nombre de résultats
-  term      String?
-  results   Int?
-  /// Visite depuis l'application installée (PWA)
-  pwa       Boolean            @default(false)
-  createdAt DateTime           @default(now()) @map("created_at")
-
-  @@index([kind, createdAt])
-  @@index([createdAt])
-  @@map("analytics_events")
-}
-
-/// Requêtes de l'assistant client du mois (16.6), pour le plafond mensuel des paramètres.
-model AssistantUsage {
-  /// Mois au format AAAA-MM
-  period    String   @id
-  count     Int      @default(0)
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("assistant_usage")
-}

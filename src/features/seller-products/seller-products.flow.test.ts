@@ -8,19 +8,6 @@ async function setup() {
   const clock = createClock();
   const shop = buildShopServices(clock);
   const category = shop.catalog.addCategory({ slug: 'robes', name: 'Robes' });
-  const plan = await shop.staffShops.createPlan(
-    {
-      name: 'Accès gratuit',
-      description: '',
-      kind: 'free',
-      price: 0,
-      periodDays: null,
-      trialDays: 0,
-      active: true,
-      position: 0,
-    },
-    owner,
-  );
   const openShop = async (email: string, name: string) => {
     const seller = shop.shopsStore.addOwner({ email });
     await shop.shops.open(seller.id, {
@@ -31,8 +18,6 @@ async function setup() {
       position: null,
       phone: '077123456',
       acceptedPaymentMethods: ['cash'],
-      handoverModes: ['pickup'],
-      planId: plan.id,
     });
     return seller;
   };

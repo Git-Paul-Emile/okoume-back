@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { logger } from './logger.js';
 import { customerId } from './customers.seeder.js';
 import { productId } from './products.seeder.js';
 import { isoDate, legacyUuid, readData, type Seeder } from './support.js';
@@ -20,21 +19,8 @@ const reviews = z.array(
   }),
 );
 
-const reports = z.array(
-  z.object({
-    id: z.string(),
-    reviewId: z.string(),
-    userId: z.string().optional(),
-    reason: z.string().min(1),
-    createdAt: isoDate,
-  }),
-);
-
-/** Contenu validé de data/reviews.json et data/review-reports.json */
-export const loadReviews = () => ({
-  reviews: readData('reviews.json', reviews),
-  reports: readData('review-reports.json', reports),
-});
+/** Avis clients de démonstration affichés dans « Les mieux notés par nos clients ». */
+export const loadReviews = () => readData('reviews.json', reviews);
 
 const reviewId = (legacyId: string) => legacyUuid('review', legacyId);
 
@@ -48,7 +34,7 @@ export const reviewsSeeder: Seeder = {
   async run({ prisma }) {
     const data = loadReviews();
     const { count } = await prisma.productReview.createMany({
-      data: data.reviews.map((r) => ({
+      data: data.map((r) => ({
         id: reviewId(r.id),
         productId: productId(r.productId),
         customerId: r.userId ? customerId(r.userId) : null,
@@ -63,19 +49,6 @@ export const reviewsSeeder: Seeder = {
       })),
       skipDuplicates: true,
     });
-    const withAuthor = data.reports.filter((r) => r.userId);
-    for (const skipped of data.reports.filter((r) => !r.userId))
-      logger.warn({ report: skipped.id }, 'Signalement sans auteur ignoré : un signalement appartient à un client');
-    const reported = await prisma.reviewReport.createMany({
-      data: withAuthor.map((r) => ({
-        id: legacyUuid('review-report', r.id),
-        reviewId: reviewId(r.reviewId),
-        customerId: customerId(r.userId ?? ''),
-        reason: r.reason,
-        createdAt: r.createdAt,
-      })),
-      skipDuplicates: true,
-    });
-    return count + reported.count;
+    return count;
   },
 };

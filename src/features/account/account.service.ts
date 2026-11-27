@@ -4,9 +4,6 @@ import type { CustomersRepository } from '../auth/auth.repository.js';
 import type { AccountRepository, AddressRecord } from './account.repository.js';
 import type { CreateAddressInput, ProfileInput, UpdateAddressInput } from './account.schemas.js';
 
-/** Favoris conservés par compte : au-delà, le client en retire avant d'en ajouter. */
-export const MAX_FAVORITES = 200;
-
 export const toAddressDto = (a: AddressRecord) => ({
   id: a.id,
   label: a.label,
@@ -25,7 +22,7 @@ const ADDRESS_NOT_FOUND = 'Adresse introuvable.';
 const UNKNOWN_ZONE = 'Ce quartier n’est pas desservi. Choisissez-en un dans la liste.';
 
 /**
- * Compte du client connecté : identité, adresses de livraison (2.2), favoris (3.6).
+ * Compte du client connecté : identité et adresses de livraison.
  * Chaque opération porte sur le compte de la session : un client ne touche jamais aux données d'un autre.
  */
 export const createAccountService = (deps: { customers: CustomersRepository; account: AccountRepository }) => {
@@ -76,24 +73,6 @@ export const createAccountService = (deps: { customers: CustomersRepository; acc
       if (!(await account.deleteAddress(customerId, id))) throw new NotFoundError(ADDRESS_NOT_FOUND);
     },
 
-    async favorites(customerId: string) {
-      await activeCustomer(customerId);
-      return account.listFavorites(customerId);
-    },
-
-    /** Idempotent : ajouter un favori déjà présent ne change rien. */
-    async addFavorite(customerId: string, productId: string) {
-      await activeCustomer(customerId);
-      if (!(await account.productPublished(productId))) throw new NotFoundError('Produit introuvable.');
-      if (!(await account.addFavorite(customerId, productId, MAX_FAVORITES)))
-        throw new UnprocessableError(`${MAX_FAVORITES} favoris au maximum : retirez-en avant d’en ajouter.`);
-    },
-
-    /** Idempotent : retirer un favori absent ne change rien. */
-    async removeFavorite(customerId: string, productId: string) {
-      await activeCustomer(customerId);
-      await account.removeFavorite(customerId, productId);
-    },
   };
 };
 
